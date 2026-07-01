@@ -1,15 +1,6 @@
 import type { RawVenueItem } from '../../../types/RawVenueItem';
-import type { VenueFilterRuleMatch } from './types';
-import {
-  REJECT_TYPE_RULES,
-  REJECT_KEYWORD_RULES,
-  ACCEPT_TYPE_RULES,
-  ACCEPT_KEYWORD_RULES,
-  REVIEW_KEYWORD_RULES,
-  REVIEW_TYPE_RULES,
-  ACTIVITY_NAME_REINFORCEMENT_KEYWORDS,
-  FITNESS_GENERIC_TYPE_RULE,
-} from './ruleLists';
+import type { VenueFilterRuleMatch, TypeRule, KeywordRule } from './types';
+import type { ResolvedRuleSet } from './resolveRuleSet';
 
 /**
  * Normalização de texto para comparação de palavra-chave — minúsculo,
@@ -42,12 +33,12 @@ function escapeRegex(text: string): string {
   return text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
-function evaluateTypeRules(
+function evaluateTypeRules<TRuleId extends string>(
   item: RawVenueItem,
-  rules: Array<{ rule_id: VenueFilterRuleMatch['rule_id']; google_types: string[] }>,
+  rules: TypeRule<TRuleId>[],
   layer: VenueFilterRuleMatch['layer'],
-): VenueFilterRuleMatch[] {
-  const matches: VenueFilterRuleMatch[] = [];
+): VenueFilterRuleMatch<TRuleId>[] {
+  const matches: VenueFilterRuleMatch<TRuleId>[] = [];
   for (const rule of rules) {
     const hit = rule.google_types.find((t) => item.google_types.includes(t));
     if (hit) {
@@ -62,16 +53,12 @@ function evaluateTypeRules(
   return matches;
 }
 
-function evaluateKeywordRules(
+function evaluateKeywordRules<TRuleId extends string>(
   item: RawVenueItem,
-  rules: Array<{
-    rule_id: VenueFilterRuleMatch['rule_id'];
-    keywords: string[];
-    matched_on: 'name' | 'website' | 'name_or_website';
-  }>,
+  rules: KeywordRule<TRuleId>[],
   layer: VenueFilterRuleMatch['layer'],
-): VenueFilterRuleMatch[] {
-  const matches: VenueFilterRuleMatch[] = [];
+): VenueFilterRuleMatch<TRuleId>[] {
+  const matches: VenueFilterRuleMatch<TRuleId>[] = [];
 
   for (const rule of rules) {
     const targets: Array<{ field: 'name' | 'website'; value: string | null }> =
@@ -101,21 +88,27 @@ function evaluateKeywordRules(
 }
 
 /**
- * Camada 3c — reforço de nome para itens activity_intent. SOMENTE
+ * Camada de reforço por nome para itens activity_intent. SOMENTE
  * aplicada quando source_query_kind === 'activity_intent' — em buscas
  * de place_type (teatro, museu, etc.) essas palavras não têm o mesmo
- * significado e não devem disparar nada.
+ * significado e não devem disparar nada. As keywords em si vêm do
+ * ruleSet do produto (activity_name_reinforcement_keywords) — o
+ * motor não conhece nenhum vocabulário de público-alvo.
  */
-function evaluateActivityNameReinforcement(item: RawVenueItem): VenueFilterRuleMatch[] {
+function evaluateActivityNameReinforcement<TRuleId extends string>(
+  item: RawVenueItem,
+  keywords: string[],
+  reinforcementRuleId: TRuleId,
+): VenueFilterRuleMatch<TRuleId>[] {
   if (item.source_query_kind !== 'activity_intent') return [];
   if (!item.name) return [];
 
-  const hit = ACTIVITY_NAME_REINFORCEMENT_KEYWORDS.find((kw) => containsKeyword(item.name, kw));
+  const hit = keywords.find((kw) => containsKeyword(item.name, kw));
   if (!hit) return [];
 
   return [
     {
-      rule_id: 'accept_keyword_activity_name_match',
+      rule_id: reinforcementRuleId,
       layer: 'accept',
       matched_on: 'name',
       matched_value: hit,
@@ -124,20 +117,26 @@ function evaluateActivityNameReinforcement(item: RawVenueItem): VenueFilterRuleM
 }
 
 /**
- * Camada 5 — fitness genérico. Só dispara se NENHUM reforço de nome
- * (camada 3c) já tiver casado — o reforço de nome é o sinal mais forte
- * e, se presente, a aceitação prevalece sem precisar marcar como
- * "fitness genérico" também.
+ * Camada de fallback de ambiguidade (ex: "fitness genérico" no Vivere
+ * 60+). Só dispara se NENHUM reforço de nome já tiver casado — o
+ * reforço de nome é o sinal mais forte e, se presente, a aceitação
+ * prevalece sem precisar marcar como ambíguo também. A regra em si
+ * (quais google_types disparam, qual rule_id usar) vem do ruleSet do
+ * produto — o motor não conhece nenhum valor real.
  */
-function evaluateFitnessGeneric(item: RawVenueItem, alreadyHasNameReinforcement: boolean): VenueFilterRuleMatch[] {
+function evaluateAmbiguityFallback<TRuleId extends string>(
+  item: RawVenueItem,
+  fallback: { rule_id: TRuleId; google_types: string[] },
+  alreadyHasNameReinforcement: boolean,
+): VenueFilterRuleMatch<TRuleId>[] {
   if (alreadyHasNameReinforcement) return [];
-  const hit = FITNESS_GENERIC_TYPE_RULE.google_types.find((t) => item.google_types.includes(t));
+  const hit = fallback.google_types.find((t) => item.google_types.includes(t));
   if (!hit) return [];
 
   return [
     {
-      rule_id: FITNESS_GENERIC_TYPE_RULE.rule_id,
-      layer: 'fitness_generic',
+      rule_id: fallback.rule_id,
+      layer: 'ambiguity_fallback',
       matched_on: 'google_types',
       matched_value: hit,
     },
@@ -145,22 +144,30 @@ function evaluateFitnessGeneric(item: RawVenueItem, alreadyHasNameReinforcement:
 }
 
 /**
- * Avalia TODAS as camadas sobre o item — nunca para na primeira regra
- * que casar. Retorna o conjunto completo de matches; a decisão final
- * (qual layer vence) é responsabilidade de decideVenueFilter, não
- * desta função.
+ * Avalia TODAS as camadas sobre o item, usando o ruleSet já resolvido
+ * (defaults universais + config do produto) — nunca para na primeira
+ * regra que casar. Retorna o conjunto completo de matches; a decisão
+ * final (qual layer vence) é responsabilidade de decideVenueFilter,
+ * não desta função.
  */
-export function evaluateAllRules(item: RawVenueItem): VenueFilterRuleMatch[] {
-  const nameReinforcement = evaluateActivityNameReinforcement(item);
+export function evaluateAllRules<TRuleId extends string, TAmbiguityLabel extends string>(
+  item: RawVenueItem,
+  ruleSet: ResolvedRuleSet<TRuleId, TAmbiguityLabel>,
+): VenueFilterRuleMatch<TRuleId>[] {
+  const nameReinforcement = evaluateActivityNameReinforcement(
+    item,
+    ruleSet.activity_name_reinforcement_keywords,
+    ruleSet.activity_name_reinforcement_rule_id,
+  );
 
   return [
-    ...evaluateTypeRules(item, REJECT_TYPE_RULES, 'reject'),
-    ...evaluateKeywordRules(item, REJECT_KEYWORD_RULES, 'reject'),
-    ...evaluateTypeRules(item, ACCEPT_TYPE_RULES, 'accept'),
-    ...evaluateKeywordRules(item, ACCEPT_KEYWORD_RULES, 'accept'),
+    ...evaluateTypeRules(item, ruleSet.reject_type, 'reject'),
+    ...evaluateKeywordRules(item, ruleSet.reject_keyword, 'reject'),
+    ...evaluateTypeRules(item, ruleSet.accept_type, 'accept'),
+    ...evaluateKeywordRules(item, ruleSet.accept_keyword, 'accept'),
     ...nameReinforcement,
-    ...evaluateKeywordRules(item, REVIEW_KEYWORD_RULES, 'review'),
-    ...evaluateTypeRules(item, REVIEW_TYPE_RULES, 'review'),
-    ...evaluateFitnessGeneric(item, nameReinforcement.length > 0),
+    ...evaluateKeywordRules(item, ruleSet.review_keyword, 'review'),
+    ...evaluateTypeRules(item, ruleSet.review_type, 'review'),
+    ...evaluateAmbiguityFallback(item, ruleSet.ambiguity_fallback, nameReinforcement.length > 0),
   ];
 }

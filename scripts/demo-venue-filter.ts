@@ -3,9 +3,13 @@
  * Não chama a Google Places API — usa RawVenueItem construídos à mão,
  * cobrindo os exemplos do pedido original (rejeitar, aceitar, revisão).
  *
+ * Usa o ruleSet do produto Vivere 60+ como exemplo — qualquer outro
+ * produto trocaria só este import, sem tocar o motor.
+ *
  * Uso: npx tsx scripts/demo-venue-filter.ts
  */
-import { filterVenueItems, summarizeFilterResults } from '../src/pipeline/stages/00-filter-venue';
+import { filterVenueItems, summarizeFilterResults, resolveRuleSet } from '../src/pipeline/stages/00-filter-venue';
+import { VIVERE_60_MAIS_VENUE_FILTER_RULES } from '../src/pipeline/stages/00-filter-venue/products/vivere-60-mais';
 import type { RawVenueItem } from '../src/types/RawVenueItem';
 
 function makeItem(name: string, googleTypes: string[]): RawVenueItem {
@@ -45,7 +49,7 @@ const SAMPLE_ITEMS: RawVenueItem[] = [
   makeItem('Estabelecimento Genérico XYZ', ['establishment']),
 ];
 
-const results = filterVenueItems(SAMPLE_ITEMS);
+const results = filterVenueItems(SAMPLE_ITEMS, VIVERE_60_MAIS_VENUE_FILTER_RULES);
 
 console.log('=== Venue Filtering Engine — demonstração com exemplos sintéticos ===\n');
 for (const { item, filter } of results) {
@@ -54,4 +58,4 @@ for (const { item, filter } of results) {
 }
 
 console.log('=== Resumo ===');
-console.log(summarizeFilterResults(results));
+console.log(summarizeFilterResults(results, resolveRuleSet(VIVERE_60_MAIS_VENUE_FILTER_RULES)));

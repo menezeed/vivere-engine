@@ -35,16 +35,25 @@ import type { GooglePlacesProductConfig } from '../src/collectors/google-places/
 import {
   filterVenueItems,
   summarizeFilterResults,
+  resolveRuleSet,
   type FilteredVenueItem,
-  type VenueFilterDecision,
 } from '../src/pipeline/stages/00-filter-venue';
+import {
+  VIVERE_60_MAIS_VENUE_FILTER_RULES,
+  type VivereSessentaMaisRuleId,
+  type VivereSessentaMaisAmbiguityLabel,
+} from '../src/pipeline/stages/00-filter-venue/products/vivere-60-mais';
 
 const AVAILABLE_PRODUCTS: Record<string, GooglePlacesProductConfig> = {
   'vivere-60-mais': VIVERE_60_MAIS_GOOGLE_PLACES_CONFIG,
 };
 
-function groupByCategory(results: FilteredVenueItem[]): Map<string, FilteredVenueItem[]> {
-  const groups = new Map<string, FilteredVenueItem[]>();
+const VENUE_FILTER_RESOLVED = resolveRuleSet(VIVERE_60_MAIS_VENUE_FILTER_RULES);
+
+function groupByCategory(
+  results: FilteredVenueItem<VivereSessentaMaisRuleId, VivereSessentaMaisAmbiguityLabel>[],
+): Map<string, FilteredVenueItem<VivereSessentaMaisRuleId, VivereSessentaMaisAmbiguityLabel>[]> {
+  const groups = new Map<string, FilteredVenueItem<VivereSessentaMaisRuleId, VivereSessentaMaisAmbiguityLabel>[]>();
   for (const r of results) {
     const key = r.item.source_category_hint;
     const list = groups.get(key) ?? [];
@@ -54,17 +63,20 @@ function groupByCategory(results: FilteredVenueItem[]): Map<string, FilteredVenu
   return groups;
 }
 
-const DECISION_LABEL: Record<VenueFilterDecision, string> = {
+// Label de exibição construído dinamicamente a partir do ruleSet do
+// produto — o script nunca menciona 'likely_fitness_generic' como
+// literal fixo, só o que o ambiguity_fallback do produto declara.
+const DECISION_LABEL: Record<string, string> = {
   accepted: 'ACCEPTED',
   needs_review: 'NEEDS REVIEW',
-  likely_fitness_generic: 'FITNESS GENÉRICO',
   rejected: 'REJECTED',
+  [VENUE_FILTER_RESOLVED.ambiguity_fallback.label]: 'FITNESS GENÉRICO',
 };
 
-function printItem(r: FilteredVenueItem) {
+function printItem(r: FilteredVenueItem<VivereSessentaMaisRuleId, VivereSessentaMaisAmbiguityLabel>) {
   const { item, filter } = r;
   const alternates = (item.raw_payload._alternate_category_hints as string[] | undefined) ?? [];
-  console.log(`  • [${DECISION_LABEL[filter.decision]}] ${item.name}`);
+  console.log(`  • [${DECISION_LABEL[filter.decision] ?? filter.decision.toUpperCase()}] ${item.name}`);
   console.log(`    motivo do filtro: ${filter.reasoning}`);
   console.log(`    endereço: ${item.address ?? '(sem endereço)'}`);
   console.log(`    telefone: ${item.phone ?? '(não disponível)'}  ·  site: ${item.website ?? '(não disponível)'}`);
@@ -120,20 +132,20 @@ async function main() {
   // O Venue Filtering Engine roda inteiramente em memória, sem nenhuma
   // chamada de API adicional — aplicá-lo aqui não soma custo nenhum
   // ao que já foi gasto na coleta.
-  const filtered = filterVenueItems(collected.items);
-  const summary = summarizeFilterResults(filtered);
+  const filtered = filterVenueItems(collected.items, VIVERE_60_MAIS_VENUE_FILTER_RULES);
+  const summary = summarizeFilterResults(filtered, VENUE_FILTER_RESOLVED);
 
   console.log('\n=== RESUMO POR DECISÃO ===\n');
   console.log(`  ACCEPTED:              ${summary.accepted}`);
   console.log(`  NEEDS REVIEW:          ${summary.needs_review}`);
-  console.log(`  FITNESS GENÉRICO:      ${summary.likely_fitness_generic}`);
+  console.log(`  ${DECISION_LABEL[summary.ambiguity_fallback_label]?.padEnd(20) ?? summary.ambiguity_fallback_label}: ${summary.ambiguity_fallback}`);
   console.log(`  REJECTED:              ${summary.rejected}`);
   console.log(`  TOTAL:                 ${filtered.length}`);
 
   console.log('\n=== DETALHE POR CATEGORIA ===\n');
   const grouped = groupByCategory(filtered);
   for (const [categoryKey, items] of grouped) {
-    const localSummary = summarizeFilterResults(items);
+    const localSummary = summarizeFilterResults(items, VENUE_FILTER_RESOLVED);
     console.log(
       `--- ${categoryKey} (${items.length} venue(s) único(s) — accepted: ${localSummary.accepted}, review: ${localSummary.needs_review}, rejected: ${localSummary.rejected}) ---`,
     );

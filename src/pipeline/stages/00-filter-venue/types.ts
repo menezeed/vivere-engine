@@ -4,89 +4,109 @@ import type { RawVenueItem } from '../../../types/RawVenueItem';
  * Venue Filtering Engine — estágio de ADMISSÃO, não de classificação.
  *
  * Roda ANTES da classificação de categoria. Responde a uma pergunta
- * diferente: "isso pertence ao universo do Vida Ativa 60+?" — não
- * "qual categoria exata é isso?". Essa segunda pergunta continua
- * sendo responsabilidade exclusiva do estágio 04-classify-category,
- * que já existe e não é alterado por este módulo.
+ * que depende do produto: "isso pertence ao universo deste produto
+ * Vivere?" — não "qual categoria exata é isso?" (responsabilidade do
+ * estágio de classificação de categoria, que não é alterado por este
+ * módulo).
  *
- * Filosofia: igual aos outros estágios do pipeline (recorrência,
- * categoria, venue resolution) — regras pequenas, nomeadas e
- * auditáveis, nunca uma função monolítica de decisão. Nenhuma IA
- * nesta primeira versão: cada decisão precisa ser explicável citando
- * exatamente qual regra disparou.
+ * GENERALIZAÇÃO (ver ARCHITECTURE_EVOLUTION.md): este motor não
+ * conhece nenhum produto específico. Os tipos abaixo são parametrizados
+ * por dois generics que cada produto declara:
+ *   - TRuleId: o universo de identificadores de regra daquele produto
+ *     (defaults universais do motor + regras específicas do produto)
+ *   - TAmbiguityLabel: as categorias de ambiguidade "subcategoria de
+ *     revisão" daquele produto (ex: 'likely_fitness_generic' para o
+ *     Vivere 60+; um produto futuro pode declarar outra, como
+ *     'likely_generic_lodging' para o Vivere Turismo)
+ *
+ * Isso preserva tipagem forte (erro de digitação ou mistura de
+ * vocabulário entre produtos é pego em tempo de compilação) sem o
+ * motor precisar conhecer os valores reais de nenhum produto —
+ * decisão tomada explicitamente em vez de abrir rule_id para string
+ * livre (ver discussão registrada em ARCHITECTURE_EVOLUTION.md).
  */
-/**
- * Quarta categoria: 'likely_fitness_generic'.
- *
- * Existe porque a Places API não distingue, no campo google_types,
- * uma academia comum de uma academia que de fato oferece atividade
- * relevante para o público 60+ (hidroginástica, dança, etc). Isso é
- * uma limitação estrutural do DADO da fonte, não algo que o filtro
- * heurístico pode resolver com mais regras de tipo.
- *
- * NÃO é um nível de severidade entre 'accepted' e 'needs_review' — é
- * uma SUBCATEGORIA INFORMATIVA de revisão: sinaliza ao revisor humano
- * "provavelmente é só uma academia genérica, baixa prioridade", em
- * vez de tratá-lo como ambíguo de verdade (que é o que 'needs_review'
- * comunica). Itens 'likely_fitness_generic' nunca são promovidos
- * automaticamente — continuam exigindo decisão humana, só chegam
- * pré-triados por prioridade.
- */
-export type VenueFilterDecision = 'accepted' | 'needs_review' | 'likely_fitness_generic' | 'rejected';
 
-export type VenueFilterRuleId =
-  // Camada 1 — rejeição por google_types
-  | 'reject_type_government'
-  | 'reject_type_finance'
-  | 'reject_type_fuel'
-  | 'reject_type_education_admin'
-  | 'reject_type_private_no_public_activity'
-  | 'reject_type_shopping_mall'
-  | 'reject_type_grocery'
-  | 'reject_type_sublocality_political'
-  // Camada 2 — rejeição por palavra-chave no nome
-  | 'reject_keyword_language_school'
-  | 'reject_keyword_driving_school'
-  | 'reject_keyword_legal_office'
-  | 'reject_keyword_government_office'
-  | 'reject_keyword_bank_branch'
-  // Camada 3 — aceitação por google_types
-  | 'accept_type_theater'
-  | 'accept_type_museum'
-  | 'accept_type_cultural_center'
-  | 'accept_type_library'
-  | 'accept_type_park'
-  | 'accept_type_art_gallery'
-  // Camada 3b — aceitação por palavra-chave (quando google_types não ajuda)
-  | 'accept_keyword_convivencia'
-  | 'accept_keyword_clube_social'
-  | 'accept_keyword_espaco_cultural'
-  // Camada 3c — reforço por nome quando a busca era activity_intent
-  // (sinal mais forte que o tipo genérico do Google para o caso
-  // hidroginástica/dança/natação)
-  | 'accept_keyword_activity_name_match'
-  // Camada 4 — casos intermediários, sempre vão para revisão
-  | 'review_keyword_feira'
-  | 'review_keyword_praca'
-  | 'review_keyword_centro_historico'
-  | 'review_keyword_monumento'
-  | 'review_type_tourist_attraction'
-  | 'review_type_food_uncertain'
-  // Camada 5 — tipo genérico de fitness, sem nenhum reforço de nome
-  | 'fitness_generic_type'
-  // Default
-  | 'default_no_rule_matched';
+export type VenueFilterDecision<TAmbiguityLabel extends string = never> =
+  | 'accepted'
+  | 'needs_review'
+  | 'rejected'
+  | TAmbiguityLabel;
 
-export interface VenueFilterRuleMatch {
-  rule_id: VenueFilterRuleId;
-  layer: 'reject' | 'accept' | 'review' | 'fitness_generic';
+export interface VenueFilterRuleMatch<TRuleId extends string = string> {
+  rule_id: TRuleId;
+  layer: 'reject' | 'accept' | 'review' | 'ambiguity_fallback';
   matched_on: 'google_types' | 'name' | 'website' | 'name_or_website';
   matched_value: string; // o valor exato que disparou a regra — auditoria
 }
 
-export interface VenueFilterResult {
-  decision: VenueFilterDecision;
-  matches: VenueFilterRuleMatch[];   // TODAS as regras que dispararam, não só a decisiva
-  decisive_layer: 'reject' | 'accept' | 'review' | 'fitness_generic' | 'default';
-  reasoning: string;                  // frase legível, montada a partir dos matches — para o painel de revisão
+export interface VenueFilterResult<TRuleId extends string = string, TAmbiguityLabel extends string = never> {
+  decision: VenueFilterDecision<TAmbiguityLabel>;
+  matches: VenueFilterRuleMatch<TRuleId>[]; // TODAS as regras que dispararam, não só a decisiva
+  decisive_layer: 'reject' | 'accept' | 'review' | 'ambiguity_fallback' | 'default';
+  reasoning: string; // frase legível, montada a partir dos matches — para o painel de revisão
 }
+
+export interface TypeRule<TRuleId extends string> {
+  rule_id: TRuleId;
+  google_types: string[];
+}
+
+export interface KeywordRule<TRuleId extends string> {
+  rule_id: TRuleId;
+  keywords: string[];
+  matched_on: 'name' | 'website' | 'name_or_website';
+}
+
+/**
+ * Uma categoria de regra pode ser estendida (somada aos defaults
+ * universais do motor) ou sobrescrita (substitui os defaults por
+ * completo) — nunca as duas coisas ao mesmo tempo na mesma categoria,
+ * para a composição nunca ser ambígua. Sem override declarado, o
+ * produto herda os defaults integralmente.
+ */
+export type RuleCategoryOverride<TRule> = { mode: 'extend'; rules: TRule[] } | { mode: 'override'; rules: TRule[] };
+
+export interface AmbiguityFallbackRule<TRuleId extends string, TAmbiguityLabel extends string> {
+  label: TAmbiguityLabel;
+  rule_id: TRuleId;
+  google_types: string[];
+  display_reason: string; // frase legível usada no reasoning, ex: "Provável academia genérica..."
+}
+
+/**
+ * Configuração completa de regras de um produto: defaults universais
+ * do motor (sempre presentes, a menos que o produto explicitamente
+ * sobrescreva uma categoria) compostos com o que o produto declara.
+ *
+ * Categorias consideradas universais — características gerais de
+ * lugar físico, não preferência de público-alvo (decisão registrada
+ * em ARCHITECTURE_EVOLUTION.md): reject_type, reject_keyword,
+ * accept_type. Categorias sempre específicas de produto:
+ * accept_keyword, review_keyword, review_type,
+ * activity_name_reinforcement_keywords, ambiguity_fallback — todo
+ * produto que usar este motor declara as suas, não há default
+ * universal sensato para nenhuma delas.
+ */
+export interface VenueFilterRuleSet<TRuleId extends string, TAmbiguityLabel extends string> {
+  reject_type?: RuleCategoryOverride<TypeRule<TRuleId>>;
+  reject_keyword?: RuleCategoryOverride<KeywordRule<TRuleId>>;
+  accept_type?: RuleCategoryOverride<TypeRule<TRuleId>>;
+  accept_keyword: KeywordRule<TRuleId>[];
+  review_keyword: KeywordRule<TRuleId>[];
+  review_type: TypeRule<TRuleId>[];
+  /**
+   * rule_id de revisão considerados "sinal fraco": quando TODOS os
+   * matches de review presentes vêm exclusivamente destes rule_id, E
+   * já existe um match de accept específico, a aceitação prevalece —
+   * o sinal fraco não deveria "afogar" uma classificação já confiável.
+   * Ex. real do Vivere 60+: 'review_type_tourist_attraction' (o Google
+   * atribui esse tipo a quase qualquer marco turístico, em paralelo a
+   * tipos bem mais específicos como museum/cultural_center).
+   */
+  weak_review_rule_ids?: TRuleId[];
+  activity_name_reinforcement_keywords: string[];
+  activity_name_reinforcement_rule_id: TRuleId; // rule_id próprio, distinto do rule_id do ambiguity_fallback
+  ambiguity_fallback: AmbiguityFallbackRule<TRuleId, TAmbiguityLabel>;
+}
+
+export type { RawVenueItem };

@@ -1,24 +1,33 @@
 import type { RawVenueItem } from '../../../types/RawVenueItem';
 import { evaluateAllRules } from './ruleEngine';
-import type { VenueFilterResult } from './types';
+import type { VenueFilterResult, VenueFilterRuleMatch } from './types';
+import type { ResolvedRuleSet } from './resolveRuleSet';
 
 /**
  * Regra de prioridade entre camadas, quando mais de uma dispara:
- *   reject > review > accept
+ *   reject > review > accept > ambiguity_fallback
  *
  * Justificativa: na dúvida entre incluir algo que não deveria e
  * excluir algo que deveria, prefira excluir (ou, na falta de sinal
  * de rejeição, mandar para revisão) e deixar a inclusão para decisão
  * humana. Isso é a mesma postura conservadora usada em todos os
- * outros estágios do pipeline (recorrência, categoria, venue
- * resolution) — nunca "inventar" uma admissão duvidosa.
+ * outros estágios do pipeline — nunca "inventar" uma admissão duvidosa.
  *
  * Se NENHUMA regra disparar, o default é 'needs_review', nunca
  * 'accepted' — um lugar desconhecido para o filtro não deveria
  * avançar automaticamente para o estágio de categoria.
+ *
+ * GENERALIZAÇÃO: este motor não conhece nenhum produto. O ruleSet
+ * (já resolvido com defaults universais + config do produto) é
+ * recebido como parâmetro, e os generics TRuleId/TAmbiguityLabel
+ * propagam o vocabulário real de cada produto sem o motor precisar
+ * conhecê-lo (ver ARCHITECTURE_EVOLUTION.md).
  */
-export function decideVenueFilter(item: RawVenueItem): VenueFilterResult {
-  const matches = evaluateAllRules(item);
+export function decideVenueFilter<TRuleId extends string, TAmbiguityLabel extends string>(
+  item: RawVenueItem,
+  ruleSet: ResolvedRuleSet<TRuleId, TAmbiguityLabel>,
+): VenueFilterResult<TRuleId, TAmbiguityLabel> {
+  const matches = evaluateAllRules(item, ruleSet);
 
   const rejectMatches = matches.filter((m) => m.layer === 'reject');
   const reviewMatches = matches.filter((m) => m.layer === 'review');
@@ -33,21 +42,16 @@ export function decideVenueFilter(item: RawVenueItem): VenueFilterResult {
     };
   }
 
-  // Regra de coexistência: tourist_attraction e os demais sinais de
-  // "caso intermediário" são tratados como sinal FRACO. Quando o item
-  // já carrega um sinal de aceitação claro e específico (museum,
-  // cultural_center, library, etc.), esse sinal específico prevalece
-  // — tourist_attraction é apenas um tipo genérico de turismo que o
-  // Google atribui em paralelo a quase qualquer marco/atração, e não
-  // deveria "afogar" uma classificação já específica e confiável.
-  // Revisão só vence quando é o ÚNICO tipo de sinal presente, ou
-  // quando o sinal de revisão vem de palavra-chave (esses continuam
-  // fortes o suficiente para forçar revisão mesmo com tipo aceito —
-  // ex: um nome com "centro histórico" pode ser relevante mas merece
-  // checagem humana mesmo que o Google também tenha tipado como museu).
+  // Regra de coexistência: rule_id de revisão declarados como "sinal
+  // fraco" pelo produto (ruleSet.weak_review_rule_ids) não deveriam
+  // "afogar" uma aceitação clara e específica já presente. Revisão só
+  // vence quando é o ÚNICO tipo de sinal presente, ou quando o sinal
+  // de revisão NÃO está na lista de fracos do produto (esses continuam
+  // fortes o suficiente para forçar revisão mesmo com tipo aceito).
+  const weakIds = new Set<TRuleId>(ruleSet.weak_review_rule_ids);
   const reviewIsOnlyWeakType =
     reviewMatches.length > 0 &&
-    reviewMatches.every((m) => m.rule_id === 'review_type_tourist_attraction') &&
+    reviewMatches.every((m) => weakIds.has(m.rule_id)) &&
     acceptMatches.length > 0;
 
   if (reviewMatches.length > 0 && !reviewIsOnlyWeakType) {
@@ -79,22 +83,20 @@ export function decideVenueFilter(item: RawVenueItem): VenueFilterResult {
     };
   }
 
-  // Camada 5 — fitness genérico. Só chega aqui se não houve reject,
-  // review nem accept (o reforço de nome, quando presente, já entrou
-  // em acceptMatches e o item teria sido aceito acima). Isso é uma
-  // SUBCATEGORIA de revisão, não uma rejeição: o local provavelmente
-  // é uma academia/estúdio comum, sem indicação clara de atender o
-  // público 60+, mas a decisão final ainda é humana.
-  const fitnessGenericMatches = matches.filter((m) => m.layer === 'fitness_generic');
-  if (fitnessGenericMatches.length > 0) {
+  // Fallback de ambiguidade do produto (ex: "fitness genérico" no
+  // Vivere 60+). Só chega aqui se não houve reject, review nem accept
+  // (o reforço de nome, quando presente, já entrou em acceptMatches e
+  // o item teria sido aceito acima). Isso é uma SUBCATEGORIA de
+  // revisão, não uma rejeição — a decisão final ainda é humana. O
+  // label e a frase de motivo vêm do ruleSet do produto, nunca de um
+  // literal fixo no motor.
+  const ambiguityMatches = matches.filter((m) => m.layer === 'ambiguity_fallback');
+  if (ambiguityMatches.length > 0) {
     return {
-      decision: 'likely_fitness_generic',
+      decision: ruleSet.ambiguity_fallback.label,
       matches,
-      decisive_layer: 'fitness_generic',
-      reasoning: buildReasoning(
-        'Provável academia/estúdio genérico, sem indicação clara de atender o público 60+',
-        fitnessGenericMatches,
-      ),
+      decisive_layer: 'ambiguity_fallback',
+      reasoning: buildReasoning(ruleSet.ambiguity_fallback.display_reason, ambiguityMatches),
     };
   }
 
@@ -106,7 +108,7 @@ export function decideVenueFilter(item: RawVenueItem): VenueFilterResult {
   };
 }
 
-function buildReasoning(prefix: string, matches: VenueFilterResult['matches']): string {
+function buildReasoning<TRuleId extends string>(prefix: string, matches: VenueFilterRuleMatch<TRuleId>[]): string {
   const parts = matches.map((m) => {
     const fieldLabel = m.matched_on === 'google_types' ? 'tipo' : m.matched_on === 'name' ? 'nome' : 'website';
     return `${m.rule_id} (${fieldLabel}: "${m.matched_value}")`;

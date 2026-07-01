@@ -121,3 +121,80 @@ describe('mapToRawActivityItems — nenhum sinal extraível em nenhuma camada', 
     expect(result.skipped[0].reason).toBe('no_extractable_schedule_found');
   });
 });
+
+describe('mapToRawActivityItems — contrato venue_mention (ajuste de Fase 3, ver estudo de modelo de entidades)', () => {
+  it('camada 1 (bloco estruturado, rótulo Local: explícito) produz venue_mention com confidence_hint "explicit_name" (caso real "Yoga no Forte")', () => {
+    const post = makePost({
+      contentHtml:
+        '<p><strong>SERVIÇO:</strong></p><p><strong>Yoga no Forte</strong><br>Dia: 28 de junho de 2026<br>' +
+        'Horário: 7h às 8h<br>Local: Canto do Forte, na Praia do Forte</p>',
+    });
+
+    const result = mapToRawActivityItems(post, { source_key: 'fonte_teste', structured_block_marker: SERVICO_MARKER });
+
+    expect(result.items[0].venue_mention).toEqual({
+      raw_text: 'Canto do Forte, na Praia do Forte',
+      raw_address_text: null,
+      confidence_hint: 'explicit_name',
+    });
+  });
+
+  it('camada 2 (narrativa) produz venue_mention com confidence_hint "inferred_from_context"', () => {
+    const post = makePost({
+      contentHtml:
+        '<p>Neste domingo (28) acontece uma apresentação especial no Centro Cultural. ' +
+        'A partir das 19h, o público poderá acompanhar o show gratuitamente.</p>',
+    });
+
+    const result = mapToRawActivityItems(post, { source_key: 'fonte_teste', structured_block_marker: SERVICO_MARKER });
+
+    expect(result.items[0].venue_mention).toEqual({
+      raw_text: 'Centro Cultural',
+      raw_address_text: null,
+      confidence_hint: 'inferred_from_context',
+    });
+  });
+
+  it('venue_mention é null (não um objeto com raw_text vazio) quando nenhum local é mencionado', () => {
+    const post = makePost({
+      contentHtml:
+        '<p><strong>SERVIÇO:</strong></p><p><strong>Yoga no Forte</strong><br>Dia: 28 de junho de 2026<br>Horário: 7h</p>',
+    });
+
+    const result = mapToRawActivityItems(post, { source_key: 'fonte_teste', structured_block_marker: SERVICO_MARKER });
+
+    expect(result.items[0].venue_mention).toBeNull();
+  });
+
+  it('o contrato NUNCA expõe os seis campos antigos de venue completo (venue_name, venue_lat, etc.)', () => {
+    const post = makePost({
+      contentHtml:
+        '<p><strong>SERVIÇO:</strong></p><p><strong>Yoga no Forte</strong><br>Dia: 28 de junho de 2026<br>' +
+        'Horário: 7h<br>Local: Canto do Forte</p>',
+    });
+
+    const result = mapToRawActivityItems(post, { source_key: 'fonte_teste', structured_block_marker: SERVICO_MARKER });
+    const item = result.items[0] as unknown as Record<string, unknown>;
+
+    // Nenhum dos seis campos antigos deveria existir no objeto — a fonte
+    // de atividade nunca tem autoridade para afirmar venue completo
+    expect(item).not.toHaveProperty('venue_name');
+    expect(item).not.toHaveProperty('venue_address');
+    expect(item).not.toHaveProperty('venue_lat');
+    expect(item).not.toHaveProperty('venue_lng');
+    expect(item).not.toHaveProperty('venue_phone');
+    expect(item).not.toHaveProperty('venue_website');
+  });
+
+  it('venue_mention nunca contém raw_address_text preenchido (Collector atual não extrai endereço, só nome)', () => {
+    const post = makePost({
+      contentHtml:
+        '<p><strong>SERVIÇO:</strong></p><p><strong>Yoga no Forte</strong><br>Dia: 28 de junho de 2026<br>' +
+        'Horário: 7h<br>Local: Canto do Forte</p>',
+    });
+
+    const result = mapToRawActivityItems(post, { source_key: 'fonte_teste', structured_block_marker: SERVICO_MARKER });
+
+    expect(result.items[0].venue_mention?.raw_address_text).toBeNull();
+  });
+});

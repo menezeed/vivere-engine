@@ -18,6 +18,24 @@
  * limpo mecanicamente (trim, encoding). Decisões de recorrência,
  * categoria, venue resolution, dedupe e score ficam para os estágios
  * do pipeline, nunca para o Collector.
+ *
+ * AJUSTE DE CONTRATO (Fase 3 — ver estudo de modelo de entidades,
+ * registrado antes do desenho de staging): o campo de venue mudou de
+ * seis campos soltos (venue_name/venue_address/venue_lat/venue_lng/
+ * venue_phone/venue_website) para uma única VenueMention.
+ *
+ * Motivo: uma fonte de atividade NUNCA tem autoridade epistêmica
+ * para afirmar latitude/longitude/telefone/website de um venue — ela
+ * só pode relatar o que o texto da fonte disse sobre o local. Os
+ * cinco campos antigos além de venue_name nunca foram preenchidos por
+ * nenhum Collector real (confirmado antes desta mudança) — eram
+ * "venue completo" simulado dentro de um contrato que só pode
+ * honestamente expressar "menção textual de venue". A resolução de
+ * qual venue real (com coordenadas, telefone, etc.) corresponde a
+ * essa menção é responsabilidade do Entity Resolution, sobre
+ * staging — nunca do Collector. RawVenueItem (Google Places e
+ * equivalentes) permanece com os campos completos, porque essas
+ * fontes TÊM autoridade para afirmá-los.
  */
 export interface RawActivityItem {
   // --- Identidade da fonte ---
@@ -34,13 +52,8 @@ export interface RawActivityItem {
   occurrences: RawOccurrence[];
   recurrence_text_hint: string | null;  // texto livre que SUGERE recorrência, nunca interpretado aqui
 
-  // --- Local ---
-  venue_name: string | null;
-  venue_address: string | null;
-  venue_lat: number | null;
-  venue_lng: number | null;
-  venue_phone: string | null;
-  venue_website: string | null;
+  // --- Local: uma AFIRMAÇÃO textual, não um venue resolvido ---
+  venue_mention: VenueMention | null;  // null quando a fonte não menciona nenhum local
 
   // --- Comercial ---
   price_text: string | null;     // texto bruto, ex: "Gratuito", "R$ 20" — parsing fica no normalizador
@@ -57,6 +70,28 @@ export interface RawActivityItem {
 
   // --- Auditoria ---
   raw_payload: Record<string, unknown>;  // o JSON/HTML original ou snapshot relevante, sem transformação
+}
+
+/**
+ * Uma afirmação textual de uma fonte de atividade sobre onde o
+ * evento acontece — não uma referência a um venue resolvido. A
+ * resolução (qual venue real, com coordenadas e contato, corresponde
+ * a esta menção) é trabalho do Entity Resolution sobre staging,
+ * nunca do Collector.
+ *
+ * `confidence_hint` distingue o quão diretamente a fonte declarou o
+ * local: 'explicit_name' quando há um nome de lugar claro e isolado
+ * (ex: bloco estruturado "Local: Forte São Mateus"); 'inferred_from_context'
+ * quando o nome foi extraído de uma frase narrativa mais ampla, com
+ * mais chance de ruído; 'ambiguous' quando a própria extração já
+ * identificou incerteza sobre se o texto correspondente é de fato um
+ * nome de local. Este hint não é uma decisão de Entity Resolution —
+ * é só a honestidade do Collector sobre a qualidade do que extraiu.
+ */
+export interface VenueMention {
+  raw_text: string;                  // exatamente o texto que a fonte usou para se referir ao local
+  raw_address_text: string | null;   // endereço mencionado em texto livre, se houver — nunca geocodificado aqui
+  confidence_hint: 'explicit_name' | 'inferred_from_context' | 'ambiguous';
 }
 
 export interface RawOccurrence {

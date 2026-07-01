@@ -1,6 +1,17 @@
 import { describe, it, expect } from 'vitest';
-import { decideVenueFilter } from '../decideVenueFilter';
+import { decideVenueFilter as decideVenueFilterRaw } from '../decideVenueFilter';
+import { resolveRuleSet } from '../resolveRuleSet';
+import { VIVERE_60_MAIS_VENUE_FILTER_RULES } from '../products/vivere-60-mais';
 import type { RawVenueItem } from '../../../../types/RawVenueItem';
+
+// Estes testes validam o MOTOR genérico, usando o ruleSet real do
+// Vivere 60+ como fixture — o comportamento testado aqui é o do
+// motor (prioridade reject > review > accept > fallback, defaults
+// universais herdados, etc.), não regras específicas de produto.
+const VIVERE_60_MAIS_RESOLVED = resolveRuleSet(VIVERE_60_MAIS_VENUE_FILTER_RULES);
+function decideVenueFilter(item: RawVenueItem) {
+  return decideVenueFilterRaw(item, VIVERE_60_MAIS_RESOLVED);
+}
 
 function makeItem(overrides: Partial<RawVenueItem>): RawVenueItem {
   return {

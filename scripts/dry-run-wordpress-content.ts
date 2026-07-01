@@ -66,7 +66,9 @@ async function main() {
     console.log(`${needsReview ? '⚠ ' : '✓ '}${item.title}`);
     console.log(`  método: ${item.raw_payload.extraction_method} | confiança: ${item.raw_payload.extraction_confidence}`);
     console.log(`  ocorrência: ${item.occurrences.length > 0 ? JSON.stringify(item.occurrences[0]) : '(nenhuma data extraída)'}`);
-    console.log(`  venue: ${item.venue_name ?? '(não extraído)'}`);
+    console.log(
+      `  venue: ${item.venue_mention?.raw_text ?? '(não extraído)'}${item.venue_mention ? ` [${item.venue_mention.confidence_hint}]` : ''}`,
+    );
     console.log(`  url: ${item.external_url}`);
     if (needsReview) {
       console.log(`  revisão necessária: ${reviewReasons.join(', ')}`);
