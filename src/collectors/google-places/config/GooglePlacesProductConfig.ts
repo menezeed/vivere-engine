@@ -39,6 +39,8 @@ export interface GooglePlacesCategory {
 export interface GooglePlacesProductConfig {
   /** Para qual produto da plataforma Vivere esta instância alimenta staging */
   product_key: string;
+  /** Chave da source no banco (public.sources.source_key) — sempre 'google_places' para este Collector */
+  source_key: string;
   source_priority: number;
 
   regions: GooglePlacesRegion[];

@@ -21,6 +21,7 @@ import type { GooglePlacesProductConfig } from './GooglePlacesProductConfig';
  */
 export const VIVERE_60_MAIS_GOOGLE_PLACES_CONFIG: GooglePlacesProductConfig = {
   product_key: 'vivere-60-mais',
+  source_key: 'google_places',
   source_priority: 70, // conforme tabela de Source Priority da plataforma — Google Places abaixo de fontes oficiais
 
   regions: [

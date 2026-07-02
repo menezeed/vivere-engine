@@ -30,7 +30,7 @@ function makePlace(overrides: Partial<GooglePlaceRaw>): GooglePlaceRaw {
 }
 
 const SMALL_CONFIG_A: GooglePlacesProductConfig = {
-  product_key: 'produto_a_teste',
+  product_key: 'produto_a_teste', source_key: 'google_places',
   source_priority: 70,
   regions: [{ key: 'cidade_a', display_label: 'Cidade A', lat: -22.0, lng: -42.0, radius_m: 5000 }],
   categories: [{ key: 'teatro', query_text: 'teatro', kind: 'place_type' }],
@@ -40,7 +40,7 @@ const SMALL_CONFIG_A: GooglePlacesProductConfig = {
 };
 
 const SMALL_CONFIG_B: GooglePlacesProductConfig = {
-  product_key: 'produto_b_teste',
+  product_key: 'produto_b_teste', source_key: 'google_places',
   source_priority: 70,
   regions: [
     { key: 'cidade_x', display_label: 'Cidade X', lat: -10.0, lng: -50.0, radius_m: 8000 },
