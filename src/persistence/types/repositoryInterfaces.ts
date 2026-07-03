@@ -2,6 +2,12 @@ import type { RawVenueItem } from '../../types/RawVenueItem';
 import type { RawActivityItem } from '../../types/RawActivityItem';
 import type { PersistedRawVenueItem, PersistedRawActivityItem } from './persistenceTypes';
 import type { FilteredVenueItem } from '../../pipeline/stages/00-filter-venue/index';
+import type {
+  ReviewFilter,
+  ReviewContext,
+  VenueStagingRow,
+  ActivityStagingRow,
+} from '../../review-api/types/reviewTypes';
 
 /**
  * Interfaces de repositório que o IngestionOrchestrator depende.
@@ -52,4 +58,30 @@ export interface IRepositorySet {
   rawActivityItem: IRawActivityItemRepository;
   venueStaging: IVenueStagingRepository;
   activityStaging: IActivityStagingRepository;
+}
+
+export interface IVenueReviewRepository {
+  list(filter: ReviewFilter): Promise<VenueStagingRow[]>;
+  getById(id: string): Promise<VenueStagingRow | null>;
+  updateStatus(id: string, ctx: ReviewContext): Promise<void>;
+  markPromoted(id: string, reviewedBy: string): Promise<void>;
+}
+
+export interface IActivityReviewRepository {
+  list(filter: ReviewFilter): Promise<ActivityStagingRow[]>;
+  getById(id: string): Promise<ActivityStagingRow | null>;
+  updateStatus(id: string, ctx: ReviewContext): Promise<void>;
+  markPromoted(id: string, reviewedBy: string): Promise<void>;
+}
+
+export interface IIngestionRunReadRepository {
+  list(limit?: number): Promise<Array<{
+    id: string;
+    source_key: string;
+    status: string;
+    items_collected: number;
+    items_errored: number;
+    started_at: string;
+    finished_at: string | null;
+  }>>;
 }
