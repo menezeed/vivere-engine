@@ -53,6 +53,7 @@ export interface GooglePlacesProductConfig {
 
 export interface PlaceSearchQuery {
   region_key: string;
+  region_label: string;
   category_key: string;
   query_text: string;
   query_kind: 'place_type' | 'activity_intent';
@@ -69,10 +70,11 @@ export function buildQueriesForProduct(config: GooglePlacesProductConfig): Place
   for (const region of config.regions) {
     for (const category of config.categories) {
       queries.push({
-        region_key: region.key,
+        region_key:   region.key,
+        region_label: region.display_label,
         category_key: category.key,
-        query_text: `${category.query_text} em ${region.display_label}`,
-        query_kind: category.kind,
+        query_text:   `${category.query_text} em ${region.display_label}`,
+        query_kind:   category.kind,
       });
     }
   }

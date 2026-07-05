@@ -187,8 +187,9 @@ export class GooglePlacesCollector {
       image_url: null,
 
       source_category_hint: query.category_key,
-      source_query_text: query.query_text,
-      source_query_kind: query.query_kind,
+      source_query_text:    query.query_text,
+      source_query_kind:    query.query_kind,
+      source_region_label:  query.region_label,
 
       google_types: place.types ?? [],
       google_business_status: place.businessStatus ?? 'OPERATIONAL',

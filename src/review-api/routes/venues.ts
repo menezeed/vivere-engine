@@ -1,7 +1,8 @@
 import { Hono } from 'hono';
 import type { ReviewService } from '../services/ReviewService';
 import { NotFoundError, ForbiddenError } from '../services/ReviewService';
-import type { AuthUser, ReviewFilter } from '../types/reviewTypes';
+import type { AuthUser } from '../types/reviewTypes';
+import { logger } from '../../lib/logger';
 
 type Env = { Variables: { user: AuthUser } };
 
@@ -9,16 +10,24 @@ export function venueRoutes(reviewService: ReviewService): Hono<Env> {
   const router = new Hono<Env>();
 
   router.get('/', async (c) => {
-    const filter: ReviewFilter = {
-      status:      (c.req.query('status') as ReviewFilter['status']) ?? 'pending_review',
-      product_key: c.req.query('product_key'),
-      limit:       c.req.query('limit')  ? Number(c.req.query('limit'))  : 20,
-      offset:      c.req.query('offset') ? Number(c.req.query('offset')) : 0,
-    };
     try {
-      const venues = await reviewService.listVenues(filter);
-      return c.json({ data: venues, count: venues.length, filter });
-    } catch (err) { return c.json({ error: String(err) }, 500); }
+      const result = await reviewService.listVenues({
+        page:        c.req.query('page')        ? Number(c.req.query('page'))        : undefined,
+        pageSize:    c.req.query('pageSize')    ? Number(c.req.query('pageSize'))    : undefined,
+        search:      c.req.query('search')      || undefined,
+        status:      c.req.query('status')      || undefined,
+        product_key: c.req.query('product_key') || undefined,
+        city:        c.req.query('city')        || undefined,
+        category:    c.req.query('category')    || undefined,
+        source:      c.req.query('source')      || undefined,
+        sort:        c.req.query('sort')        || undefined,
+        order:       (c.req.query('order') as 'asc' | 'desc') || undefined,
+      });
+      return c.json(result);
+    } catch (err) {
+      logger.error({ err }, 'venues list error');
+      return c.json({ error: 'Erro interno do servidor' }, 500);
+    }
   });
 
   router.get('/:id', async (c) => {
@@ -27,45 +36,25 @@ export function venueRoutes(reviewService: ReviewService): Hono<Env> {
       return c.json({ data: venue });
     } catch (err) {
       if (err instanceof NotFoundError) return c.json({ error: err.message }, 404);
-      return c.json({ error: String(err) }, 500);
+      logger.error({ err, id: c.req.param('id') }, 'venue getById error');
+      return c.json({ error: 'Erro interno do servidor' }, 500);
     }
   });
 
-  router.patch('/:id/approve', async (c) => {
-    const user = c.get('user');
-    try {
-      await reviewService.reviewVenue(c.req.param('id'), 'approve', user);
-      return c.json({ success: true, action: 'approve' });
-    } catch (err) {
-      if (err instanceof NotFoundError)  return c.json({ error: err.message }, 404);
-      if (err instanceof ForbiddenError) return c.json({ error: err.message }, 403);
-      return c.json({ error: String(err) }, 500);
-    }
-  });
-
-  router.patch('/:id/reject', async (c) => {
-    const user = c.get('user');
-    try {
-      await reviewService.reviewVenue(c.req.param('id'), 'reject', user);
-      return c.json({ success: true, action: 'reject' });
-    } catch (err) {
-      if (err instanceof NotFoundError)  return c.json({ error: err.message }, 404);
-      if (err instanceof ForbiddenError) return c.json({ error: err.message }, 403);
-      return c.json({ error: String(err) }, 500);
-    }
-  });
-
-  router.patch('/:id/promote', async (c) => {
-    const user = c.get('user');
-    try {
-      await reviewService.reviewVenue(c.req.param('id'), 'promote', user);
-      return c.json({ success: true, action: 'promote' });
-    } catch (err) {
-      if (err instanceof NotFoundError)  return c.json({ error: err.message }, 404);
-      if (err instanceof ForbiddenError) return c.json({ error: err.message }, 403);
-      return c.json({ error: String(err) }, 500);
-    }
-  });
+  for (const action of ['approve', 'reject', 'promote'] as const) {
+    router.patch(`/:id/${action}`, async (c) => {
+      const user = c.get('user');
+      try {
+        await reviewService.reviewVenue(c.req.param('id'), action, user);
+        return c.json({ success: true, action });
+      } catch (err) {
+        if (err instanceof NotFoundError)  return c.json({ error: err.message }, 404);
+        if (err instanceof ForbiddenError) return c.json({ error: err.message }, 403);
+        logger.error({ err, id: c.req.param('id'), action, userId: user.id }, 'venue review error');
+        return c.json({ error: 'Erro interno do servidor' }, 500);
+      }
+    });
+  }
 
   return router;
 }

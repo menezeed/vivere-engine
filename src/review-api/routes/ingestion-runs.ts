@@ -1,6 +1,7 @@
 import { Hono } from 'hono';
 import type { IIngestionRunReadRepository } from '../../persistence/types/repositoryInterfaces';
-import type { SupabaseClient } from '@supabase/supabase-js';
+import type { StatsRepository } from '../repositories/StatsRepository';
+import { logger } from '../../lib/logger';
 
 export function ingestionRunRoutes(repo: IIngestionRunReadRepository): Hono {
   const router = new Hono();
@@ -11,48 +12,41 @@ export function ingestionRunRoutes(repo: IIngestionRunReadRepository): Hono {
       const runs = await repo.list(limit);
       return c.json({ data: runs, count: runs.length });
     } catch (err) {
-      return c.json({ error: String(err) }, 500);
+      logger.error({ err }, 'ingestion-runs list error');
+      return c.json({ error: 'Erro interno do servidor' }, 500);
     }
   });
 
   return router;
 }
 
-export function statsRoutes(db: SupabaseClient): Hono {
+export function statsRoutes(statsRepo: StatsRepository): Hono {
   const router = new Hono();
 
-  // GET /stats — contagens por proposal_status
+  /**
+   * GET /api/stats?product_key=vivere-60-mais
+   *
+   * product_key é OBRIGATÓRIO. Retorna 400 se ausente.
+   * Nunca assume um produto por defeito — viola ADR-0004.
+   */
   router.get('/', async (c) => {
-    try {
-      const [venuesRes, activitiesRes] = await Promise.all([
-        db.schema('staging').from('venues_staging').select('proposal_status, product_key'),
-        db.schema('staging').from('activities_staging').select('proposal_status, product_key'),
-      ]);
+    const productKey = c.req.query('product_key');
 
-      if (venuesRes.error) throw new Error(venuesRes.error.message);
-      if (activitiesRes.error) throw new Error(activitiesRes.error.message);
-
-      const count = (rows: Array<{ proposal_status: string }>, status: string) =>
-        rows.filter(r => r.proposal_status === status).length;
-
+    // C2 — product_key obrigatório, sem fallback silencioso
+    if (!productKey) {
       return c.json({
-        venues: {
-          pending_review: count(venuesRes.data, 'pending_review'),
-          approved:       count(venuesRes.data, 'approved'),
-          rejected:       count(venuesRes.data, 'rejected'),
-          promoted:       count(venuesRes.data, 'promoted'),
-          total:          venuesRes.data.length,
-        },
-        activities: {
-          pending_review: count(activitiesRes.data, 'pending_review'),
-          approved:       count(activitiesRes.data, 'approved'),
-          rejected:       count(activitiesRes.data, 'rejected'),
-          promoted:       count(activitiesRes.data, 'promoted'),
-          total:          activitiesRes.data.length,
-        },
-      });
+        error: 'product_key é obrigatório',
+        hint: 'Exemplo: /api/stats?product_key=vivere-60-mais',
+      }, 400);
+    }
+
+    try {
+      const stats = await statsRepo.getPlatformStats(productKey);
+      return c.json(stats);
     } catch (err) {
-      return c.json({ error: String(err) }, 500);
+      // I2 — erro real para o logger, mensagem genérica para o cliente
+      logger.error({ err, productKey }, 'stats route error');
+      return c.json({ error: 'Erro interno do servidor' }, 500);
     }
   });
 

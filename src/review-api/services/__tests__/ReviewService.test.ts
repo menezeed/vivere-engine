@@ -49,28 +49,28 @@ function makeActivityRepo(): IActivityReviewRepository {
 describe('ReviewService.reviewVenue — roles', () => {
   it('viewer NÃO pode aprovar', async () => {
     const { repo } = makeVenueRepo();
-    const service = new ReviewService(repo, makeActivityRepo());
+    const service = new ReviewService(repo as unknown as import("../../repositories/VenueReviewRepository").VenueReviewRepository, makeActivityRepo() as unknown as import("../../repositories/ActivityReviewRepository").ActivityReviewRepository);
     await expect(service.reviewVenue('id', 'approve', makeUser('viewer')))
       .rejects.toThrow(ForbiddenError);
   });
 
   it('reviewer PODE aprovar', async () => {
     const { repo, mocks } = makeVenueRepo();
-    const service = new ReviewService(repo, makeActivityRepo());
+    const service = new ReviewService(repo as unknown as import("../../repositories/VenueReviewRepository").VenueReviewRepository, makeActivityRepo() as unknown as import("../../repositories/ActivityReviewRepository").ActivityReviewRepository);
     await service.reviewVenue('venue-staging-uuid', 'approve', makeUser('reviewer'));
     expect(mocks.updateStatus).toHaveBeenCalledWith('venue-staging-uuid', expect.objectContaining({ action: 'approve' }));
   });
 
   it('reviewer NÃO pode promover', async () => {
     const { repo } = makeVenueRepo(makeVenueRow({ proposal_status: 'approved' }));
-    const service = new ReviewService(repo, makeActivityRepo());
+    const service = new ReviewService(repo as unknown as import("../../repositories/VenueReviewRepository").VenueReviewRepository, makeActivityRepo() as unknown as import("../../repositories/ActivityReviewRepository").ActivityReviewRepository);
     await expect(service.reviewVenue('id', 'promote', makeUser('reviewer')))
       .rejects.toThrow(ForbiddenError);
   });
 
   it('admin PODE promover', async () => {
     const { repo, mocks } = makeVenueRepo(makeVenueRow({ proposal_status: 'approved' }));
-    const service = new ReviewService(repo, makeActivityRepo());
+    const service = new ReviewService(repo as unknown as import("../../repositories/VenueReviewRepository").VenueReviewRepository, makeActivityRepo() as unknown as import("../../repositories/ActivityReviewRepository").ActivityReviewRepository);
     await service.reviewVenue('venue-staging-uuid', 'promote', makeUser('admin'));
     expect(mocks.markPromoted).toHaveBeenCalledWith('venue-staging-uuid', 'user-uuid');
   });
@@ -79,14 +79,14 @@ describe('ReviewService.reviewVenue — roles', () => {
 describe('ReviewService.reviewVenue — transições', () => {
   it('lança NotFoundError quando venue não existe', async () => {
     const { repo } = makeVenueRepo(null);
-    const service = new ReviewService(repo, makeActivityRepo());
+    const service = new ReviewService(repo as unknown as import("../../repositories/VenueReviewRepository").VenueReviewRepository, makeActivityRepo() as unknown as import("../../repositories/ActivityReviewRepository").ActivityReviewRepository);
     await expect(service.reviewVenue('id', 'approve', makeUser('reviewer')))
       .rejects.toThrow(NotFoundError);
   });
 
   it('approve chama updateStatus com action=approve', async () => {
     const { repo, mocks } = makeVenueRepo();
-    const service = new ReviewService(repo, makeActivityRepo());
+    const service = new ReviewService(repo as unknown as import("../../repositories/VenueReviewRepository").VenueReviewRepository, makeActivityRepo() as unknown as import("../../repositories/ActivityReviewRepository").ActivityReviewRepository);
     await service.reviewVenue('venue-staging-uuid', 'approve', makeUser('reviewer'));
     expect(mocks.updateStatus).toHaveBeenCalledWith(
       'venue-staging-uuid',
@@ -96,7 +96,7 @@ describe('ReviewService.reviewVenue — transições', () => {
 
   it('reject chama updateStatus com action=reject', async () => {
     const { repo, mocks } = makeVenueRepo();
-    const service = new ReviewService(repo, makeActivityRepo());
+    const service = new ReviewService(repo as unknown as import("../../repositories/VenueReviewRepository").VenueReviewRepository, makeActivityRepo() as unknown as import("../../repositories/ActivityReviewRepository").ActivityReviewRepository);
     await service.reviewVenue('venue-staging-uuid', 'reject', makeUser('reviewer'));
     expect(mocks.updateStatus).toHaveBeenCalledWith(
       'venue-staging-uuid',
@@ -106,7 +106,7 @@ describe('ReviewService.reviewVenue — transições', () => {
 
   it('promote chama markPromoted, não updateStatus', async () => {
     const { repo, mocks } = makeVenueRepo(makeVenueRow({ proposal_status: 'approved' }));
-    const service = new ReviewService(repo, makeActivityRepo());
+    const service = new ReviewService(repo as unknown as import("../../repositories/VenueReviewRepository").VenueReviewRepository, makeActivityRepo() as unknown as import("../../repositories/ActivityReviewRepository").ActivityReviewRepository);
     await service.reviewVenue('venue-staging-uuid', 'promote', makeUser('admin'));
     expect(mocks.markPromoted).toHaveBeenCalled();
     expect(mocks.updateStatus).not.toHaveBeenCalled();
@@ -116,7 +116,7 @@ describe('ReviewService.reviewVenue — transições', () => {
 describe('ReviewService.listVenues', () => {
   it('delega ao repositório com o filtro passado', async () => {
     const { repo, mocks } = makeVenueRepo();
-    const service = new ReviewService(repo, makeActivityRepo());
+    const service = new ReviewService(repo as unknown as import("../../repositories/VenueReviewRepository").VenueReviewRepository, makeActivityRepo() as unknown as import("../../repositories/ActivityReviewRepository").ActivityReviewRepository);
     const filter = { status: 'pending_review' as const, product_key: 'vivere-60-mais', limit: 10, offset: 0 };
     await service.listVenues(filter);
     expect(mocks.list).toHaveBeenCalledWith(filter);

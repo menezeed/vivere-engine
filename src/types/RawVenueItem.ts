@@ -31,6 +31,7 @@ export interface RawVenueItem {
   source_category_hint: string;         // qual categoria da nossa lista gerou esta busca, ex: 'biblioteca'
   source_query_text: string;            // a query de texto exata enviada ao Google, para auditoria
   source_query_kind: 'place_type' | 'activity_intent'; // distingue "biblioteca" (lugar) de "dança para idosos" (atividade+público)
+  source_region_label?: string;         // display_label da região configurada, ex: "Cabo Frio RJ" — cidade persistida sem parsing
 
   google_types: string[];               // types[] bruto do Google — auditoria, nunca mapeado direto para category
   google_business_status: 'OPERATIONAL' | 'CLOSED_TEMPORARILY' | 'CLOSED_PERMANENTLY';

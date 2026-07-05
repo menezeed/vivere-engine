@@ -25,6 +25,7 @@ function toRow(item: RawVenueItem, ingestionRunId: string): Record<string, unkno
     source_category_hint:   item.source_category_hint,
     source_query_text:      item.source_query_text,
     source_query_kind:      item.source_query_kind,
+    source_region_label:    item.source_region_label,
     google_types:           item.google_types,
     google_business_status: item.google_business_status,
     raw_payload:            item.raw_payload,

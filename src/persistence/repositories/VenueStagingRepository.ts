@@ -61,6 +61,8 @@ export class VenueStagingRepository {
             source_item_id:    f.item.source_item_id,
             product_key:       productKey,
             proposal_status:   'pending_review',
+            city:              (f.item as import('../../types/RawVenueItem').RawVenueItem).source_region_label ?? null,
+            name:              f.item.name ?? null,
           };
         })
         .filter((row): row is NonNullable<typeof row> => row !== null);
