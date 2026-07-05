@@ -117,12 +117,22 @@ export interface PlatformStats {
     rejected: number;
     promoted: number;
     total: number;
+    unresolved_venue: number;   // W4 — actividades sem venue resolvido
   };
   ingestion: {
     last_run_at: string | null;
     last_run_source: string | null;
     last_run_items: number | null;
+    last_run_status: string | null;   // W5 — status da última run
     runs_this_month: number;
+    by_source: Array<{               // W6 — estado por source
+      source_key: string;
+      last_status: string;
+      last_run_at: string;
+      last_run_items: number;
+      last_run_errors: number;
+      duration_ms: number | null;
+    }>;
   };
   budget: {
     monthly_limit_usd: number;
