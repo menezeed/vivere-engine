@@ -35,11 +35,9 @@ const CLEANUP  = process.argv.includes('--cleanup');
 
 // ── Dados sintéticos de teste ─────────────────────────────────────────────────
 
-// UUIDs fictícios — não precisam de existir no banco para este script
-// (os repositórios concretos devem aceitar UUIDs externos nas FK nullable)
-const SYNTHETIC_ACTIVITY_ID = '00000000-0000-0000-0000-000000000001' as ActivityStagingId;
-const SYNTHETIC_VENUE_ID    = '00000000-0000-0000-0000-000000000002' as VenueStagingId;
-const PRODUCT_KEY           = 'vivere-60-mais';
+// Não usamos UUIDs fixos para FKs — buscamos um real do banco em runtime.
+// activity_staging_id e candidate_venue_id precisam existir nas tabelas referenciadas.
+const PRODUCT_KEY = 'vivere-60-mais';
 
 // ── Utilitários ───────────────────────────────────────────────────────────────
 
@@ -79,6 +77,37 @@ async function main(): Promise<void> {
     fail('EntityResolutionRepositoryFactory.forSupabase()', e);
   }
 
+  // ── Buscar IDs reais do banco (FK obrigatória) ─────────────────────────────
+  // activity_staging_id e candidate_venue_id devem existir nas tabelas referenciadas.
+  const { getSupabaseClient } = await import('../src/persistence/client/supabase.js');
+  const db = getSupabaseClient();
+
+  const { data: activityRow } = await db
+    .schema('staging').from('activities_staging')
+    .select('id').eq('product_key', PRODUCT_KEY).limit(1).single();
+
+  if (!activityRow) fail('Pré-requisito', 'Nenhuma activity encontrada em activities_staging para ' + PRODUCT_KEY);
+  const REAL_ACTIVITY_ID = activityRow.id as ActivityStagingId;
+  log('IDs reais obtidos', { activityId: REAL_ACTIVITY_ID });
+
+  const eligibleVenues = await repos.candidate.findEligibleVenues(PRODUCT_KEY, ['approved', 'promoted']);
+  if (eligibleVenues.length === 0) {
+    fail('Pré-requisito', 'Nenhum venue approved/promoted encontrado. Aprovar venues no Admin Panel antes de executar.');
+  }
+  const REAL_VENUE_ID = eligibleVenues[0]!.id;
+  log('Venue elegível obtido', { venueId: REAL_VENUE_ID, name: eligibleVenues[0]!.name });
+
+  // ── Limpeza de runs órfãs (runs 'running' de execuções anteriores falhadas) ─
+  try {
+    const orphan = await repos.run.findActive(PRODUCT_KEY);
+    if (orphan) {
+      await repos.run.markFailed(orphan.runId, 'Marcada como failed pelo script de validação — run órfã de execução anterior');
+      log('Runs órfãs limpas', { orphanId: orphan.runId });
+    }
+  } catch {
+    // Ignorar — se não conseguir limpar, o Passo 1 vai criar uma nova run normalmente
+  }
+
   let runId: ResolutionRunId;
   let candidateIds: CandidateId[];
 
@@ -101,12 +130,12 @@ async function main(): Promise<void> {
     fail('Passo 2 — repos.run.findActive()', e);
   }
 
-  // ── Passo 3: Inserir candidatos sintéticos ────────────────────────────────
+  // ── Passo 3: Inserir candidatos com IDs reais ─────────────────────────────
   try {
     const syntheticCandidates = [
       {
         candidate: {
-          id:                   SYNTHETIC_VENUE_ID,
+          id:                   REAL_VENUE_ID,
           product_key:          PRODUCT_KEY,
           name:                 'Venue Sintético de Teste',
           address:              'Rua do Teste, 123, Cabo Frio - RJ',
@@ -118,9 +147,9 @@ async function main(): Promise<void> {
           proposal_status:      'approved' as const,
         },
         score: {
-          candidateId:   SYNTHETIC_VENUE_ID,
-          nameScore:     { value: 0.80, method: 'name' as const, detail: 'contains match', subMethod: 'contains' },
-          geoScore:      { value: 0.85, method: 'geo'  as const, detail: 'distance: 200m' },
+          candidateId:   REAL_VENUE_ID,
+          nameScore:     { value: 0.80, method: 'name' as const, detail: 'contains match', subMethod: 'contains' as const },
+          geoScore:      { value: 0.85, method: 'geo'  as const, detail: 'distance: 200m', subMethod: undefined },
           addressScore:  null,
           hybridScore:   0.823,
           finalScore:    0.923,
@@ -133,7 +162,7 @@ async function main(): Promise<void> {
 
     candidateIds = await repos.candidate.insertCandidates(
       runId,
-      SYNTHETIC_ACTIVITY_ID,
+      REAL_ACTIVITY_ID,
       PRODUCT_KEY,
       syntheticCandidates,
     );
@@ -144,7 +173,7 @@ async function main(): Promise<void> {
 
   // ── Passo 4: Consultar candidatos ─────────────────────────────────────────
   try {
-    const found = await repos.candidate.findByActivity(SYNTHETIC_ACTIVITY_ID);
+    const found = await repos.candidate.findByActivity(REAL_ACTIVITY_ID);
     if (found.length !== 1) {
       fail('Passo 4 — findByActivity()', `Esperado 1 candidato, encontrado ${found.length}`);
     }
@@ -171,7 +200,7 @@ async function main(): Promise<void> {
   // ── Passo 6: Remover candidatos de uma actividade ─────────────────────────
   if (CLEANUP) {
     try {
-      const deleted = await repos.candidate.deleteByActivity(SYNTHETIC_ACTIVITY_ID);
+      const deleted = await repos.candidate.deleteByActivity(REAL_ACTIVITY_ID);
       log('Passo 6 — Candidatos removidos (cleanup)', { deleted });
     } catch (e) {
       fail('Passo 6 — repos.candidate.deleteByActivity()', e);
@@ -188,15 +217,33 @@ async function main(): Promise<void> {
     fail('Passo 7 — repos.run.finish()', e);
   }
 
-  // ── Passo 8: Verificar que run já não está activa ─────────────────────────
+  // ── Passo 8: Verificar que ESTA run está fechada ─────────────────────────
   try {
-    const active = await repos.run.findActive(PRODUCT_KEY);
-    if (active !== null) {
-      fail('Passo 8 — findActive() após finish()', `Run ainda activa após finish(): ${active.runId}`);
+    // Buscar a run pelo ID directamente — confirma que foi fechada com sucesso
+    const { data: runData, error: runError } = await db
+      .schema('staging')
+      .from('venue_resolution_runs')
+      .select('id, status, finished_at')
+      .eq('id', runId)
+      .single();
+
+    if (runError || !runData) {
+      fail('Passo 8 — verificar run por ID', runError?.message ?? 'run não encontrada');
     }
-    log('Passo 8 — findActive() correctamente retorna null após finish()');
+    if (runData.status !== 'success') {
+      fail('Passo 8 — status da run', `Esperado 'success', encontrado '${runData.status}'`);
+    }
+    if (!runData.finished_at) {
+      fail('Passo 8 — finished_at', 'finished_at está null após finish()');
+    }
+    log('Passo 8 — Run confirmada como success com finished_at', {
+      runId: runData.id,
+      status: runData.status,
+      finished_at: runData.finished_at,
+    });
   } catch (e) {
-    fail('Passo 8 — repos.run.findActive() após finish()', e);
+    if (String(e).includes('✘')) throw e;
+    fail('Passo 8 — verificar run por ID', e);
   }
 
   // ── Resultado final ───────────────────────────────────────────────────────
