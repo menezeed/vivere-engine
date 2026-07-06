@@ -116,9 +116,15 @@ export {
   wasProcessed,
 } from './pipeline/contracts.js';
 
-// ── Logging e métricas (ajustes #4 e #5) ─────────────────────────────────────
-export { ERLogger, startTimer } from './utils/logging.js';
-export type { PipelineMetrics } from './utils/logging.js';
+// ── Logging e métricas (ajustes #2, #3, #4, #5) ──────────────────────────────
+export { ERLogger, ERSilentLogger, startTimer } from './utils/logging.js';
+export type {
+  IERLogger,
+  PipelineMetrics,
+  OperationalMetrics,
+  BusinessMetrics,
+  RunSummaryLog,
+} from './utils/logging.js';
 
 // ── Erros ─────────────────────────────────────────────────────────────────────
 export {

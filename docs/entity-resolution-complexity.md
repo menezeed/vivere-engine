@@ -209,3 +209,118 @@ interface PipelineMetrics {
 
 Estas métricas vão para o log estruturado (pino) e para `match_detail JSONB`
 em `venue_resolution_candidates` para análise futura.
+
+---
+
+## Consumo de memória por etapa
+
+### CandidateGenerator
+
+Carrega o pool completo para memória.
+
+| n (venues) | Tamanho de VenueCandidate | Memória estimada |
+|---|---|---|
+| 3 | ~300 bytes | ~1KB |
+| 500 | ~300 bytes | ~150KB |
+| 5.000 | ~300 bytes | ~1.5MB |
+| 50.000 | ~300 bytes | ~15MB |
+
+**Nota:** 15MB para 50.000 venues é aceitável em Node.js (heap padrão ≥ 1.4GB).
+Quando o pool crescer além de 100.000, considerar streaming ou paginação do pool.
+
+### CandidatePreFilter
+
+Opera sobre o array do Generator sem copiar — filtra com `.filter()` e `.slice()`.
+Memória adicional: negligenciável (referências, não cópias de objecto).
+
+### Matchers
+
+Cada matcher cria um `MatchScore` por candidato (m ≤ 50).
+~200 bytes × 50 = ~10KB por actividade. Negligenciável.
+
+### HybridScoreCalculator
+
+Cria `CandidateScore` por candidato — ~400 bytes × 50 = ~20KB.
+Negligenciável.
+
+### PipelineMetrics
+
+~1KB por resolução. Para 1.000 actividades em paralelo futuro: ~1MB.
+Aceitável — não mantido em memória após log + persistência.
+
+### Pico de memória por execução de resolveAll()
+
+```
+pool_tamanho × sizeof(VenueCandidate)
++ m × sizeof(MatchScore) × n_matchers
++ m × sizeof(CandidateScore)
++ sizeof(PipelineMetrics)
+```
+
+Para o MVP (3 venues, 8 actividades, execução sequencial): < 100KB total.
+Para plataforma madura (5.000 venues, 200 actividades sequenciais): < 5MB.
+
+---
+
+## Paralelização futura
+
+### Nível 1 — Paralelizar actividades (mais impacto, menor complexidade)
+
+```typescript
+// Hoje (sequencial):
+for (const activityId of activityIds) {
+  await engine.resolve(activityId);
+}
+
+// Futuro (paralelo em batches):
+const BATCH_SIZE = 10;
+for (const batch of chunks(activityIds, BATCH_SIZE)) {
+  await Promise.all(batch.map(id => engine.resolve(id)));
+}
+```
+
+**Quando:** quando resolveAll() exceder 60 segundos (estimado: ~1.000 actividades
+com pool de 5.000 venues em execução sequencial).
+
+**Pré-condição:** cada resolução deve ser stateless (já é — nenhum componente
+guarda estado entre resoluções). Verificar que o Supabase client suporta
+conexões concorrentes sem lock (suporta — pool de conexões).
+
+### Nível 2 — Paralelizar matchers dentro de uma resolução
+
+```typescript
+// Hoje (sequencial por matcher):
+const nameScore = nameMatcher.score(mention, candidate);
+const geoScore  = geoMatcher.score(mention, candidate);
+const addrScore = addressMatcher.score(mention, candidate);
+
+// Futuro (paralelo por candidato):
+const [nameScore, geoScore, addrScore] = await Promise.all([
+  Promise.resolve(nameMatcher.score(mention, candidate)),
+  Promise.resolve(geoMatcher.score(mention, candidate)),
+  Promise.resolve(addressMatcher.score(mention, candidate)),
+]);
+```
+
+**Quando:** quando o NameMatcher for delegado ao pg_trgm (query assíncrona).
+Actualmente os matchers são síncronos — paralelismo não traz benefício.
+
+### Nível 3 — Worker threads para matchers CPU-intensivos
+
+Apenas relevante se um matcher futuro (ex: EmbeddingMatcher com modelo ML)
+tiver latência > 10ms por candidato. Arquitectura actual suporta — matchers
+são funções puras sem shared state.
+
+**Quando:** Fase 9+ com modelos de embeddings locais.
+
+---
+
+## Resumo de decisões de performance por volume
+
+| Volume | Acção | Sprint |
+|---|---|---|
+| Até 5.000 venues | Nenhuma — arquitectura actual suficiente | — |
+| 5.000–50.000 | Bounding box pré-filtro no SQL do Generator | Quando necessário |
+| 50.000–500.000 | Índice geoespacial PostGIS ou bounding box | Quando necessário |
+| Mais de 1.000 actividades/semana | Paralelismo de Nível 1 (batches) | Fase 9 |
+| Matchers ML (embeddings) | Worker threads, Nível 3 | Fase 9+ |

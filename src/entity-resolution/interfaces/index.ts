@@ -102,8 +102,29 @@ export interface ICandidateGenerator {
 // ── ICandidatePreFilter ───────────────────────────────────────────────────────
 
 /**
- * Reduz o pool de candidatos usando heurísticas baratas.
+ * Reduz o pool de candidatos usando heurísticas baratas e configuráveis.
  * Opera em memória — sem acesso ao banco.
+ *
+ * REGRA ARQUITECTURAL INVIOLÁVEL (ajuste #4 do roadmap):
+ * O CandidatePreFilter NUNCA contém inteligência semântica.
+ *
+ * Critérios PERMITIDOS (heurísticas estruturais/geográficas):
+ *   ✅ raio máximo em metros (Haversine simples)
+ *   ✅ cidade igual (comparação de string)
+ *   ✅ categoria compatível (sobreposição de listas)
+ *   ✅ product_key correcto
+ *   ✅ proposal_status no conjunto permitido
+ *   ✅ limite máximo de candidatos (top N por proximidade)
+ *
+ * Critérios PROIBIDOS (responsabilidade exclusiva dos Matchers):
+ *   ❌ similaridade de nome (tokens, trigrama, fuzzy)
+ *   ❌ score de qualquer tipo
+ *   ❌ overlap semântico de texto
+ *   ❌ qualquer algoritmo de matching
+ *
+ * Se um critério requer comparar o texto da menção com o conteúdo
+ * do candidato, pertence ao Matcher — não ao PreFilter.
+ *
  * Output: FilteredCandidates com no máximo config.maxCandidates elementos.
  */
 export interface ICandidatePreFilter {

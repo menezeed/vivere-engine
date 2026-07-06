@@ -1,142 +1,201 @@
 /**
  * entity-resolution/utils/logging.ts
  *
- * Padrão único de logging estruturado para o Entity Resolution Engine.
+ * Padrão único de logging e métricas do Entity Resolution Engine.
  *
- * PRINCÍPIO (ajustes #4 e #5 do roadmap):
- * Cada etapa do pipeline produz exactamente:
- *   - início (com contexto)
- *   - fim (com duração + resultado)
- * Sem logs excessivos dentro dos algoritmos.
- * Formato JSON/pino, consistente com o restante da plataforma.
- *
- * Todos os componentes importam de aqui — nunca do pino directamente.
- * Isso garante um formato único e permite substituir o logger em testes.
+ * AJUSTE #2 — Métricas separadas em operacional e negócio.
+ * AJUSTE #3 — IERLogger injectável — nenhum componente escreve directamente
+ *             no pino. Recebem IERLogger por injecção. Mesmo padrão
+ *             de desacoplamento do restante da plataforma.
+ * AJUSTE #4 — ERLogger de produção usa pino. ERSilentLogger para testes.
  */
 
 import { logger as pinoLogger } from '../../lib/logger.js';
 import type { AutoClassification } from '../types/domain.js';
 
-// ── PipelineMetrics — recolhidas em cada resolução ────────────────────────────
+// ── Métricas operacionais ─────────────────────────────────────────────────────
 
-export interface PipelineMetrics {
+/**
+ * O que o sistema fez — tempos, volumes, recursos.
+ * Útil para diagnóstico de performance, alertas de SLA, optimização.
+ */
+export interface OperationalMetrics {
+  activityId:          string;
+  productKey:          string;
+  runId:               string;
+
+  // Volumes do pipeline
+  candidatesGenerated: number;   // pool bruto do Generator
+  candidatesFiltered:  number;   // após PreFilter
+  candidatesScored:    number;   // após Matchers (= filtered, explícito por clareza)
+
+  // Duração por componente (ms)
+  generatorMs:         number;
+  preFilterMs:         number;
+  nameMatcherMs:       number;
+  geoMatcherMs:        number;
+  addressMatcherMs:    number;
+  hybridMs:            number;
+  classifierMs:        number;
+  persistenceMs:       number;
+  totalMs:             number;
+}
+
+// ── Métricas de negócio ───────────────────────────────────────────────────────
+
+/**
+ * O que o negócio quer saber — qualidade das resoluções, distribuição
+ * de classificações, confiança do motor.
+ * Útil para calibração de thresholds, relatórios operacionais, ADR updates.
+ */
+export interface BusinessMetrics {
   activityId:           string;
   productKey:           string;
   runId:                string;
-
-  // Volumes
-  candidatesGenerated:  number;   // após CandidateGenerator
-  candidatesFiltered:   number;   // após CandidatePreFilter
-  candidatesScored:     number;   // após Matchers (= filtered, mas explícito)
-
-  // Tempos por componente (ms)
-  generatorMs:          number;
-  preFilterMs:          number;
-  nameMatcherMs:        number;
-  geoMatcherMs:         number;
-  addressMatcherMs:     number;
-  hybridMs:             number;
-  classifierMs:         number;
-  persistenceMs:        number;
-  totalMs:              number;
 
   // Qualidade dos scores
   maxScore:             number;
   avgScore:             number;
   minScore:             number;
 
-  // Resultado
+  // Resultado da resolução
   finalClassification:  AutoClassification;
   topCandidateName:     string | null;
   topCandidateScore:    number | null;
+  overrideRequired:     boolean;  // true se score ≥ highConfidence mas ambiguous
 }
 
-// ── ERLogger — wrapper com métodos específicos do pipeline ────────────────────
+// ── PipelineMetrics — agregado para persistência ──────────────────────────────
 
-export const ERLogger = {
-  /**
-   * Início de uma run de resolução em batch.
-   */
-  runStarted(runId: string, productKey: string, activitiesCount: number): void {
+/**
+ * União de operacional + negócio.
+ * Persiste em match_detail JSONB de venue_resolution_candidates.
+ * Também vai para o log estruturado em cada resolução.
+ */
+export interface PipelineMetrics extends OperationalMetrics, BusinessMetrics {}
+
+// ── IERLogger — interface injectável ─────────────────────────────────────────
+
+/**
+ * Contrato de logging do Entity Resolution Engine.
+ * TODOS os componentes recebem IERLogger por injecção.
+ * Nenhum componente importa pino directamente.
+ *
+ * Benefício imediato: testes usam ERSilentLogger (sem output).
+ * Benefício futuro: substituir por OpenTelemetry sem alterar componentes.
+ */
+export interface IERLogger {
+  runStarted(runId: string, productKey: string, activitiesCount: number): void;
+  runFinished(runId: string, productKey: string, summary: RunSummaryLog): void;
+  runFailed(runId: string, productKey: string, reason: string): void;
+  activityStarted(activityId: string, runId: string, mentionText: string | null): void;
+  activityResolved(metrics: PipelineMetrics): void;
+  activitySkipped(activityId: string, runId: string, reason: string): void;
+  activityNoMention(activityId: string, runId: string): void;
+  activityFailed(activityId: string, runId: string, error: unknown): void;
+  componentTimed(component: string, activityId: string, durationMs: number, detail?: Record<string, unknown>): void;
+}
+
+export interface RunSummaryLog {
+  activitiesProcessed: number;
+  matched:             number;
+  ambiguous:           number;
+  unresolved:          number;
+  proposed_new:        number;
+  failed:              number;
+  totalMs:             number;
+}
+
+// ── ERLogger — implementação de produção (usa pino) ───────────────────────────
+
+export const ERLogger: IERLogger = {
+  runStarted(runId, productKey, activitiesCount) {
     pinoLogger.info({ runId, productKey, activitiesCount, event: 'er_run_started' },
       'Entity Resolution run iniciada');
   },
 
-  /**
-   * Fim de uma run de resolução em batch.
-   */
-  runFinished(runId: string, productKey: string, summary: {
-    activitiesProcessed: number;
-    matched: number;
-    ambiguous: number;
-    unresolved: number;
-    proposed_new: number;
-    failed: number;
-    totalMs: number;
-  }): void {
+  runFinished(runId, productKey, summary) {
     pinoLogger.info({ runId, productKey, ...summary, event: 'er_run_finished' },
       'Entity Resolution run concluída');
   },
 
-  /**
-   * Run falhou.
-   */
-  runFailed(runId: string, productKey: string, reason: string): void {
+  runFailed(runId, productKey, reason) {
     pinoLogger.error({ runId, productKey, reason, event: 'er_run_failed' },
       'Entity Resolution run falhou');
   },
 
-  /**
-   * Início da resolução de uma actividade individual.
-   */
-  activityStarted(activityId: string, runId: string, mentionText: string | null): void {
+  activityStarted(activityId, runId, mentionText) {
     pinoLogger.debug({ activityId, runId, mentionText, event: 'er_activity_started' },
       'Resolvendo actividade');
   },
 
-  /**
-   * Fim da resolução de uma actividade — log principal de cada resolução.
-   * Inclui todas as métricas do pipeline.
-   */
-  activityResolved(metrics: PipelineMetrics): void {
+  activityResolved(metrics) {
     pinoLogger.info({
-      ...metrics,
+      operational: {
+        candidatesGenerated: metrics.candidatesGenerated,
+        candidatesFiltered:  metrics.candidatesFiltered,
+        totalMs:             metrics.totalMs,
+        generatorMs:         metrics.generatorMs,
+        preFilterMs:         metrics.preFilterMs,
+        nameMatcherMs:       metrics.nameMatcherMs,
+        geoMatcherMs:        metrics.geoMatcherMs,
+        addressMatcherMs:    metrics.addressMatcherMs,
+        hybridMs:            metrics.hybridMs,
+        persistenceMs:       metrics.persistenceMs,
+      },
+      business: {
+        finalClassification: metrics.finalClassification,
+        topCandidateScore:   metrics.topCandidateScore,
+        topCandidateName:    metrics.topCandidateName,
+        maxScore:            metrics.maxScore,
+        avgScore:            metrics.avgScore,
+        overrideRequired:    metrics.overrideRequired,
+      },
+      activityId: metrics.activityId,
       event: 'er_activity_resolved',
     }, `ER: ${metrics.finalClassification} — score=${metrics.topCandidateScore?.toFixed(3) ?? 'n/a'} — ${metrics.totalMs}ms`);
   },
 
-  /**
-   * Actividade ignorada porque já tem decisão humana (ADR-0013).
-   */
-  activitySkipped(activityId: string, runId: string, reason: string): void {
+  activitySkipped(activityId, runId, reason) {
     pinoLogger.info({ activityId, runId, reason, event: 'er_activity_skipped' },
       'Actividade ignorada — decisão já existente');
   },
 
-  /**
-   * Actividade sem VenueMention — não há nada a resolver.
-   */
-  activityNoMention(activityId: string, runId: string): void {
+  activityNoMention(activityId, runId) {
     pinoLogger.debug({ activityId, runId, event: 'er_no_mention' },
       'Actividade sem VenueMention — ignorada');
   },
 
-  /**
-   * Falha na resolução de uma actividade individual.
-   */
-  activityFailed(activityId: string, runId: string, error: unknown): void {
+  activityFailed(activityId, runId, error) {
     pinoLogger.error({ activityId, runId, error: String(error), event: 'er_activity_failed' },
       'Falha na resolução da actividade');
   },
 
-  /**
-   * Métricas de um componente individual do pipeline (debug).
-   * Usado internamente para diagnóstico — não aparece em produção com INFO.
-   */
-  componentTimed(component: string, activityId: string, durationMs: number, detail?: Record<string, unknown>): void {
+  componentTimed(component, activityId, durationMs, detail) {
     pinoLogger.debug({ component, activityId, durationMs, ...detail, event: 'er_component_timed' },
       `${component}: ${durationMs}ms`);
   },
+};
+
+// ── ERSilentLogger — para testes (sem output) ─────────────────────────────────
+
+/**
+ * Logger que não escreve nada.
+ * Injectar nos testes unitários e de integração para silenciar output.
+ *
+ * Uso nos testes:
+ *   const engine = new EntityResolutionEngine(repos, matchers, ERSilentLogger);
+ */
+export const ERSilentLogger: IERLogger = {
+  runStarted:       () => {},
+  runFinished:      () => {},
+  runFailed:        () => {},
+  activityStarted:  () => {},
+  activityResolved: () => {},
+  activitySkipped:  () => {},
+  activityNoMention:() => {},
+  activityFailed:   () => {},
+  componentTimed:   () => {},
 };
 
 // ── Timer utilitário ──────────────────────────────────────────────────────────
