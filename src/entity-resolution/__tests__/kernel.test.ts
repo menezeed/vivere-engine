@@ -414,7 +414,7 @@ describe('EntityResolutionRepositoryFactory', () => {
   it('fromObject retorna o mesmo objecto (sem transformação)', () => {
     const mockRepos = {
       run:       { start: vi.fn(), finish: vi.fn(), markFailed: vi.fn(), findActive: vi.fn() },
-      candidate: { insertCandidates: vi.fn(), findByActivity: vi.fn(), setOutcome: vi.fn(), findEligibleVenues: vi.fn() },
+      candidate: { insertCandidates: vi.fn(), findByActivity: vi.fn(), setOutcome: vi.fn(), findEligibleVenues: vi.fn(), deleteByActivity: vi.fn() },
       decision:  { record: vi.fn(), findLatest: vi.fn(), findPendingReview: vi.fn() },
     };
     const repos = EntityResolutionRepositoryFactory.fromObject(mockRepos);

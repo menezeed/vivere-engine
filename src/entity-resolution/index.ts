@@ -90,6 +90,12 @@ export type {
   IResolutionReviewer,
 } from './interfaces/index.js';
 
+// ── Providers (ajuste #3 — CandidateGenerator genérico) ──────────────────────
+export type {
+  ICandidateProvider,
+  IVenueCandidateProvider,
+} from './interfaces/providers.js';
+
 // ── Interfaces dos repositórios ───────────────────────────────────────────────
 export type {
   IVenueResolutionRunRepository,
@@ -109,6 +115,10 @@ export {
   requiresReview,
   wasProcessed,
 } from './pipeline/contracts.js';
+
+// ── Logging e métricas (ajustes #4 e #5) ─────────────────────────────────────
+export { ERLogger, startTimer } from './utils/logging.js';
+export type { PipelineMetrics } from './utils/logging.js';
 
 // ── Erros ─────────────────────────────────────────────────────────────────────
 export {

@@ -55,6 +55,14 @@ export interface IVenueResolutionRunRepository {
 
 export interface IVenueResolutionCandidateRepository {
   /**
+   * Apaga todos os candidatos de uma actividade sem decisão humana.
+   * Chamado pelo motor antes de re-resolver (ADR-0013 — política de idempotência).
+   * Retorna o número de candidatos apagados (0 se não existiam).
+   * NUNCA apaga candidatos com decision_outcome definido.
+   */
+  deleteByActivity(activityId: ActivityStagingId): Promise<number>;
+
+  /**
    * Persiste os candidatos rankeados de uma actividade.
    * Retorna os IDs dos candidatos inseridos.
    */
