@@ -120,6 +120,23 @@ export {
 export { NameMatcher, createNameMatcher, createNameMatcherEnGB } from './matchers/NameMatcher.js';
 export type { NameMatcherConfig } from './matchers/NameMatcher.js';
 
+export { GeoMatcher, createGeoMatcher, createGeoMatcherWithReference } from './matchers/GeoMatcher.js';
+export type { GeoMatcherConfig } from './matchers/GeoMatcher.js';
+
+export { AddressMatcher, createAddressMatcher } from './matchers/AddressMatcher.js';
+export type { AddressMatcherConfig } from './matchers/AddressMatcher.js';
+
+// ── Utilitários de geo ────────────────────────────────────────────────────────
+export {
+  haversineDistance,
+  distanceToScore,
+  geoScore,
+  getCityCentroid,
+  boundingBox,
+  CITY_CENTROIDS,
+} from './utils/geo.js';
+export type { GeoPoint, GeoDistance } from './utils/geo.js';
+
 // ── Utilitários de texto ──────────────────────────────────────────────────────
 export {
   normalize,
