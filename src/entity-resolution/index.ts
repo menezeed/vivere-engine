@@ -116,6 +116,26 @@ export {
   wasProcessed,
 } from './pipeline/contracts.js';
 
+// ── Matchers ──────────────────────────────────────────────────────────────────
+export { NameMatcher, createNameMatcher, createNameMatcherEnGB } from './matchers/NameMatcher.js';
+export type { NameMatcherConfig } from './matchers/NameMatcher.js';
+
+// ── Utilitários de texto ──────────────────────────────────────────────────────
+export {
+  normalize,
+  normalizeAndTokenize,
+  removeDiacritics,
+  removePunctuation,
+  collapseSpaces,
+  tokenize,
+  trigrams,
+  trigramSimilarity,
+  jaccardSimilarity,
+  STOPWORDS_PT_BR,
+  STOPWORDS_EN_GB,
+} from './utils/text.js';
+export type { NormalizeOptions } from './utils/text.js';
+
 // ── Logging e métricas (ajustes #2, #3, #4, #5) ──────────────────────────────
 export { ERLogger, ERSilentLogger, startTimer } from './utils/logging.js';
 export type {
