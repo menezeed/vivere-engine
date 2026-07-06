@@ -187,3 +187,6 @@ export {
 } from './errors/index.js';
 
 export type { ERErrorCode } from './errors/index.js';
+
+// ── Engine ────────────────────────────────────────────────────────────────────
+export { EntityResolutionEngine } from './EntityResolutionEngine.js';
