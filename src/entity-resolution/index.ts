@@ -117,6 +117,9 @@ export {
 } from './pipeline/contracts.js';
 
 // ── Matchers ──────────────────────────────────────────────────────────────────
+export { HybridScoreCalculator } from './pipeline/HybridScoreCalculator.js';
+export { ThresholdClassifier, buildCandidateMap } from './pipeline/ThresholdClassifier.js';
+
 export { NameMatcher, createNameMatcher, createNameMatcherEnGB } from './matchers/NameMatcher.js';
 export type { NameMatcherConfig } from './matchers/NameMatcher.js';
 
