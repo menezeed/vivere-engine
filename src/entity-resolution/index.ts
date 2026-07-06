@@ -93,6 +93,7 @@ export type {
 // ── Providers (ajuste #3 — CandidateGenerator genérico) ──────────────────────
 export type {
   ICandidateProvider,
+  ResolutionContext,
   IVenueCandidateProvider,
 } from './interfaces/providers.js';
 
@@ -119,6 +120,9 @@ export {
 // ── Matchers ──────────────────────────────────────────────────────────────────
 export { HybridScoreCalculator } from './pipeline/HybridScoreCalculator.js';
 export { ThresholdClassifier, buildCandidateMap } from './pipeline/ThresholdClassifier.js';
+export { CandidateGenerator } from './pipeline/CandidateGenerator.js';
+export { CandidatePreFilter } from './pipeline/CandidatePreFilter.js';
+export { VenueCandidateProvider } from './pipeline/VenueCandidateProvider.js';
 
 export { NameMatcher, createNameMatcher, createNameMatcherEnGB } from './matchers/NameMatcher.js';
 export type { NameMatcherConfig } from './matchers/NameMatcher.js';

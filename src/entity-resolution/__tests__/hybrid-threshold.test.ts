@@ -169,6 +169,56 @@ describe('HybridScoreCalculator', () => {
     expect(result.scores[0]!.boostApplied).toBeCloseTo(-0.10, 3);
   });
 
+  it('renormalizes weights when address score is missing', () => {
+    // DECISÃO ARQUITECTURAL INTENCIONAL (Sprint 7.7):
+    // Quando o AddressMatcher retorna null (sem raw_address_text ou sem address),
+    // os pesos dos matchers activos são renormalizados para somar 1.
+    //
+    // MOTIVAÇÃO: ausência de dados não deve penalizar o score.
+    // Um venue sem endereço na menção não é menos relevante — simplesmente
+    // não há dados de endereço para comparar. Penalizar com peso 0 resultaria
+    // em scores sistematicamente mais baixos para fontes sem endereço.
+    //
+    // IMPACTO NO ARCHITECTURE BOOK v1.2:
+    // Os exemplos do Cap. 7 calculavam hybrid com pesos fixos:
+    //   hybrid = (name×0.50) + (geo×0.35) + (address×0.15)
+    // Com renormalização (sem address):
+    //   totalWeight = 0.50 + 0.35 = 0.85
+    //   hybrid = (name×0.50/0.85) + (geo×0.35/0.85)
+    //          = (name×0.588) + (geo×0.412)
+    //
+    // EXEMPLO REAL: BeepYoga → Museu José de Dome
+    //   Architecture Book v1.2 estimou: ~0.7975
+    //   Motor real calcula:             ~0.921 (matched, não unresolved)
+    //   Architecture Book v1.3 deve reflectir este valor correcto.
+    //
+    // Este teste protege a decisão de renormalização contra regressões futuras.
+
+    const c = makeCandidate('v1', 'Museu');
+    const matchers = [
+      fixedMatcher('name',    { v1: 0.80 }),
+      fixedMatcher('geo',     { v1: 0.85 }),
+      // AddressMatcher ausente — não incluído na lista de matchers
+    ];
+    const result = hybrid.calculate(makeFiltered([c], mention('Museu')), matchers, DEFAULT_SCORING);
+    const score  = result.scores[0]!;
+
+    // Sem address: totalWeight = 0.50 + 0.35 = 0.85
+    // name_renorm = 0.50/0.85 ≈ 0.5882; geo_renorm = 0.35/0.85 ≈ 0.4118
+    // hybrid = (0.80 × 0.5882) + (0.85 × 0.4118) = 0.4706 + 0.3500 = 0.8206
+    expect(score.hybridScore).toBeCloseTo(0.8206, 2);
+
+    // Os matchers activos cobrem o score completo [0,1]
+    // (não deflacionado para 0.85 do score máximo possível)
+    expect(score.geoScore).not.toBeNull();
+    expect(score.addressScore).toBeNull(); // confirmado ausente
+
+    // Invariante: pesos renormalizados somam 1 implicitamente
+    // Verificar que hybridScore está em [0,1]
+    expect(score.hybridScore).toBeGreaterThanOrEqual(0);
+    expect(score.hybridScore).toBeLessThanOrEqual(1);
+  });
+
   it('sem VenueMention → score híbrido 0 e boost 0', () => {
     const c = makeCandidate('v1', 'Museu');
     const result = hybrid.calculate(makeFiltered([c], null), [], DEFAULT_SCORING);
