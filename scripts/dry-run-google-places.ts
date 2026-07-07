@@ -30,7 +30,8 @@
 import { GooglePlacesApiClient } from '../src/collectors/google-places/GooglePlacesApiClient';
 import { GooglePlacesCollector } from '../src/collectors/google-places/GooglePlacesCollector';
 import { InMemoryBudgetRepo } from '../src/lib/budgetGuard';
-import { VIVERE_60_MAIS_GOOGLE_PLACES_CONFIG } from '../src/collectors/google-places/config/vivere-60-mais';
+import { VIVERE_60_MAIS_GOOGLE_PLACES_CONFIG } from '../src/collectors/google-places/config/vivere-60-mais.js';
+import { TARGETED_ER_LOOKUP_CONFIG } from '../src/collectors/google-places/config/targeted-er-lookup.js';
 import type { GooglePlacesProductConfig } from '../src/collectors/google-places/config/GooglePlacesProductConfig';
 import {
   filterVenueItems,
@@ -45,7 +46,8 @@ import {
 } from '../src/pipeline/stages/00-filter-venue/products/vivere-60-mais';
 
 const AVAILABLE_PRODUCTS: Record<string, GooglePlacesProductConfig> = {
-  'vivere-60-mais': VIVERE_60_MAIS_GOOGLE_PLACES_CONFIG,
+  'vivere-60-mais':      VIVERE_60_MAIS_GOOGLE_PLACES_CONFIG,
+  'targeted-er-lookup':  TARGETED_ER_LOOKUP_CONFIG,
 };
 
 const VENUE_FILTER_RESOLVED = resolveRuleSet(VIVERE_60_MAIS_VENUE_FILTER_RULES);

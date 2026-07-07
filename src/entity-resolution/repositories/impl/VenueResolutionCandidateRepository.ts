@@ -50,14 +50,6 @@ export class VenueResolutionCandidateRepository implements IVenueResolutionCandi
 
     const rows = candidates.map(rc => {
       const method = toPrimaryMethod(rc.score);
-      // Debug temporário — remover após diagnóstico
-      if (method && !VALID_METHODS.has(method)) {
-        console.error('primary_match_method inválido:', method, 'score:', JSON.stringify({
-          nameScoreSubMethod: rc.score.nameScore?.subMethod,
-          geoScore: rc.score.geoScore?.value,
-          addressScoreSubMethod: rc.score.addressScore?.subMethod,
-        }));
-      }
       return {
       run_id:               runId,
       product_key:          productKey,
