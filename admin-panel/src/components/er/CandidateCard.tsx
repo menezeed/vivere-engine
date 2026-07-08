@@ -12,19 +12,36 @@ interface CandidateCardProps {
   onChoose:      (candidateId: string) => void;
 }
 
-function ScoreBar({ label, value }: { label: string; value: number | null }) {
-  if (value === null) return null;
-  const pct = Math.round(value * 100);
+function ScoreRow({ label, value, boost }: { label: string; value: number | null; boost?: number }) {
+  if (value === null && !boost) return null;
+  const display = value !== null ? Math.round(value * 100) : null;
+  const boostDisplay = boost !== undefined && boost !== 0
+    ? (boost > 0 ? `+${Math.round(boost * 100)}%` : `${Math.round(boost * 100)}%`)
+    : null;
+
   return (
-    <div className="flex items-center gap-2">
-      <span className="text-xs text-gray-400 w-10">{label}</span>
-      <div className="flex-1 bg-gray-100 rounded-full h-1.5">
-        <div
-          className={`h-1.5 rounded-full ${pct >= 85 ? 'bg-green-500' : pct >= 50 ? 'bg-amber-400' : 'bg-gray-300'}`}
-          style={{ width: `${pct}%` }}
-        />
-      </div>
-      <span className="text-xs text-gray-500 w-8 text-right">{pct}%</span>
+    <div className="flex items-center gap-2 text-xs">
+      <span className="text-gray-400 w-24 shrink-0">{label}</span>
+      {display !== null ? (
+        <>
+          <div className="flex-1 bg-gray-100 rounded-full h-1.5">
+            <div
+              className={`h-1.5 rounded-full transition-all ${
+                display >= 85 ? 'bg-green-500' : display >= 50 ? 'bg-amber-400' : 'bg-gray-300'
+              }`}
+              style={{ width: `${display}%` }}
+            />
+          </div>
+          <span className="text-gray-600 font-medium w-8 text-right">{display}%</span>
+        </>
+      ) : (
+        <span className="flex-1 text-gray-300 italic">—</span>
+      )}
+      {boostDisplay && (
+        <span className={`text-xs font-semibold w-10 text-right ${boost! > 0 ? 'text-green-500' : 'text-red-400'}`}>
+          {boostDisplay}
+        </span>
+      )}
     </div>
   );
 }
@@ -39,6 +56,14 @@ function ConfidenceBadge({ score }: { score: number }) {
 export function CandidateCard({ candidate, isTop, canDecide, isLoading, onConfirm, onChoose }: CandidateCardProps) {
   const pct = Math.round(candidate.score * 100);
   const detail = candidate.matchDetail as Record<string, unknown> | null;
+  const boost  = detail ? (detail['boostApplied'] as number | null) : null;
+  const method = detail
+    ? ((detail['nameDetail'] as string | undefined)?.includes('Exact match') ? 'Exact'
+      : (detail['nameDetail'] as string | undefined)?.includes('contido') ? 'Contains'
+      : (detail['nameDetail'] as string | undefined)?.includes('Jaccard') ? 'Tokens'
+      : (detail['nameDetail'] as string | undefined)?.includes('Trigram') ? 'Trigram'
+      : candidate.geoScore !== null ? 'Geo' : null)
+    : null;
 
   return (
     <div className={`rounded-xl border p-4 transition-all ${
@@ -49,47 +74,50 @@ export function CandidateCard({ candidate, isTop, canDecide, isLoading, onConfir
       {/* Header */}
       <div className="flex items-start justify-between gap-3 mb-3">
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 flex-wrap">
-            {isTop && <span className="text-xs font-bold text-vivere-teal uppercase tracking-wide">Sugestão principal</span>}
+          <div className="flex items-center gap-2 flex-wrap mb-1">
+            {isTop && (
+              <span className="text-xs font-bold text-vivere-teal uppercase tracking-wide">
+                Sugestão principal
+              </span>
+            )}
             <ConfidenceBadge score={candidate.score} />
-            {candidate.decisionOutcome && (
-              <span className="text-xs text-gray-400">({candidate.decisionOutcome})</span>
+            {method && (
+              <span className="text-xs text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded">
+                via {method}
+              </span>
             )}
           </div>
-          <p className="font-semibold text-vivere-dark mt-1 truncate">{candidate.venueName}</p>
+          <p className="font-semibold text-vivere-dark truncate">{candidate.venueName}</p>
           {candidate.venueCity && (
             <p className="text-xs text-gray-400 flex items-center gap-1 mt-0.5">
               <MapPin size={10} /> {candidate.venueCity}
             </p>
           )}
         </div>
-        {/* Score */}
+        {/* Score final */}
         <div className="text-right shrink-0">
-          <div className={`text-2xl font-bold ${pct >= 85 ? 'text-green-600' : pct >= 65 ? 'text-amber-500' : 'text-gray-400'}`}>
+          <div className={`text-2xl font-bold tabular-nums ${
+            pct >= 85 ? 'text-green-600' : pct >= 65 ? 'text-amber-500' : 'text-gray-400'
+          }`}>
             {pct}%
           </div>
-          <div className="text-xs text-gray-400">score final</div>
+          <div className="text-xs text-gray-400">score</div>
         </div>
       </div>
 
       {/* Score breakdown */}
-      <div className="space-y-1.5 mb-3 bg-white/60 rounded-lg p-2.5 border border-gray-100">
-        <div className="flex items-center gap-1.5 mb-1.5">
+      <div className="space-y-1.5 mb-3 bg-gray-50 rounded-lg p-2.5 border border-gray-100">
+        <div className="flex items-center gap-1.5 mb-2">
           <BarChart2 size={11} className="text-gray-400" />
-          <span className="text-xs font-medium text-gray-500">Score breakdown</span>
+          <span className="text-xs font-medium text-gray-500">Breakdown</span>
         </div>
-        <ScoreBar label="Nome"  value={candidate.nameScore} />
-        <ScoreBar label="Geo"   value={candidate.geoScore} />
-        <ScoreBar label="Endereço" value={candidate.addressScore} />
+        <ScoreRow label="Nome"      value={candidate.nameScore} />
+        <ScoreRow label="Geo"       value={candidate.geoScore} />
+        <ScoreRow label="Endereço"  value={candidate.addressScore} />
+        {boost !== null && boost !== 0 && (
+          <ScoreRow label="Confiança" value={null} boost={boost} />
+        )}
       </div>
-
-      {/* Match detail */}
-      {detail && (
-        <div className="text-xs text-gray-400 mb-3 space-y-0.5 px-1">
-          {detail['nameDetail'] && <p className="truncate">📝 {String(detail['nameDetail'])}</p>}
-          {detail['geoDetail']  && <p className="truncate">📍 {String(detail['geoDetail'])}</p>}
-        </div>
-      )}
 
       {/* Acções */}
       {canDecide && !candidate.decisionOutcome && (
@@ -112,6 +140,17 @@ export function CandidateCard({ candidate, isTop, canDecide, isLoading, onConfir
               Escolher este
             </button>
           )}
+        </div>
+      )}
+
+      {candidate.decisionOutcome && (
+        <div className={`text-xs font-medium px-2 py-1 rounded text-center ${
+          candidate.decisionOutcome === 'accepted' ? 'bg-green-50 text-green-600' :
+          candidate.decisionOutcome === 'rejected' ? 'bg-red-50 text-red-500' :
+          'bg-gray-100 text-gray-500'
+        }`}>
+          {candidate.decisionOutcome === 'accepted' ? '✓ Aceite' :
+           candidate.decisionOutcome === 'rejected' ? '✗ Rejeitado' : 'Ignorado'}
         </div>
       )}
     </div>

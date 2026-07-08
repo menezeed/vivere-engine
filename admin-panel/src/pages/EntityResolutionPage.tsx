@@ -34,6 +34,7 @@ function ActivityRow({
   canReview: boolean;
   isAdmin:   boolean;
 }) {
+  const [showAll, setShowAll] = useState(false);
   const [expanded, setExpanded]               = useState(false);
   const [proposeOpen, setProposeOpen]         = useState(false);
   const [overrideId, setOverrideId]           = useState<string | null>(null);
@@ -137,7 +138,7 @@ function ActivityRow({
           ) : (
             <>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
-                {candidates.slice(0, 6).map((c, idx) => (
+                {(showAll ? candidates : candidates.slice(0, 3)).map((c, idx) => (
                   <CandidateCard
                     key={c.id}
                     candidate={c}
@@ -149,6 +150,14 @@ function ActivityRow({
                   />
                 ))}
               </div>
+              {candidates.length > 3 && (
+                <button
+                  onClick={() => setShowAll(s => !s)}
+                  className="text-xs text-vivere-teal hover:underline mb-3"
+                >
+                  {showAll ? `▲ Mostrar menos` : `▼ Ver todos os ${candidates.length} candidatos`}
+                </button>
+              )}
 
               {/* Acções adicionais */}
               {canReview && !hasDecision && (
