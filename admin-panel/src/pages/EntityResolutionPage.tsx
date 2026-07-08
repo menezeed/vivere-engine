@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Search, ChevronRight, AlertTriangle } from 'lucide-react';
+import { Search, ChevronDown, ChevronRight, AlertTriangle } from 'lucide-react';
 import { useOutletContext } from 'react-router-dom';
 import { EntityResolutionService } from '@/services/EntityResolutionService';
 import { CandidateCard } from '@/components/er/CandidateCard';
@@ -108,7 +108,7 @@ function ActivityRow({
               </span>
             )}
             {item.candidateCount > 0 && (
-              <span className="text-xs text-gray-400">{item.candidateCount} candidatos</span>
+              <span className="text-xs text-gray-400">{item.candidateCount > 3 ? `Top 3 de ${item.candidateCount} candidatos` : `${item.candidateCount} candidatos`}</span>
             )}
           </div>
           <p className="font-medium text-vivere-dark text-sm truncate">
