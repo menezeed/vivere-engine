@@ -2,7 +2,7 @@ import { Outlet, NavLink, useOutletContext } from 'react-router-dom';
 import { useAuth } from '@/auth/AuthProvider';
 import { useQuery } from '@tanstack/react-query';
 import { StatsService } from '@/services/StatsService';
-import { LayoutDashboard, MapPin, Calendar, Activity, LogOut, ChevronDown, Settings } from 'lucide-react';
+import { LayoutDashboard, MapPin, Calendar, Activity, LogOut, ChevronDown, Settings, GitMerge } from 'lucide-react';
 import { useState } from 'react';
 
 const PRODUCTS = [
@@ -22,11 +22,12 @@ export function AppShell() {
   });
 
   const NAV = [
-    { to: '/dashboard',      label: 'Dashboard',   icon: LayoutDashboard, count: null },
-    { to: '/venues',         label: 'Venues',      icon: MapPin,          count: stats?.venues.pending_review ?? null },
-    { to: '/activities',     label: 'Actividades', icon: Calendar,        count: stats?.activities.pending_review ?? null },
-    { to: '/ingestion-runs', label: 'Ingestões',   icon: Activity,        count: null },
-    { to: '/settings',       label: 'Settings',    icon: Settings,        count: null },
+    { to: '/dashboard',          label: 'Dashboard',         icon: LayoutDashboard, count: null },
+    { to: '/venues',             label: 'Venues',            icon: MapPin,          count: stats?.venues.pending_review ?? null },
+    { to: '/activities',         label: 'Actividades',       icon: Calendar,        count: stats?.activities.pending_review ?? null },
+    { to: '/entity-resolution',  label: 'Entity Resolution', icon: GitMerge,        count: stats?.activities.unresolved_venue ?? null },
+    { to: '/ingestion-runs',     label: 'Ingestões',         icon: Activity,        count: null },
+    { to: '/settings',           label: 'Settings',          icon: Settings,        count: null },
   ];
 
   return (

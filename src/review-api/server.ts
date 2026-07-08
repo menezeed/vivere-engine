@@ -6,11 +6,14 @@ import { VenueReviewRepository } from './repositories/VenueReviewRepository.js';
 import { ActivityReviewRepository } from './repositories/ActivityReviewRepository.js';
 import { IngestionRunReadRepository } from './repositories/IngestionRunReadRepository.js';
 import { StatsRepository } from './repositories/StatsRepository.js';
+import { EntityResolutionReviewRepository } from './repositories/EntityResolutionReviewRepository.js';
 import { ReviewService } from './services/ReviewService.js';
+import { EntityResolutionService } from './services/EntityResolutionService.js';
 import { authMiddleware } from './middleware/auth.js';
 import { venueRoutes } from './routes/venues.js';
 import { activityRoutes } from './routes/activities.js';
 import { ingestionRunRoutes, statsRoutes } from './routes/ingestion-runs.js';
+import { entityResolutionRoutes } from './routes/entity-resolution.js';
 import { logger } from '../lib/logger.js';
 
 const PORT     = Number(process.env.REVIEW_API_PORT ?? 3001);
@@ -45,7 +48,9 @@ async function buildApp(): Promise<Hono> {
   const activityRepo = new ActivityReviewRepository(db);
   const runRepo      = new IngestionRunReadRepository(db);
   const statsRepo    = new StatsRepository(db);
+  const erRepo       = new EntityResolutionReviewRepository(db);
   const reviewService = new ReviewService(venueRepo, activityRepo);
+  const erService     = new EntityResolutionService(erRepo);
 
   const app = new Hono();
 
@@ -60,10 +65,11 @@ async function buildApp(): Promise<Hono> {
     env:     NODE_ENV,
   }));
 
-  app.route('/api/venues',         venueRoutes(reviewService));
-  app.route('/api/activities',     activityRoutes(reviewService));
-  app.route('/api/ingestion-runs', ingestionRunRoutes(runRepo));
-  app.route('/api/stats',          statsRoutes(statsRepo));
+  app.route('/api/venues',            venueRoutes(reviewService));
+  app.route('/api/activities',        activityRoutes(reviewService));
+  app.route('/api/ingestion-runs',    ingestionRunRoutes(runRepo));
+  app.route('/api/stats',             statsRoutes(statsRepo));
+  app.route('/api/entity-resolution', entityResolutionRoutes(erService));
 
   return app;
 }
