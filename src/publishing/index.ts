@@ -20,6 +20,9 @@ export type {
   PublicationEventType,
   PublicationEntityType,
   PublicationEvent,
+  OperationalVenueInput,
+  OperationalActivityInput,
+  PublicVenuePublicationState,
 } from './types/domain.js';
 
 // Interfaces dos repositórios
@@ -35,3 +38,10 @@ export type {
 
 // Factory
 export { PublishingRepositoryFactory } from './repositories/factory.js';
+
+// Transformer (Sprint 8.3) — componente puro, staging → Operational Model
+export { PublicationTransformer } from './services/PublicationTransformer.js';
+
+// VenuePublisher (Sprint 8.4) — orquestrador + Anti-Corruption Layer temporário
+export { VenuePublisher } from './services/VenuePublisher.js';
+export type { VenuePublicationMetrics } from './services/VenuePublisher.js';
