@@ -19,6 +19,7 @@ import type {
   PublicationRunMetrics,
   PublicationEvent,
   EngineStatus,
+  PublicVenuePublicationState,
 } from '../types/domain.js';
 
 // ── IPublishableVenueRepository ───────────────────────────────────────────────
@@ -80,6 +81,14 @@ export interface IPublicVenueRepository {
 
   /** Busca por engine_venue_id — para verificar se já foi publicado. */
   findByEngineId(stagingVenueId: StagingVenueId): Promise<PublicVenueId | null>;
+
+  /**
+   * Estado de publicação do venue público (id, last_published_at, engine_status),
+   * por engine_venue_id. Método aditivo (Sprint 8.4) — usado pelo VenuePublisher
+   * para o dirty check real (staging.updated_at vs public.last_published_at).
+   * Null se o venue nunca foi publicado.
+   */
+  findPublicationStateByEngineId(engineVenueId: StagingVenueId): Promise<PublicVenuePublicationState | null>;
 }
 
 // ── IPublicActivityRepository ─────────────────────────────────────────────────

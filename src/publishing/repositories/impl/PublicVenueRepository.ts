@@ -11,6 +11,8 @@ import type {
   PublicVenueId,
   StagingVenueId,
   PublicationRunId,
+  PublicVenuePublicationState,
+  EngineStatus,
 } from '../../types/domain.js';
 
 export class PublicVenueRepository implements IPublicVenueRepository {
@@ -91,5 +93,22 @@ export class PublicVenueRepository implements IPublicVenueRepository {
 
     if (error) throw new Error(`PublicVenueRepository.findByEngineId: ${error.message}`);
     return data ? (data.id as PublicVenueId) : null;
+  }
+
+  async findPublicationStateByEngineId(engineVenueId: StagingVenueId): Promise<PublicVenuePublicationState | null> {
+    const { data, error } = await this.db
+      .from('venues')
+      .select('id, last_published_at, engine_status')
+      .eq('engine_venue_id', engineVenueId)
+      .maybeSingle();
+
+    if (error) throw new Error(`PublicVenueRepository.findPublicationStateByEngineId: ${error.message}`);
+    if (!data) return null;
+
+    return {
+      publicVenueId:   data.id as PublicVenueId,
+      lastPublishedAt: new Date(data.last_published_at as string),
+      engineStatus:    data.engine_status as EngineStatus,
+    };
   }
 }

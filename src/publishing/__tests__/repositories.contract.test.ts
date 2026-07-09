@@ -75,6 +75,8 @@ function makeMockRepos(): IPublishingRepositorySet {
       archive:        vi.fn().mockResolvedValue(undefined),
       linkToStaging:  vi.fn().mockResolvedValue(undefined),
       findByEngineId: vi.fn().mockResolvedValue(null),
+      // Método aditivo (Sprint 8.4) — não altera nenhum método existente.
+      findPublicationStateByEngineId: vi.fn().mockResolvedValue(null),
     },
     publicActivity: {
       insert:         vi.fn().mockResolvedValue(ACTIVITY_ID),
@@ -169,6 +171,12 @@ describe('IPublicVenueRepository (contrato)', () => {
   it('findByEngineId retorna null quando não publicado', async () => {
     const repos  = makeMockRepos();
     const result = await repos.publicVenue.findByEngineId(S_VENUE_ID);
+    expect(result).toBeNull();
+  });
+
+  it('findPublicationStateByEngineId retorna null quando não publicado (método aditivo, Sprint 8.4)', async () => {
+    const repos  = makeMockRepos();
+    const result = await repos.publicVenue.findPublicationStateByEngineId(S_VENUE_ID);
     expect(result).toBeNull();
   });
 });
