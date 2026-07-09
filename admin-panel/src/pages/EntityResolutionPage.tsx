@@ -108,7 +108,11 @@ function ActivityRow({
               </span>
             )}
             {item.candidateCount > 0 && (
-              <span className="text-xs text-gray-400">{item.candidateCount > 3 ? `Top 3 de ${item.candidateCount} candidatos` : `${item.candidateCount} candidatos`}</span>
+              <span className="text-xs text-gray-400">
+                {item.candidateCount > 3
+                  ? `Top 3 de ${item.candidateCount} candidatos`
+                  : `${item.candidateCount} candidatos`}
+              </span>
             )}
           </div>
           <p className="font-medium text-vivere-dark text-sm truncate">

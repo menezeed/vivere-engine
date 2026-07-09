@@ -16,6 +16,21 @@ type Env = { Variables: { user: AuthUser } };
 export function entityResolutionRoutes(erService: EntityResolutionService): Hono<Env> {
   const router = new Hono<Env>();
 
+  // ── GET /api/entity-resolution/health ────────────────────────────────────
+  // viewer, reviewer, admin
+  router.get('/health', async (c) => {
+    try {
+      const productKey = c.req.query('product_key');
+      if (!productKey) return c.json({ error: 'product_key é obrigatório' }, 400);
+      const health = await erService.getHealth(productKey);
+      const httpStatus = health.status === 'critical' ? 503 : 200;
+      return c.json({ data: health }, httpStatus);
+    } catch (err) {
+      logger.error({ err }, 'er health error');
+      return c.json({ error: 'Erro interno do servidor' }, 500);
+    }
+  });
+
   // ── GET /api/entity-resolution/queue ──────────────────────────────────────
   // viewer, reviewer, admin
   router.get('/queue', async (c) => {

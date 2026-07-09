@@ -77,7 +77,7 @@ export class EntityResolutionReviewRepository {
       .from('activities_staging')
       .select(`
         id, product_key, venue_resolution_status, resolution_confidence,
-        resolved_venue_staging_id,
+        resolved_venue_staging_id, created_at,
         raw_activity_items!inner (
           title,
           venue_mention_raw_text,
@@ -300,6 +300,70 @@ export class EntityResolutionReviewRepository {
 
     const total = (data ?? []).length;
     return { total, ...counts, decided: decided ?? 0 };
+  }
+
+  // ── Health ────────────────────────────────────────────────────────────────
+
+  async getHealth(productKey: string): Promise<{
+    status:              'healthy' | 'warning' | 'critical';
+    lastRunAt:           string | null;
+    lastRunStatus:       string | null;
+    pendingResolution:   number;
+    pendingDecision:     number;
+    recentDecisions:     number;
+    summary:             string;
+  }> {
+    // Última run
+    const { data: lastRun } = await this.db
+      .schema('staging')
+      .from('venue_resolution_runs')
+      .select('started_at, status, activities_processed')
+      .eq('product_key', productKey)
+      .order('started_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    // Actividades pendentes de resolução
+    const { count: pendingRes } = await this.db
+      .schema('staging')
+      .from('activities_staging')
+      .select('id', { count: 'exact', head: true })
+      .eq('product_key', productKey)
+      .in('venue_resolution_status', ['unresolved', 'ambiguous']);
+
+    // Candidatos pendentes de decisão humana
+    const { count: pendingDec } = await this.db
+      .schema('staging')
+      .from('venue_resolution_candidates')
+      .select('id', { count: 'exact', head: true })
+      .is('decision_outcome', null)
+      .eq('product_key', productKey);
+
+    // Decisões nas últimas 24h
+    const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+    const { count: recentDec } = await this.db
+      .schema('staging')
+      .from('venue_resolution_decisions')
+      .select('id', { count: 'exact', head: true })
+      .eq('product_key', productKey)
+      .gte('reviewed_at', since);
+
+    const pending = pendingRes ?? 0;
+    const status: 'healthy' | 'warning' | 'critical' =
+      pending === 0 ? 'healthy' :
+      pending <= 3  ? 'warning' : 'critical';
+
+    return {
+      status,
+      lastRunAt:         lastRun?.started_at ?? null,
+      lastRunStatus:     lastRun?.status ?? null,
+      pendingResolution: pending,
+      pendingDecision:   pendingDec ?? 0,
+      recentDecisions:   recentDec ?? 0,
+      summary: status === 'healthy'
+        ? 'Todas as actividades resolvidas'
+        : `${pending} actividade(s) aguardam resolução`,
+    };
   }
 
   // ── Utilitário ─────────────────────────────────────────────────────────────

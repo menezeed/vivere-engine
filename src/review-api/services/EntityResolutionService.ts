@@ -124,6 +124,11 @@ export class EntityResolutionService {
 
   // ── Stats ──────────────────────────────────────────────────────────────────
 
+  async getHealth(productKey: string) {
+    if (!productKey) throw new Error('product_key é obrigatório');
+    return this.erRepo.getHealth(productKey);
+  }
+
   async getStats(productKey: string): Promise<ERStats> {
     if (!productKey) throw new Error('product_key é obrigatório');
     return this.erRepo.getStats(productKey);
