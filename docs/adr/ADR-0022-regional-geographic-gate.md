@@ -1,7 +1,7 @@
 # ADR-0022 — Regional Geographic Gate
 
 **Status:** Aceito
-**Data:** 2026-07-15 (revista em 2026-07-15, pós-revisão arquitectural)
+**Data:** 2026-07-15 (revista em 2026-07-15, pós-revisão arquitectural; revista de novo em 2026-09-19, Level 2 review do PR #1 — ver "Correcção" abaixo)
 
 ---
 
@@ -28,12 +28,58 @@ Isto gera custo real de curadoria: cada resultado geograficamente
 irrelevante marcado `ACCEPTED` tem de ser rejeitado manualmente em
 Human Review, sem nenhuma ajuda do sistema.
 
-**Revisão desta ADR (mesmo dia):** a primeira versão implementada
-excluía itens `outside_region` do array antes de `venues_staging`,
-nunca chegando lá. Revisão arquitectural apontou que isto contraria o
-princípio de "nunca perder evidência" já consolidado na Fase 8 (ex:
-ADR-0016 — venues são arquivados, nunca apagados). Corrigido: ver
-Decisão.
+**Revisão desta ADR (mesmo dia, 2026-07-15):** a primeira versão
+implementada excluía itens `outside_region` do array antes de
+`venues_staging`, nunca chegando lá. Revisão arquitectural apontou que
+isto contraria o princípio de "nunca perder evidência" já consolidado
+na Fase 8 (ex: ADR-0016 — venues são arquivados, nunca apagados).
+Corrigido nesse momento: ver Decisão.
+
+## Correcção (2026-09-19, Level 2 review do PR #1)
+
+A versão desta ADR aprovada em 2026-07-15 ainda descrevia
+`outside_region` como `proposal_status = 'geographic_excluded'` — um
+único valor sobrecarregado na coluna de curadoria. Essa mesma versão já
+antecipava, na secção "Consequências", uma pendência não confirmada:
+se a coluna `proposal_status` tivesse uma constraint `CHECK` que não
+incluísse `'geographic_excluded'`, a primeira inserção real falharia em
+runtime.
+
+**Essa pendência materializou-se como um incidente real de produção**:
+a constraint existia, a inserção falhou. A correcção implementada, e é
+esta a decisão final e correcta, **substitui o modelo de valor único
+sobrecarregado por dois eixos independentes**:
+
+- `proposal_status` — exclusivamente sobre **curadoria humana**
+  (`pending_review` / `approved` / `rejected` / `promoted`). Nunca
+  contém `'geographic_excluded'`.
+- `geographic_status` — coluna própria, independente, sobre
+  **elegibilidade geográfica** (`inside_radius` / `buffer_zone` /
+  `outside_region` / `NULL`).
+
+Um item `outside_region` continua **visível em Human Review**, com
+indicação clara do seu estado geográfico (não fica escondido nem
+excluído da fila) — o revisor decide conscientemente. A barreira
+efectiva contra publicação indevida de itens `outside_region` está na
+**Publishing Engine** (`PublishableVenueRepository`/
+`PublishableActivityRepository`), que filtra explicitamente por
+`geographic_status` antes de qualquer publicação — não na exclusão da
+fila de Human Review.
+
+**Nota sobre a origem da coluna `geographic_status`:** referências
+anteriores a uma "migration 0018" como responsável por introduzir esta
+coluna não foram confirmadas por leitura directa do ficheiro de
+migration correspondente nem por histórico de commits verificável. Não
+afirmar isso como facto até essa confirmação existir. A coluna existe e
+funciona em produção — isso está confirmado operacionalmente — mas a
+sua proveniência exacta em `db/migrations/` permanece uma pendência de
+schema-as-code a esclarecer separadamente, sem bloquear esta correcção
+de documentação.
+
+O resto desta ADR (Contexto, Justificação, secções abaixo) mantém-se
+válido tal como escrito em 2026-07-15 — só a forma de persistir
+`outside_region` mudou, não o resto da política de classificação por
+distância.
 
 ## Decisão
 
@@ -46,33 +92,40 @@ Venue Filtering Engine e **antes** da persistência em
 RawVenueItem[] → raw_venue_items (sempre, Camada A)
               → 00-filter-venue (decisão por tipo/keyword)
               → 01-geographic-gate (esta ADR — nunca remove itens)
-              → venues_staging (TODOS os itens, com proposal_status ajustado)
+              → venues_staging (TODOS os itens, com geographic_status ajustado)
 ```
 
 ### Política
 
 1. **`inside_radius`** (`distance <= radius_m`) — decisão do Venue
-   Filtering Engine preservada sem alteração.
+   Filtering Engine preservada sem alteração. `geographic_status =
+   'inside_radius'`.
 2. **`buffer_zone`** (`radius_m < distance <= radius_m + 500`) — se a
    decisão efectiva for `ACCEPTED`, é **forçada para `NEEDS_REVIEW`**,
    com a tag `geographic_buffer_zone` anexada à `reasoning`. Qualquer
    outra decisão (`rejected`, ambiguity fallback) é preservada — só
-   `ACCEPTED` é rebaixado.
+   `ACCEPTED` é rebaixado. `geographic_status = 'buffer_zone'`.
 3. **`outside_region`** (`distance > radius_m + 500`) — o item fica
-   **excluído da elegibilidade para publicação na região corrente**:
-   não entra na fila normal de Human Review, não pode ser promovido nem
-   publicado sob este `region_key`. **O dado continua a existir e a
-   ser persistido** — em `venues_staging`, com
-   `proposal_status = 'geographic_excluded'`, distinto de
-   `pending_review`/`promoted`/`rejected`. Não é uma afirmação sobre a
-   existência do dado; é uma afirmação sobre a sua elegibilidade para
-   publicação nesta região, nesta ingestão.
+   **excluído da elegibilidade para publicação na região corrente**
+   (aplicado pela Publishing Engine, não pela ausência do item em
+   `venues_staging`, nem pela sua ausência da fila de Human Review).
+   **O dado continua a existir e a ser persistido** — em
+   `venues_staging`, com `geographic_status = 'outside_region'`,
+   `proposal_status` inalterado por esta classificação (continua
+   `pending_review`, exactamente como qualquer outro item recém-
+   -persistido, sujeito ao mesmo fluxo normal de curadoria). Não é uma
+   afirmação sobre a existência do dado; é uma afirmação sobre a sua
+   elegibilidade para publicação nesta região, nesta ingestão —
+   registada num eixo (`geographic_status`) inteiramente separado do
+   eixo de curadoria (`proposal_status`).
 
 `raw_venue_items` (Camada A) nunca é afectado pelo gate — a evidência
 bruta de todo resultado colhido é sempre gravada antes deste ponto.
-`venues_staging` (Camada B), a partir desta revisão, **também nunca
-perde nenhum item por causa do gate** — a única coisa que muda é o
-`proposal_status`, nunca a existência do registo.
+`venues_staging` (Camada B) também nunca perde nenhum item por causa do
+gate — a única coisa que muda é `geographic_status`, nunca a existência
+do registo, e `proposal_status` só muda através do fluxo normal de
+Human Review (approve/reject/promote), nunca como efeito colateral da
+classificação geográfica.
 
 ### Genérico por desenho
 
@@ -92,13 +145,13 @@ perde nenhum item por causa do gate** — a única coisa que muda é o
   de comportamento.
 - A regra pré-existente "nunca persistir `rejected` (decisão de tipo)
   em `venues_staging`" **não foi alterada** por esta ADR — continua a
-  aplicar-se exactamente como antes. `geographic_excluded` é um eixo
+  aplicar-se exactamente como antes. `geographic_status` é um eixo
   ortogonal (elegibilidade regional), não uma substituição desse eixo
-  (decisão de curadoria por tipo). Um item pode, simultaneamente, ter
-  sido `rejected` pelo tipo E estar `outside_region` — nesse caso, a
-  regra mais antiga prevalece (continua fora de `venues_staging`,
-  presente só em `raw_venue_items`) porque nenhuma decisão de tipo
-  mudou nesta ADR.
+  (decisão de curadoria por tipo, reflectida em `proposal_status`). Um
+  item pode, simultaneamente, ter sido `rejected` pelo tipo E estar
+  `outside_region` — nesse caso, a regra mais antiga prevalece (continua
+  fora de `venues_staging`, presente só em `raw_venue_items`) porque
+  nenhuma decisão de tipo mudou nesta ADR.
 
 ## Justificação
 
@@ -116,15 +169,21 @@ perde nenhum item por causa do gate** — a única coisa que muda é o
   resposta não pode ser "porque foi descartado sem deixar rasto" — tem
   de ser rastreável, auditável e, no limite, reclassificável (ex: se o
   raio de uma região for revisto no futuro, um item hoje
-  `geographic_excluded` pode voltar a ser avaliado sem precisar de nova
+  `outside_region` pode voltar a ser avaliado sem precisar de nova
   ingestão).
-- `outside_region` não entra na fila normal de Human Review (ao
-  contrário de `buffer_zone`) porque a distância aqui é grande o
-  suficiente (>3km) para não haver ambiguidade genuína a resolver — um
-  humano não precisa de decidir se o MASP é "do Brooklin". Reservar
-  Human Review para casos genuinamente ambíguos (a margem do buffer)
-  evita desperdiçar o tempo do curador, sem sacrificar a
-  rastreabilidade do dado.
+- **Sobrecarregar `proposal_status` com um valor adicional
+  (`geographic_excluded`) também foi tentado primeiro e revertido** —
+  ver "Correcção" acima. Dois eixos independentes (`proposal_status`
+  para curadoria, `geographic_status` para elegibilidade geográfica)
+  evitam colidir com constraints existentes na coluna de curadoria, e
+  mantêm as duas dimensões (o que um humano decidiu vs. onde o item
+  está geograficamente) claramente separáveis em qualquer query.
+- `outside_region` continua visível em Human Review (ao contrário de um
+  modelo que o excluísse da fila) porque a rastreabilidade e a
+  possibilidade de revisão humana consciente têm mais valor do que
+  poupar tempo de curadoria escondendo o item — a barreira real contra
+  publicação indevida está na Publishing Engine, não na visibilidade em
+  Human Review.
 
 ## Consequências
 
@@ -132,26 +191,13 @@ perde nenhum item por causa do gate** — a única coisa que muda é o
   configuração adicional além de já ter `regions` com `radius_m`
   definido (obrigatório desde a ADR-0021).
 - `IngestionSummary.geoExcludedItems` regista quantos itens desta run
-  ficaram `geographic_excluded` — persistidos, não descartados.
-- `VenueStagingRepository.insertBatch()` foi alterado (não apenas
-  estendido) para deixar de gravar `proposal_status = 'pending_review'`
-  incondicionalmente e passar a derivá-lo do metadado geográfico quando
-  presente. **Pendência a confirmar antes da primeira ingestão real
-  pós-ADR-0022:** não há confirmação de que a coluna
-  `venues_staging.proposal_status` aceite o novo valor
-  `'geographic_excluded'` sem uma migration — se existir uma constraint
-  `CHECK` restringindo os valores aceites (comum nesta base de código,
-  ex: migrations anteriores de `public.venues.engine_status`), a
-  primeira tentativa de inserir esse valor falhará em runtime. Confirmar
-  com:
-  ```sql
-  SELECT conname, pg_get_constraintdef(oid)
-  FROM pg_constraint
-  WHERE conrelid = 'staging.venues_staging'::regclass AND contype = 'c';
-  ```
-  Se existir uma constraint que não inclua `'geographic_excluded'`, é
-  necessária uma migration antes de qualquer ingestão real — não deve
-  ser aplicada sem essa confirmação.
+  ficaram `outside_region` — persistidos, não descartados.
+- A Publishing Engine (`PublishableVenueRepository`,
+  `PublishableActivityRepository`) filtra explicitamente por
+  `geographic_status <> 'outside_region'` (ou `NULL`) antes de
+  qualquer publicação — esta é a defesa em profundidade real contra
+  publicação indevida, não a ausência do item em `venues_staging` nem
+  a sua exclusão de Human Review.
 - `reject_type_residential` (ruído de `parque` com nomes de condomínios,
   identificado na mesma validação) permanece **fora de escopo desta
   ADR** — é um problema de precisão de tipo, não de geografia.
@@ -190,8 +236,9 @@ automaticamente.
   (2.500m e 12.000m).
 
 `src/persistence/repositories/__tests__/repositories.test.ts` —
-2 testes novos confirmando que `VenueStagingRepository.insertBatch()`
-persiste itens `outside_region` (nunca os descarta) com
-`proposal_status = 'geographic_excluded'`, e que itens
-`inside_radius`/`buffer_zone` continuam `pending_review` mesmo com
-metadado geográfico anexado.
+testes confirmando que `VenueStagingRepository.insertBatch()` persiste
+itens `outside_region` (nunca os descarta), gravando
+`geographic_status = 'outside_region'` numa coluna própria, com
+`proposal_status` inalterado (continua `pending_review`, sujeito ao
+fluxo normal de curadoria); itens `inside_radius`/`buffer_zone` seguem
+o mesmo padrão, cada um com o `geographic_status` correspondente.
