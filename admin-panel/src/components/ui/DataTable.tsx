@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from 'react';
+import type { ReactNode } from 'react';
 import { ChevronUp, ChevronDown, ChevronsUpDown } from 'lucide-react';
 
 // ── Tipos ────────────────────────────────────────────────────────
@@ -181,3 +181,4 @@ export function DataTable<T>({
     </div>
   );
 }
+

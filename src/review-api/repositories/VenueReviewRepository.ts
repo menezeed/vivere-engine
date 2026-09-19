@@ -13,16 +13,20 @@ export interface VenueListQuery {
   city?: string;
   category?: string;
   source?: string;
+  /** ADR-0022 — filtra por geographic_status ('inside_radius' | 'buffer_zone' | 'outside_region'). */
+  geographic_status?: string;
   sort?: string;
   order?: 'asc' | 'desc';
 }
 
 /** SELECT para listagem — sem raw_payload (performance).
  *  name e city são colunas persistidas em venues_staging (migrations 0006 e 0007)
- *  para permitir filtro e busca server-side sem depender de JOIN. */
+ *  para permitir filtro e busca server-side sem depender de JOIN.
+ *  geographic_status é coluna própria (migration 0018, ADR-0022) —
+ *  dimensão independente de proposal_status, nunca confundida com ela. */
 const LIST_SELECT = `
   id, raw_venue_item_id, source_key, source_item_id, product_key,
-  proposal_status, reviewed_by, reviewed_at, promoted_at, promoted_venue_id,
+  proposal_status, geographic_status, reviewed_by, reviewed_at, promoted_at, promoted_venue_id,
   created_at, city, name,
   raw_venue_items!inner (
     address, lat, lng, phone, website, image_url,
@@ -35,7 +39,7 @@ const LIST_SELECT = `
 /** SELECT para detalhe — inclui raw_payload completo */
 const DETAIL_SELECT = `
   id, raw_venue_item_id, source_key, source_item_id, product_key,
-  proposal_status, reviewed_by, reviewed_at, promoted_at, promoted_venue_id,
+  proposal_status, geographic_status, reviewed_by, reviewed_at, promoted_at, promoted_venue_id,
   created_at, city,
   raw_venue_items!inner (
     name, address, lat, lng, phone, website, image_url,
@@ -54,6 +58,7 @@ function flattenRow(data: Record<string, unknown>, includePayload = false): Venu
     source_item_id:        data['source_item_id'] as string,
     product_key:           data['product_key'] as string,
     proposal_status:       data['proposal_status'] as VenueStagingRow['proposal_status'],
+    geographic_status:     (data['geographic_status'] ?? null) as VenueStagingRow['geographic_status'],
     reviewed_by:           data['reviewed_by'] as string | null,
     reviewed_at:           data['reviewed_at'] as string | null,
     promoted_at:           data['promoted_at'] as string | null,
@@ -99,10 +104,12 @@ export class VenueReviewRepository {
       .order(sortCol, { ascending: order === 'asc' })
       .range(offset, offset + pageSize - 1);
 
-    if (status)       q = q.eq('proposal_status', status);
-    if (product_key)  q = q.eq('product_key', product_key);
-    if (query.city)   q = q.ilike('city', `%${query.city}%`);
-    if (query.source) q = q.eq('source_key', query.source);
+    if (status)             q = q.eq('proposal_status', status);
+    if (product_key)        q = q.eq('product_key', product_key);
+    if (query.city)         q = q.ilike('city', `%${query.city}%`);
+    if (query.source)       q = q.eq('source_key', query.source);
+    // ADR-0022 — dimensão independente de proposal_status, mesmo padrão de filtro exacto (.eq)
+    if (query.geographic_status) q = q.eq('geographic_status', query.geographic_status);
     // Busca server-side real — usa coluna name persistida (migration 0007)
     // com índice GIN trigram para ILIKE eficiente em toda a tabela
     if (search)       q = q.ilike('name', `%${search}%`);

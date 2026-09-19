@@ -2,6 +2,14 @@ export type UserRole = 'viewer' | 'reviewer' | 'admin';
 export type ProposalStatus = 'pending_review' | 'approved' | 'rejected' | 'promoted';
 export type ReviewAction = 'approve' | 'reject' | 'promote';
 
+/**
+ * ADR-0022 (Regional Geographic Gate) — dimensão independente de
+ * proposal_status, persistida em venues_staging.geographic_status
+ * (migration 0018). Null para fontes sem região (ex: WordPress) ou
+ * linhas anteriores à ADR-0022.
+ */
+export type GeographicStatus = 'inside_radius' | 'buffer_zone' | 'outside_region';
+
 export interface AuthUser {
   id: string;
   email: string;
@@ -27,6 +35,8 @@ export interface VenueStagingRow {
   source_item_id: string;
   product_key: string;
   proposal_status: ProposalStatus;
+  /** ADR-0022 — ver GeographicStatus. Nunca confundir com proposal_status. */
+  geographic_status?: GeographicStatus | null;
   reviewed_by: string | null;
   reviewed_at: string | null;
   promoted_at: string | null;
