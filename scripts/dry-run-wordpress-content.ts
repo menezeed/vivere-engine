@@ -11,6 +11,7 @@
  *   npx tsx scripts/dry-run-wordpress-content.ts                    (usa cabo-frio por default)
  *   npx tsx scripts/dry-run-wordpress-content.ts --instance=cabo-frio
  *   npx tsx scripts/dry-run-wordpress-content.ts --instance=araruama --since-days=7 --max-pages=2
+ *   npx tsx scripts/dry-run-wordpress-content.ts --instance=sao-pedro-da-aldeia
  *
  * O QUE ESTE SCRIPT NUNCA FAZ:
  * - Não escreve em staging.* ou public.* do Supabase
@@ -21,12 +22,14 @@ import { WordPressApiClient } from '../src/collectors/wordpress-content/WordPres
 import { WordPressContentCollector } from '../src/collectors/wordpress-content/WordPressContentCollector';
 import { CABO_FRIO_CONFIG } from '../src/collectors/wordpress-content/config/cabo-frio';
 import { ARARUAMA_CONFIG } from '../src/collectors/wordpress-content/config/araruama';
+import { SAO_PEDRO_DA_ALDEIA_CONFIG } from '../src/collectors/wordpress-content/config/sao-pedro-da-aldeia';
 import type { WordPressContentSourceConfig } from '../src/collectors/wordpress-content/config/WordPressContentSourceConfig';
 import type { MapReviewReason } from '../src/collectors/wordpress-content/mapToRawActivityItems';
 
 const AVAILABLE_INSTANCES: Record<string, WordPressContentSourceConfig> = {
   'cabo-frio': CABO_FRIO_CONFIG,
   araruama: ARARUAMA_CONFIG,
+  'sao-pedro-da-aldeia': SAO_PEDRO_DA_ALDEIA_CONFIG,
 };
 
 function parseArgValue(flag: string): string | undefined {
