@@ -1,9 +1,16 @@
 /**
  * src/publishing/__tests__/PublishingEngine.test.ts
  * Sprint 8.6 — testes com mocks. Zero Supabase, zero rede.
+ *
+ * CORRECÇÃO (Level 2 review, PR #1) — acrescentados testes que faltavam
+ * para a semântica real de falhas: a suíte original só testava o
+ * publisher de negócio (venuePublisher/activityPublisher) a lançar,
+ * nunca a própria infraestrutura de lifecycle/tracking (start/finish/
+ * eventRepo.record/markFailed). Ver "PublishingEngine — semântica de
+ * falhas de infraestrutura" no fim deste ficheiro.
  */
 
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { PublishingEngine } from '../services/PublishingEngine.js';
 import type { VenuePublicationMetrics } from '../services/VenuePublisher.js';
 import type { ActivityPublicationMetrics } from '../services/ActivityPublisher.js';
@@ -15,6 +22,12 @@ import type {
   PublicationRunId,
   PublicationEventId,
 } from '../types/domain.js';
+
+vi.mock('../../lib/logger.js', () => ({
+  logger: { error: vi.fn(), info: vi.fn(), warn: vi.fn() },
+}));
+
+import { logger } from '../../lib/logger.js';
 
 // ── Fixtures ──────────────────────────────────────────────────────────────────
 
@@ -181,7 +194,7 @@ describe('PublishingEngine — estados da run', () => {
     expect(summary.metrics).toBeNull();
   });
 
-  it('publish() nunca lança — mesmo em falha catastrófica devolve um PublicationRunSummary', async () => {
+  it('publish() nunca lança para falhas de negócio (publisher) — mesmo em falha catastrófica devolve um PublicationRunSummary', async () => {
     const venuePublisher    = { publish: vi.fn().mockRejectedValue(new Error('erro de rede')) , preview: vi.fn().mockResolvedValue([]) };
     const activityPublisher = { publish: vi.fn().mockResolvedValue(zeroActivityMetrics()) , preview: vi.fn().mockResolvedValue([]) };
     const runRepo   = makeRunRepo();
@@ -240,25 +253,119 @@ describe('PublishingEngine.preview', () => {
     const engine = new PublishingEngine(venuePublisher, activityPublisher, runRepo, eventRepo, () => STARTED);
     const preview = await engine.preview(PRODUCT_KEY);
 
-    expect(preview.venues).toBe(venueDecisions);
-    expect(preview.activities).toBe(activityDecisions);
+    expect(preview.venues).toEqual(venueDecisions);
+    expect(preview.activities).toEqual(activityDecisions);
     expect(runRepo.start).not.toHaveBeenCalled();
-    expect(runRepo.finish).not.toHaveBeenCalled();
     expect(eventRepo.record).not.toHaveBeenCalled();
-    expect(venuePublisher.publish).not.toHaveBeenCalled();
-    expect(activityPublisher.publish).not.toHaveBeenCalled();
+  });
+});
+
+// ── Semântica de falhas de infraestrutura (Level 2 review, PR #1) ─────────────
+
+describe('PublishingEngine — semântica de falhas de infraestrutura', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
   });
 
-  it('chama venuePublisher.preview e activityPublisher.preview com productKey', async () => {
+  it('propaga quando runRepo.start() falha — nenhuma run foi criada, nada a reportar como failed', async () => {
     const venuePublisher    = { publish: vi.fn(), preview: vi.fn().mockResolvedValue([]) };
     const activityPublisher = { publish: vi.fn(), preview: vi.fn().mockResolvedValue([]) };
     const runRepo   = makeRunRepo();
+    (runRepo.start as ReturnType<typeof vi.fn>).mockRejectedValue(new Error('RLS violation ao abrir run'));
     const eventRepo = makeEventRepo();
 
     const engine = new PublishingEngine(venuePublisher, activityPublisher, runRepo, eventRepo, () => STARTED);
-    await engine.preview(PRODUCT_KEY);
 
-    expect(venuePublisher.preview).toHaveBeenCalledWith(PRODUCT_KEY);
-    expect(activityPublisher.preview).toHaveBeenCalledWith(PRODUCT_KEY);
+    await expect(engine.publish(PRODUCT_KEY, TRIGGERED_BY)).rejects.toThrow('RLS violation ao abrir run');
+    expect(venuePublisher.publish).not.toHaveBeenCalled();
+  });
+
+  it('propaga quando runRepo.finish() falha no caminho de sucesso — publicação já aconteceu, esconder isso seria enganoso', async () => {
+    const venuePublisher    = { publish: vi.fn().mockResolvedValue(zeroVenueMetrics()) , preview: vi.fn().mockResolvedValue([]) };
+    const activityPublisher = { publish: vi.fn().mockResolvedValue(zeroActivityMetrics()) , preview: vi.fn().mockResolvedValue([]) };
+    const runRepo   = makeRunRepo();
+    (runRepo.finish as ReturnType<typeof vi.fn>).mockRejectedValue(new Error('timeout ao gravar finish'));
+    const eventRepo = makeEventRepo();
+
+    const engine = new PublishingEngine(venuePublisher, activityPublisher, runRepo, eventRepo, () => STARTED);
+
+    await expect(engine.publish(PRODUCT_KEY, TRIGGERED_BY)).rejects.toThrow('timeout ao gravar finish');
+  });
+
+  it('propaga quando eventRepo.record() (Completed) falha no caminho de sucesso', async () => {
+    const venuePublisher    = { publish: vi.fn().mockResolvedValue(zeroVenueMetrics()) , preview: vi.fn().mockResolvedValue([]) };
+    const activityPublisher = { publish: vi.fn().mockResolvedValue(zeroActivityMetrics()) , preview: vi.fn().mockResolvedValue([]) };
+    const runRepo   = makeRunRepo();
+    const eventRepo = makeEventRepo();
+    (eventRepo.record as ReturnType<typeof vi.fn>).mockRejectedValue(new Error('falha ao registar evento'));
+
+    const engine = new PublishingEngine(venuePublisher, activityPublisher, runRepo, eventRepo, () => STARTED);
+
+    await expect(engine.publish(PRODUCT_KEY, TRIGGERED_BY)).rejects.toThrow('falha ao registar evento');
+    expect(runRepo.finish).toHaveBeenCalled(); // finish() já tinha corrido com sucesso antes do evento falhar
+  });
+
+  it('preserva a causa original de negócio mesmo quando markFailed() também falha — não perde a excepção original silenciosamente', async () => {
+    const venuePublisher    = { publish: vi.fn().mockRejectedValue(new Error('falha original de negócio')) , preview: vi.fn().mockResolvedValue([]) };
+    const activityPublisher = { publish: vi.fn().mockResolvedValue(zeroActivityMetrics()) , preview: vi.fn().mockResolvedValue([]) };
+    const runRepo   = makeRunRepo();
+    (runRepo.markFailed as ReturnType<typeof vi.fn>).mockRejectedValue(new Error('DB indisponível ao marcar failed'));
+    const eventRepo = makeEventRepo();
+
+    const engine = new PublishingEngine(venuePublisher, activityPublisher, runRepo, eventRepo, () => STARTED);
+    const summary = await engine.publish(PRODUCT_KEY, TRIGGERED_BY);
+
+    // handleFailure() não lança — a causa original continua a ser reportada
+    expect(summary.status).toBe('failed');
+    expect(summary.metrics).toBeNull();
+    // a falha secundária (markFailed) fica registada via logger, não perdida, não silenciosa
+    expect(logger.error).toHaveBeenCalledWith(
+      expect.objectContaining({
+        originalReason: 'falha original de negócio',
+        markFailedError: 'DB indisponível ao marcar failed',
+      }),
+      expect.any(String),
+    );
+    // o evento de falha ainda é tentado, apesar de markFailed ter falhado
+    expect(eventRepo.record).toHaveBeenCalledWith(
+      expect.objectContaining({ eventType: 'PublicationRunFailed', payload: { reason: 'falha original de negócio' } }),
+    );
+  });
+
+  it('preserva a causa original de negócio mesmo quando eventRepo.record() (Failed) também falha', async () => {
+    const venuePublisher    = { publish: vi.fn().mockRejectedValue(new Error('falha original de negócio 2')) , preview: vi.fn().mockResolvedValue([]) };
+    const activityPublisher = { publish: vi.fn().mockResolvedValue(zeroActivityMetrics()) , preview: vi.fn().mockResolvedValue([]) };
+    const runRepo   = makeRunRepo();
+    const eventRepo = makeEventRepo();
+    (eventRepo.record as ReturnType<typeof vi.fn>).mockRejectedValue(new Error('falha ao registar evento de falha'));
+
+    const engine = new PublishingEngine(venuePublisher, activityPublisher, runRepo, eventRepo, () => STARTED);
+    const summary = await engine.publish(PRODUCT_KEY, TRIGGERED_BY);
+
+    expect(summary.status).toBe('failed');
+    expect(runRepo.markFailed).toHaveBeenCalledWith(RUN_ID, 'falha original de negócio 2'); // markFailed ainda corre, apesar do evento falhar depois
+    expect(logger.error).toHaveBeenCalledWith(
+      expect.objectContaining({
+        originalReason: 'falha original de negócio 2',
+        eventError: 'falha ao registar evento de falha',
+      }),
+      expect.any(String),
+    );
+  });
+
+  it('quando markFailed() E eventRepo.record() falham ambos, a causa original ainda é devolvida e ambas as falhas secundárias ficam registadas', async () => {
+    const venuePublisher    = { publish: vi.fn().mockRejectedValue(new Error('falha tripla')) , preview: vi.fn().mockResolvedValue([]) };
+    const activityPublisher = { publish: vi.fn().mockResolvedValue(zeroActivityMetrics()) , preview: vi.fn().mockResolvedValue([]) };
+    const runRepo   = makeRunRepo();
+    (runRepo.markFailed as ReturnType<typeof vi.fn>).mockRejectedValue(new Error('markFailed indisponível'));
+    const eventRepo = makeEventRepo();
+    (eventRepo.record as ReturnType<typeof vi.fn>).mockRejectedValue(new Error('evento indisponível'));
+
+    const engine = new PublishingEngine(venuePublisher, activityPublisher, runRepo, eventRepo, () => STARTED);
+    const summary = await engine.publish(PRODUCT_KEY, TRIGGERED_BY);
+
+    expect(summary.status).toBe('failed');
+    expect(summary.metrics).toBeNull();
+    expect(logger.error).toHaveBeenCalledTimes(2);
   });
 });

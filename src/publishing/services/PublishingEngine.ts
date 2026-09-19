@@ -22,16 +22,35 @@
  * venues_staging.promoted_venue_id, que só reflecte publicações desta run
  * depois de VenuePublisher.publish() ter corrido.
  *
- * publish() nunca lança — falhas catastróficas (ex: erro de rede na leitura
- * inicial de staging) são capturadas, registadas via markFailed() e reflectidas
- * no PublicationRunSummary devolvido (status 'failed'), para uso seguro por
- * scripts/CLI sem necessidade de try/catch externo.
+ * CORRECÇÃO (Level 2 review, PR #1) — semântica de falhas revista. A
+ * afirmação anterior ("publish() nunca lança") não era garantida pelo
+ * código: runRepo.start(), runRepo.finish() e eventRepo.record() no
+ * caminho de sucesso nunca estiveram dentro de nenhum try/catch, e
+ * handleFailure() podia lançar por dentro de si mesma se markFailed()/
+ * eventRepo.record() falhassem, perdendo a causa original.
+ *
+ * Semântica real, agora documentada com precisão:
+ *   - Falhas de NEGÓCIO (VenuePublisher.publish()/ActivityPublisher.publish()
+ *     lançarem, depois de uma run já ter sido criada com sucesso) são
+ *     capturadas e convertidas num PublicationRunSummary com status
+ *     'failed' — best-effort: mesmo que o próprio registo dessa falha
+ *     (markFailed()/evento PublicationRunFailed) também falhe, a causa
+ *     original nunca é substituída nem perdida; a falha secundária fica
+ *     apenas registada via logger, para investigação.
+ *   - Falhas de INFRAESTRUTURA DE LIFECYCLE/TRACKING (runRepo.start(),
+ *     runRepo.finish(), eventRepo.record() no caminho de sucesso) PROPAGAM
+ *     — publish() pode lançar nestes casos. Não há run para reportar como
+ *     'failed' se start() nunca criou uma, e fabricar um resumo de sucesso
+ *     quando finish()/o evento de conclusão falham esconderia uma falha
+ *     operacional real. O boundary final é a CLI (scripts/publish.ts),
+ *     que já trata isto via main().catch().
  *
  * Sprint 8.7 — preview(): coordena VenuePublisher.preview()/
  * ActivityPublisher.preview(), sem criar run nem eventos — modo read-only
  * usado pelo script CLI (`--preview`) antes da primeira publicação real.
  */
 
+import { logger } from '../../lib/logger.js';
 import type { VenuePublisher, VenuePublicationMetrics, VenueDecision } from './VenuePublisher.js';
 import type { ActivityPublisher, ActivityPublicationMetrics, ActivityDecision } from './ActivityPublisher.js';
 import type {
@@ -80,7 +99,10 @@ export class PublishingEngine {
 
   /**
    * Executa uma run completa de publicação para um produto: venues primeiro,
-   * depois activities. Sempre devolve um PublicationRunSummary — nunca lança.
+   * depois activities. Falhas de negócio (publishers) são convertidas num
+   * PublicationRunSummary 'failed'. Falhas de infraestrutura de lifecycle
+   * (start/finish/eventos) PROPAGAM — ver nota de semântica no cabeçalho
+   * do ficheiro.
    */
   async publish(productKey: string, triggeredBy: string): Promise<PublicationRunSummary> {
     const startedAt = this.clock();
@@ -126,6 +148,17 @@ export class PublishingEngine {
     return { runId, productKey, triggeredBy, status, startedAt, finishedAt, metrics };
   }
 
+  /**
+   * CORRECÇÃO (Level 2 review, PR #1) — markFailed() e o registo do evento
+   * PublicationRunFailed passam a ter try/catch próprios. Se qualquer um
+   * dos dois falhar, a falha secundária é registada via logger (auditável,
+   * não silenciosa) mas NUNCA substitui nem perde a causa original (`err`)
+   * — o PublicationRunSummary devolvido continua a reportar 'failed' com a
+   * razão de negócio original, mesmo que o próprio registo dessa falha
+   * tenha, por sua vez, falhado. handleFailure() nunca lança — se lançasse,
+   * a causa original (já capturada no catch de publish()) seria perdida
+   * por completo para quem chamou publish().
+   */
   private async handleFailure(
     runId:       PublicationRunSummary['runId'],
     productKey:  string,
@@ -135,16 +168,40 @@ export class PublishingEngine {
   ): Promise<PublicationRunSummary> {
     const reason = err instanceof Error ? err.message : String(err);
 
-    await this.runRepo.markFailed(runId, reason);
+    try {
+      await this.runRepo.markFailed(runId, reason);
+    } catch (markFailedErr) {
+      logger.error(
+        {
+          runId,
+          productKey,
+          originalReason: reason,
+          markFailedError: markFailedErr instanceof Error ? markFailedErr.message : String(markFailedErr),
+        },
+        'PublishingEngine: falha ao marcar run como failed — causa original de negócio preservada no summary devolvido; registo de lifecycle pode estar inconsistente em public.publication_runs',
+      );
+    }
 
-    await this.eventRepo.record({
-      eventType:  'PublicationRunFailed',
-      entityType: 'run',
-      entityId:   runId,
-      productKey,
-      runId,
-      payload: { reason },
-    });
+    try {
+      await this.eventRepo.record({
+        eventType:  'PublicationRunFailed',
+        entityType: 'run',
+        entityId:   runId,
+        productKey,
+        runId,
+        payload: { reason },
+      });
+    } catch (eventErr) {
+      logger.error(
+        {
+          runId,
+          productKey,
+          originalReason: reason,
+          eventError: eventErr instanceof Error ? eventErr.message : String(eventErr),
+        },
+        'PublishingEngine: falha ao registar evento PublicationRunFailed — causa original de negócio preservada no summary devolvido',
+      );
+    }
 
     return {
       runId,
