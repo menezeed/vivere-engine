@@ -1,0 +1,1569 @@
+[
+  {
+    "place_id": "ChIJQ9QiKbdZzpQR3rtMIc3cB7o",
+    "name": "Curso Teatro Emilio Fontana SP",
+    "lat": -23.637296499999998,
+    "lng": -46.666463799999995,
+    "category": "teatro",
+    "google_types": [
+      "service",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "needs_review",
+    "reasoning": "Nenhuma regra heurística reconheceu este local — enviado para revisão por padrão de segurança.",
+    "distance_meters": 4932,
+    "geographic_bucket": "outside_region"
+  },
+  {
+    "place_id": "ChIJz-TjcqNQzpQR676LLYe6XiY",
+    "name": "Vértice Espaço Cultural",
+    "lat": -23.616886,
+    "lng": -46.6781996,
+    "category": "teatro",
+    "google_types": [
+      "cultural_center",
+      "convention_center",
+      "service",
+      "event_venue",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "accepted",
+    "reasoning": "Aceito por: accept_type_cultural_center (tipo: \"cultural_center\"); accept_keyword_espaco_cultural (nome: \"espaco cultural\")",
+    "distance_meters": 2798,
+    "geographic_bucket": "buffer_zone"
+  },
+  {
+    "place_id": "ChIJAZGCze9bzpQRWdbMBvOc5L4",
+    "name": "Casa de Metal - Espaço Cultural",
+    "lat": -23.615092399999998,
+    "lng": -46.6687078,
+    "category": "teatro",
+    "google_types": [
+      "cultural_center",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "accepted",
+    "reasoning": "Aceito por: accept_type_cultural_center (tipo: \"cultural_center\"); accept_keyword_espaco_cultural (nome: \"espaco cultural\")",
+    "distance_meters": 2455,
+    "geographic_bucket": "inside_radius"
+  },
+  {
+    "place_id": "ChIJzdedJKBQzpQR6vMkoQleMjw",
+    "name": "Grupo Teatral Terceiro Milênio",
+    "lat": -23.6179065,
+    "lng": -46.6720246,
+    "category": "teatro",
+    "google_types": [
+      "association_or_organization",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "needs_review",
+    "reasoning": "Nenhuma regra heurística reconheceu este local — enviado para revisão por padrão de segurança.",
+    "distance_meters": 2778,
+    "geographic_bucket": "buffer_zone"
+  },
+  {
+    "place_id": "ChIJlRjtr8RQzpQR4-e-am3406Y",
+    "name": "Teatro Multiplan MorumbiShopping",
+    "lat": -23.6221598,
+    "lng": -46.6982031,
+    "category": "teatro",
+    "google_types": [
+      "performing_arts_theater",
+      "event_venue",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "accepted",
+    "reasoning": "Aceito por: accept_type_theater (tipo: \"performing_arts_theater\")",
+    "distance_meters": 4365,
+    "geographic_bucket": "outside_region"
+  },
+  {
+    "place_id": "ChIJzxa7QzpXzpQR47MUXhyA3zA",
+    "name": "Teatro B32",
+    "lat": -23.5897604,
+    "lng": -46.6824605,
+    "category": "teatro",
+    "google_types": [
+      "performing_arts_theater",
+      "event_venue",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "accepted",
+    "reasoning": "Aceito por: accept_type_theater (tipo: \"performing_arts_theater\")",
+    "distance_meters": 1372,
+    "geographic_bucket": "inside_radius"
+  },
+  {
+    "place_id": "ChIJSV3ta3o0GQ0RB1NyduumOzY",
+    "name": "Teatro Santo Agostinho",
+    "lat": -23.5684173,
+    "lng": -46.638853,
+    "category": "teatro",
+    "google_types": [
+      "performing_arts_theater",
+      "event_venue",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "accepted",
+    "reasoning": "Aceito por: accept_type_theater (tipo: \"performing_arts_theater\")",
+    "distance_meters": 4151,
+    "geographic_bucket": "outside_region"
+  },
+  {
+    "place_id": "ChIJh5oCWcVQzpQReLEL9hfuv2w",
+    "name": "Teatro Vivo | São Paulo",
+    "lat": -23.620020699999998,
+    "lng": -46.6988158,
+    "category": "teatro",
+    "google_types": [
+      "performing_arts_theater",
+      "event_venue",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "accepted",
+    "reasoning": "Aceito por: accept_type_theater (tipo: \"performing_arts_theater\")",
+    "distance_meters": 4236,
+    "geographic_bucket": "outside_region"
+  },
+  {
+    "place_id": "ChIJX5xV0aFQzpQRUodDVM11cxU",
+    "name": "Restaurante Othelo Campo Belo...",
+    "lat": -23.618360199999998,
+    "lng": -46.673265900000004,
+    "category": "teatro",
+    "google_types": [
+      "buffet_restaurant",
+      "german_restaurant",
+      "european_restaurant",
+      "italian_restaurant",
+      "restaurant",
+      "food",
+      "bar",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "needs_review",
+    "reasoning": "Caso intermediário, requer revisão por: review_type_food_uncertain (tipo: \"restaurant\")",
+    "distance_meters": 2843,
+    "geographic_bucket": "buffer_zone"
+  },
+  {
+    "place_id": "ChIJSfFK-P1QzpQR_A6KtoubfWo",
+    "name": "Teatro Leopoldo Fróes - Centro Cultural de Santo Amaro",
+    "lat": -23.645110400000004,
+    "lng": -46.7087315,
+    "category": "teatro",
+    "google_types": [
+      "cultural_center",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "accepted",
+    "reasoning": "Aceito por: accept_type_cultural_center (tipo: \"cultural_center\")",
+    "distance_meters": 7038,
+    "geographic_bucket": "outside_region"
+  },
+  {
+    "place_id": "ChIJR7iZqIj4zpQRg0AAs42rnuk",
+    "name": "Casa Amarela Festas",
+    "lat": -23.625871399999998,
+    "lng": -46.666256499999996,
+    "category": "teatro",
+    "google_types": [
+      "service",
+      "event_venue",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "needs_review",
+    "reasoning": "Nenhuma regra heurística reconheceu este local — enviado para revisão por padrão de segurança.",
+    "distance_meters": 3667,
+    "geographic_bucket": "outside_region"
+  },
+  {
+    "place_id": "ChIJf85f-Z9ZzpQRJigiASLLixk",
+    "name": "Marte Hall São Paulo",
+    "lat": -23.5802862,
+    "lng": -46.6401767,
+    "category": "teatro",
+    "google_types": [
+      "event_venue",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "needs_review",
+    "reasoning": "Nenhuma regra heurística reconheceu este local — enviado para revisão por padrão de segurança.",
+    "distance_meters": 3305,
+    "geographic_bucket": "outside_region"
+  },
+  {
+    "place_id": "ChIJCaA34LNZzpQRuIk6hA_ooLA",
+    "name": "Teatro Sérgio Cardoso",
+    "lat": -23.5566124,
+    "lng": -46.645012099999995,
+    "category": "teatro",
+    "google_types": [
+      "performing_arts_theater",
+      "event_venue",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "accepted",
+    "reasoning": "Aceito por: accept_type_theater (tipo: \"performing_arts_theater\")",
+    "distance_meters": 4756,
+    "geographic_bucket": "outside_region"
+  },
+  {
+    "place_id": "ChIJseStzSxRzpQRXIf6UgQxY3w",
+    "name": "Centro Cultural Santo Amaro",
+    "lat": -23.6454544,
+    "lng": -46.708692,
+    "category": "teatro",
+    "google_types": [
+      "cultural_center",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "accepted",
+    "reasoning": "Aceito por: accept_type_cultural_center (tipo: \"cultural_center\")",
+    "distance_meters": 7067,
+    "geographic_bucket": "outside_region"
+  },
+  {
+    "place_id": "ChIJi6GKOxFWzpQRHk7k7_d5Wyc",
+    "name": "Theatro Municipal de São Paulo",
+    "lat": -23.5452348,
+    "lng": -46.638614999999994,
+    "category": "teatro",
+    "google_types": [
+      "performing_arts_theater",
+      "tourist_attraction",
+      "philharmonic_hall",
+      "event_venue",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "accepted",
+    "reasoning": "Aceito por: accept_type_theater (tipo: \"performing_arts_theater\")",
+    "distance_meters": 6176,
+    "geographic_bucket": "outside_region"
+  },
+  {
+    "place_id": "ChIJrZHrGbVZzpQRzPWALBFtUbE",
+    "name": "Maria Della Costa",
+    "lat": -23.5547059,
+    "lng": -46.649297399999995,
+    "category": "teatro",
+    "google_types": [
+      "performing_arts_theater",
+      "event_venue",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "accepted",
+    "reasoning": "Aceito por: accept_type_theater (tipo: \"performing_arts_theater\")",
+    "distance_meters": 4732,
+    "geographic_bucket": "outside_region"
+  },
+  {
+    "place_id": "ChIJ35G-Ov5QzpQR2EroMQZJv4A",
+    "name": "Casa de Cultura Municipal Santo Amaro - Manoel Mendonça",
+    "lat": -23.646646699999998,
+    "lng": -46.7084291,
+    "category": "teatro",
+    "google_types": [
+      "cultural_center",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "accepted",
+    "reasoning": "Aceito por: accept_type_cultural_center (tipo: \"cultural_center\")",
+    "distance_meters": 7162,
+    "geographic_bucket": "outside_region"
+  },
+  {
+    "place_id": "ChIJX3zqqSVbzpQRWhL6a8IVhuM",
+    "name": "Instituto Movimentarte",
+    "lat": -23.617707400000004,
+    "lng": -46.664743,
+    "category": "teatro",
+    "google_types": [
+      "sports_school",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "likely_fitness_generic",
+    "reasoning": "Provável academia/estúdio genérico, sem indicação clara de atender o público 60+ por: fitness_generic_type (tipo: \"sports_school\")",
+    "distance_meters": 2786,
+    "geographic_bucket": "buffer_zone"
+  },
+  {
+    "place_id": "ChIJJQrOWkVRzpQRTQ05-2cWM88",
+    "name": "Teatro Jardim Sul",
+    "lat": -23.631056899999997,
+    "lng": -46.7355294,
+    "category": "teatro",
+    "google_types": [
+      "performing_arts_theater",
+      "event_venue",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "accepted",
+    "reasoning": "Aceito por: accept_type_theater (tipo: \"performing_arts_theater\")",
+    "distance_meters": 7948,
+    "geographic_bucket": "outside_region"
+  },
+  {
+    "place_id": "ChIJdenZP7VbzpQR-QFXBUoq1xY",
+    "name": "Calê Centro de Desenvolvimento infantil",
+    "lat": -23.627119699999998,
+    "lng": -46.66726080000001,
+    "category": "teatro",
+    "google_types": [
+      "preschool",
+      "child_care_agency",
+      "school",
+      "educational_institution",
+      "service",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "needs_review",
+    "reasoning": "Nenhuma regra heurística reconheceu este local — enviado para revisão por padrão de segurança.",
+    "distance_meters": 3797,
+    "geographic_bucket": "outside_region"
+  },
+  {
+    "place_id": "ChIJ8RrqHqBQzpQRXo1q09RB1rs",
+    "name": "Gansaral - Restaurante Alemão",
+    "lat": -23.617938199999998,
+    "lng": -46.671484199999995,
+    "category": "centro_cultural",
+    "google_types": [
+      "german_restaurant",
+      "brewery",
+      "cultural_center",
+      "coffee_shop",
+      "cafe",
+      "european_restaurant",
+      "food_store",
+      "manufacturer",
+      "restaurant",
+      "food",
+      "store",
+      "point_of_interest",
+      "service",
+      "establishment"
+    ],
+    "decision": "rejected",
+    "reasoning": "Rejeitado por: reject_type_grocery (tipo: \"food_store\")",
+    "distance_meters": 2777,
+    "geographic_bucket": "buffer_zone"
+  },
+  {
+    "place_id": "ChIJ-f3Ch4NRzpQRliuGRXk8p-0",
+    "name": "Cultura Inglesa Campo Belo",
+    "lat": -23.6163106,
+    "lng": -46.67365290000001,
+    "category": "centro_cultural",
+    "google_types": [
+      "educational_institution",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "needs_review",
+    "reasoning": "Nenhuma regra heurística reconheceu este local — enviado para revisão por padrão de segurança.",
+    "distance_meters": 2623,
+    "geographic_bucket": "buffer_zone"
+  },
+  {
+    "place_id": "ChIJtXCzNHVazpQRsfrgUBBBhLc",
+    "name": "Sociedade Filarmônica Lyra",
+    "lat": -23.6173416,
+    "lng": -46.6686857,
+    "category": "centro_cultural",
+    "google_types": [
+      "association_or_organization",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "needs_review",
+    "reasoning": "Nenhuma regra heurística reconheceu este local — enviado para revisão por padrão de segurança.",
+    "distance_meters": 2705,
+    "geographic_bucket": "buffer_zone"
+  },
+  {
+    "place_id": "ChIJiVbDjVI-tZQRXLVmrhNuQVM",
+    "name": "Casa da Cultura",
+    "lat": -20.895451899999998,
+    "lng": -45.2738673,
+    "category": "centro_cultural",
+    "google_types": [
+      "cultural_center",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "accepted",
+    "reasoning": "Aceito por: accept_type_cultural_center (tipo: \"cultural_center\")",
+    "distance_meters": 332565,
+    "geographic_bucket": "outside_region"
+  },
+  {
+    "place_id": "ChIJvd7d7xVbzpQRXFfy1rpKdy0",
+    "name": "Casa da Capoeira",
+    "lat": -23.6253817,
+    "lng": -46.6637175,
+    "category": "centro_cultural",
+    "google_types": [
+      "educational_institution",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "needs_review",
+    "reasoning": "Nenhuma regra heurística reconheceu este local — enviado para revisão por padrão de segurança.",
+    "distance_meters": 3645,
+    "geographic_bucket": "outside_region"
+  },
+  {
+    "place_id": "ChIJzRJ6SZ9QzpQRhnb3I85jKuY",
+    "name": "Residências Vilanova Artigas",
+    "lat": -23.620416000000002,
+    "lng": -46.6752231,
+    "category": "centro_cultural",
+    "google_types": [
+      "cultural_center",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "accepted",
+    "reasoning": "Aceito por: accept_type_cultural_center (tipo: \"cultural_center\")",
+    "distance_meters": 3101,
+    "geographic_bucket": "outside_region"
+  },
+  {
+    "place_id": "ChIJtwFBAJ9QzpQRim3bAa9n6dk",
+    "name": "Sebo Museu do Livro",
+    "lat": -23.6210193,
+    "lng": -46.6730197,
+    "category": "museu",
+    "google_types": [
+      "book_store",
+      "store",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "needs_review",
+    "reasoning": "Nenhuma regra heurística reconheceu este local — enviado para revisão por padrão de segurança.",
+    "distance_meters": 3133,
+    "geographic_bucket": "outside_region"
+  },
+  {
+    "place_id": "ChIJYQLZbwA_tZQRpiMaDq-aXsU",
+    "name": "Museu Histórico de Campo Belo",
+    "lat": -20.893078499999998,
+    "lng": -45.27142010000001,
+    "category": "museu",
+    "google_types": [
+      "museum",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "accepted",
+    "reasoning": "Aceito por: accept_type_museum (tipo: \"museum\")",
+    "distance_meters": 332912,
+    "geographic_bucket": "outside_region"
+  },
+  {
+    "place_id": "ChIJSxyT0fNZzpQRm9NL3hdpPJg",
+    "name": "Oca - Parque Ibirapuera",
+    "lat": -23.5868604,
+    "lng": -46.6554973,
+    "category": "museu",
+    "google_types": [
+      "art_museum",
+      "tourist_attraction",
+      "art_gallery",
+      "museum",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "accepted",
+    "reasoning": "Aceito por: accept_type_museum (tipo: \"museum\"); accept_type_art_gallery (tipo: \"art_gallery\")",
+    "distance_meters": 1581,
+    "geographic_bucket": "inside_radius"
+  },
+  {
+    "place_id": "ChIJZblwumRXzpQRwdTlPeI0uJQ",
+    "name": "Museu da Imagem e do Som (MIS) - São Paulo",
+    "lat": -23.5728902,
+    "lng": -46.676059699999996,
+    "category": "museu",
+    "google_types": [
+      "museum",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "accepted",
+    "reasoning": "Aceito por: accept_type_museum (tipo: \"museum\")",
+    "distance_meters": 2338,
+    "geographic_bucket": "inside_radius"
+  },
+  {
+    "place_id": "ChIJo2Ygwe9ZzpQRD-ge7J12tnk",
+    "name": "Museu Afro Brasil Emanoel Araujo",
+    "lat": -23.583783699999998,
+    "lng": -46.6591203,
+    "category": "museu",
+    "google_types": [
+      "tourist_attraction",
+      "cultural_center",
+      "museum",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "accepted",
+    "reasoning": "Aceito por: accept_type_museum (tipo: \"museum\"); accept_type_cultural_center (tipo: \"cultural_center\")",
+    "distance_meters": 1474,
+    "geographic_bucket": "inside_radius"
+  },
+  {
+    "place_id": "ChIJ-UXtMotZzpQRGeDvgIuDEd0",
+    "name": "Museu de Arte Contemporânea da Universidade de São Paulo",
+    "lat": -23.5889906,
+    "lng": -46.650996199999994,
+    "category": "museu",
+    "google_types": [
+      "art_museum",
+      "tourist_attraction",
+      "museum",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "accepted",
+    "reasoning": "Aceito por: accept_type_museum (tipo: \"museum\")",
+    "distance_meters": 1936,
+    "geographic_bucket": "inside_radius"
+  },
+  {
+    "place_id": "ChIJi2C8z5hXzpQRXiL7PTDS-e8",
+    "name": "Selfie",
+    "lat": -23.6095887,
+    "lng": -46.6676059,
+    "category": "museu",
+    "google_types": [
+      "museum",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "accepted",
+    "reasoning": "Aceito por: accept_type_museum (tipo: \"museum\")",
+    "distance_meters": 1851,
+    "geographic_bucket": "inside_radius"
+  },
+  {
+    "place_id": "ChIJm_L-_zxAtZQRbNRdJKusUKI",
+    "name": "Fundação Museu e Arquivo Público do Mun de Campo Belo",
+    "lat": -20.893665,
+    "lng": -45.270319,
+    "category": "museu",
+    "google_types": [
+      "association_or_organization",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "needs_review",
+    "reasoning": "Nenhuma regra heurística reconheceu este local — enviado para revisão por padrão de segurança.",
+    "distance_meters": 332902,
+    "geographic_bucket": "outside_region"
+  },
+  {
+    "place_id": "ChIJ86I-l2RXzpQRQ88BYOMo2R4",
+    "name": "Casa Museu Ema Klabin",
+    "lat": -23.573598,
+    "lng": -46.6757079,
+    "category": "museu",
+    "google_types": [
+      "art_museum",
+      "tourist_attraction",
+      "cultural_center",
+      "museum",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "accepted",
+    "reasoning": "Aceito por: accept_type_museum (tipo: \"museum\"); accept_type_cultural_center (tipo: \"cultural_center\")",
+    "distance_meters": 2252,
+    "geographic_bucket": "inside_radius"
+  },
+  {
+    "place_id": "ChIJwU5UdIxZzpQRzQPAQxJItWc",
+    "name": "Museu do Instituto Biológico",
+    "lat": -23.5858223,
+    "lng": -46.648515499999995,
+    "category": "museu",
+    "google_types": [
+      "zoo",
+      "museum",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "accepted",
+    "reasoning": "Aceito por: accept_type_museum (tipo: \"museum\")",
+    "distance_meters": 2282,
+    "geographic_bucket": "inside_radius"
+  },
+  {
+    "place_id": "ChIJq7WXZf5YzpQRguKUxFINMrU",
+    "name": "Museu Catavento",
+    "lat": -23.5444078,
+    "lng": -46.6273522,
+    "category": "museu",
+    "google_types": [
+      "tourist_attraction",
+      "museum",
+      "educational_institution",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "accepted",
+    "reasoning": "Aceito por: accept_type_museum (tipo: \"museum\")",
+    "distance_meters": 6904,
+    "geographic_bucket": "outside_region"
+  },
+  {
+    "place_id": "ChIJ5dkWOLNRzpQRdwknDsbIAwI",
+    "name": "IBArq - Instituto Bíblico de Arqueologia",
+    "lat": -23.616411199999998,
+    "lng": -46.6752496,
+    "category": "museu",
+    "google_types": [
+      "museum",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "accepted",
+    "reasoning": "Aceito por: accept_type_museum (tipo: \"museum\")",
+    "distance_meters": 2666,
+    "geographic_bucket": "buffer_zone"
+  },
+  {
+    "place_id": "ChIJH3frsc5ZzpQRoU10aab2BOk",
+    "name": "Museu de Arte de São Paulo Assis Chateaubriand",
+    "lat": -23.561414,
+    "lng": -46.6558819,
+    "category": "museu",
+    "google_types": [
+      "art_museum",
+      "tourist_attraction",
+      "museum",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "accepted",
+    "reasoning": "Aceito por: accept_type_museum (tipo: \"museum\")",
+    "distance_meters": 3779,
+    "geographic_bucket": "outside_region"
+  },
+  {
+    "place_id": "ChIJywlpsQZazpQRLgswqQEjVmo",
+    "name": "Espaço Cultural Jacutinga",
+    "lat": -23.6027395,
+    "lng": -46.6667366,
+    "category": "museu",
+    "google_types": [
+      "museum",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "accepted",
+    "reasoning": "Aceito por: accept_type_museum (tipo: \"museum\"); accept_keyword_espaco_cultural (nome: \"espaco cultural\")",
+    "distance_meters": 1115,
+    "geographic_bucket": "inside_radius"
+  },
+  {
+    "place_id": "ChIJHWV5KndazpQRYYVxrDEVnt4",
+    "name": "Parque Linear Invernada",
+    "lat": -23.6253617,
+    "lng": -46.6636868,
+    "category": "parque",
+    "google_types": [
+      "park",
+      "event_venue",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "accepted",
+    "reasoning": "Aceito por: accept_type_park (tipo: \"park\")",
+    "distance_meters": 3643,
+    "geographic_bucket": "outside_region"
+  },
+  {
+    "place_id": "ChIJjziFgs1bzpQRNz-TTPdMu0k",
+    "name": "Praça Campo Belo",
+    "lat": -23.626808,
+    "lng": -46.6649185,
+    "category": "parque",
+    "google_types": [
+      "garden",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "needs_review",
+    "reasoning": "Caso intermediário, requer revisão por: review_keyword_praca (nome: \"praca \")",
+    "distance_meters": 3785,
+    "geographic_bucket": "outside_region"
+  },
+  {
+    "place_id": "ChIJHbKHKndazpQRnRvdmjGu4og",
+    "name": "Nárnia",
+    "lat": -23.6235465,
+    "lng": -46.665995699999996,
+    "category": "parque",
+    "google_types": [
+      "park",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "accepted",
+    "reasoning": "Aceito por: accept_type_park (tipo: \"park\")",
+    "distance_meters": 3412,
+    "geographic_bucket": "outside_region"
+  },
+  {
+    "place_id": "ChIJmyLqKwVRzpQRP9-4EuaZr-0",
+    "name": "Praça Estação Campo Belo",
+    "lat": -23.6173416,
+    "lng": -46.681453399999995,
+    "category": "parque",
+    "google_types": [
+      "park",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "needs_review",
+    "reasoning": "Caso intermediário, requer revisão por: review_keyword_praca (nome: \"praca \")",
+    "distance_meters": 2966,
+    "geographic_bucket": "buffer_zone"
+  },
+  {
+    "place_id": "ChIJNQO06HdazpQRX6AT8lE7SIk",
+    "name": "Associação Esportiva e Recreativa Campo Belo",
+    "lat": -23.626901399999998,
+    "lng": -46.6704425,
+    "category": "parque",
+    "google_types": [
+      "sports_club",
+      "association_or_organization",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "likely_fitness_generic",
+    "reasoning": "Provável academia/estúdio genérico, sem indicação clara de atender o público 60+ por: fitness_generic_type (tipo: \"sports_club\")",
+    "distance_meters": 3768,
+    "geographic_bucket": "outside_region"
+  },
+  {
+    "place_id": "ChIJS-gwThxRzpQRqn38RjIOgKs",
+    "name": "ARENA Campo Belo",
+    "lat": -23.623777099999998,
+    "lng": -46.677835699999996,
+    "category": "parque",
+    "google_types": [
+      "athletic_field",
+      "sports_activity_location",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "likely_fitness_generic",
+    "reasoning": "Provável academia/estúdio genérico, sem indicação clara de atender o público 60+ por: fitness_generic_type (tipo: \"sports_activity_location\")",
+    "distance_meters": 3523,
+    "geographic_bucket": "outside_region"
+  },
+  {
+    "place_id": "ChIJk1e2BERRzpQRz3VSp2ETOjo",
+    "name": "Action Park",
+    "lat": -23.6394181,
+    "lng": -46.7180293,
+    "category": "parque",
+    "google_types": [
+      "amusement_park",
+      "adventure_sports_center",
+      "event_venue",
+      "sports_complex",
+      "sports_activity_location",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "likely_fitness_generic",
+    "reasoning": "Provável academia/estúdio genérico, sem indicação clara de atender o público 60+ por: fitness_generic_type (tipo: \"sports_activity_location\")",
+    "distance_meters": 7147,
+    "geographic_bucket": "outside_region"
+  },
+  {
+    "place_id": "ChIJAbUWEIZazpQRipCjN5KStzc",
+    "name": "Pista de Skate do Chuvisco",
+    "lat": -23.637941700000002,
+    "lng": -46.6615386,
+    "category": "parque",
+    "google_types": [
+      "skateboard_park",
+      "sports_complex",
+      "sports_activity_location",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "likely_fitness_generic",
+    "reasoning": "Provável academia/estúdio genérico, sem indicação clara de atender o público 60+ por: fitness_generic_type (tipo: \"sports_activity_location\")",
+    "distance_meters": 5059,
+    "geographic_bucket": "outside_region"
+  },
+  {
+    "place_id": "ChIJBYABb7BazpQRU-GvT3pjjD4",
+    "name": "Parque Nabuco",
+    "lat": -23.662656400000003,
+    "lng": -46.6601598,
+    "category": "parque",
+    "google_types": [
+      "city_park",
+      "tourist_attraction",
+      "park",
+      "event_venue",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "accepted",
+    "reasoning": "Aceito por: accept_type_park (tipo: \"park\")",
+    "distance_meters": 7800,
+    "geographic_bucket": "outside_region"
+  },
+  {
+    "place_id": "ChIJfV4al_pWzpQR0a3ayQ6Oa28",
+    "name": "Parque Villa-Lobos",
+    "lat": -23.5463088,
+    "lng": -46.725375799999995,
+    "category": "parque",
+    "google_types": [
+      "state_park",
+      "tourist_attraction",
+      "park",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "accepted",
+    "reasoning": "Aceito por: accept_type_park (tipo: \"park\")",
+    "distance_meters": 7710,
+    "geographic_bucket": "outside_region"
+  },
+  {
+    "place_id": "ChIJmXGypjNRzpQRk486RbqgiEg",
+    "name": "Sky Campo Belo",
+    "lat": -23.6212673,
+    "lng": -46.67758,
+    "category": "parque",
+    "google_types": [
+      "apartment_complex",
+      "service",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "needs_review",
+    "reasoning": "Nenhuma regra heurística reconheceu este local — enviado para revisão por padrão de segurança.",
+    "distance_meters": 3247,
+    "geographic_bucket": "outside_region"
+  },
+  {
+    "place_id": "ChIJy2HntYdbzpQRQwOd7op3MbM",
+    "name": "Royal Face Estética Facial - Campo Belo",
+    "lat": -23.6215372,
+    "lng": -46.6697646,
+    "category": "parque",
+    "google_types": [
+      "medical_clinic",
+      "health",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "likely_fitness_generic",
+    "reasoning": "Provável academia/estúdio genérico, sem indicação clara de atender o público 60+ por: fitness_generic_type (tipo: \"health\")",
+    "distance_meters": 3170,
+    "geographic_bucket": "outside_region"
+  },
+  {
+    "place_id": "ChIJ-WRcy7NRzpQRSBSHahGXfNk",
+    "name": "Morumbi Park",
+    "lat": -23.627597599999998,
+    "lng": -46.7171367,
+    "category": "parque",
+    "google_types": [
+      "amusement_park",
+      "amusement_center",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "needs_review",
+    "reasoning": "Nenhuma regra heurística reconheceu este local — enviado para revisão por padrão de segurança.",
+    "distance_meters": 6193,
+    "geographic_bucket": "outside_region"
+  },
+  {
+    "place_id": "ChIJyVVQiJRRzpQR_PHTpjV9R6M",
+    "name": "Urban Kitchen - Campo Belo",
+    "lat": -23.6264041,
+    "lng": -46.6719064,
+    "category": "parque",
+    "google_types": [
+      "restaurant",
+      "food",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "needs_review",
+    "reasoning": "Caso intermediário, requer revisão por: review_type_food_uncertain (tipo: \"restaurant\")",
+    "distance_meters": 3719,
+    "geographic_bucket": "outside_region"
+  },
+  {
+    "place_id": "ChIJ02h9Dp5QzpQRMhchKAwPzbw",
+    "name": "Espaço Safhari | Festas Infantis | Eventos Adultos e Corporativos",
+    "lat": -23.6225076,
+    "lng": -46.6715369,
+    "category": "parque",
+    "google_types": [
+      "banquet_hall",
+      "amusement_park",
+      "amusement_center",
+      "event_venue",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "needs_review",
+    "reasoning": "Nenhuma regra heurística reconheceu este local — enviado para revisão por padrão de segurança.",
+    "distance_meters": 3285,
+    "geographic_bucket": "outside_region"
+  },
+  {
+    "place_id": "ChIJkfuQ6Us-tZQRT17oqk0wXYQ",
+    "name": "Praca dos Expedicionarios",
+    "lat": -20.893853399999998,
+    "lng": -45.2769927,
+    "category": "parque",
+    "google_types": [
+      "park",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "needs_review",
+    "reasoning": "Caso intermediário, requer revisão por: review_keyword_praca (nome: \"praca \")",
+    "distance_meters": 332587,
+    "geographic_bucket": "outside_region"
+  },
+  {
+    "place_id": "ChIJiTERV_tRzpQR2R9dhRvGweI",
+    "name": "Samanta Rocha Terapeuta",
+    "lat": -23.6227716,
+    "lng": -46.6706992,
+    "category": "parque",
+    "google_types": [
+      "massage_spa",
+      "massage",
+      "spa",
+      "medical_clinic",
+      "health",
+      "service",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "likely_fitness_generic",
+    "reasoning": "Provável academia/estúdio genérico, sem indicação clara de atender o público 60+ por: fitness_generic_type (tipo: \"health\")",
+    "distance_meters": 3310,
+    "geographic_bucket": "outside_region"
+  },
+  {
+    "place_id": "ChIJ4RvmSs1bzpQRvSSgSb29210",
+    "name": "noPorto Gastrobar",
+    "lat": -23.6262491,
+    "lng": -46.670477399999996,
+    "category": "parque",
+    "google_types": [
+      "restaurant",
+      "cocktail_bar",
+      "bar",
+      "food",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "needs_review",
+    "reasoning": "Caso intermediário, requer revisão por: review_type_food_uncertain (tipo: \"restaurant\")",
+    "distance_meters": 3695,
+    "geographic_bucket": "outside_region"
+  },
+  {
+    "place_id": "ChIJ6erPsB9WzpQRuxN3W8waXWQ",
+    "name": "Parque Cândido Portinari",
+    "lat": -23.544917299999998,
+    "lng": -46.7325355,
+    "category": "parque",
+    "google_types": [
+      "park",
+      "tourist_attraction",
+      "state_park",
+      "event_venue",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "accepted",
+    "reasoning": "Aceito por: accept_type_park (tipo: \"park\")",
+    "distance_meters": 8362,
+    "geographic_bucket": "outside_region"
+  },
+  {
+    "place_id": "ChIJfWbIFaxDzpQRYTaJ3cLnLgo",
+    "name": "Parque Raphael Lazzuri - São Bernardo do Campo",
+    "lat": -23.6801905,
+    "lng": -46.558540699999995,
+    "category": "parque",
+    "google_types": [
+      "city_park",
+      "tourist_attraction",
+      "garden",
+      "park",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "accepted",
+    "reasoning": "Aceito por: accept_type_park (tipo: \"park\")",
+    "distance_meters": 14888,
+    "geographic_bucket": "outside_region"
+  },
+  {
+    "place_id": "ChIJ55yY9Us-tZQRuGBHdI1V7BI",
+    "name": "Biblioteca Pública Municipal José Miserani de Carvalho",
+    "lat": -20.8937302,
+    "lng": -45.2759034,
+    "category": "biblioteca",
+    "google_types": [
+      "library",
+      "point_of_interest",
+      "service",
+      "establishment"
+    ],
+    "decision": "accepted",
+    "reasoning": "Aceito por: accept_type_library (tipo: \"library\")",
+    "distance_meters": 332648,
+    "geographic_bucket": "outside_region"
+  },
+  {
+    "place_id": "ChIJw0McLINRzpQRyx32kApU5BI",
+    "name": "Baixe Livros",
+    "lat": -23.611942799999998,
+    "lng": -46.696996,
+    "category": "biblioteca",
+    "google_types": [
+      "library",
+      "point_of_interest",
+      "service",
+      "establishment"
+    ],
+    "decision": "accepted",
+    "reasoning": "Aceito por: accept_type_library (tipo: \"library\")",
+    "distance_meters": 3505,
+    "geographic_bucket": "outside_region"
+  },
+  {
+    "place_id": "ChIJTeX4CZpXzpQRipzQOp_AV3U",
+    "name": "Biblioteca Pública Municipal Anne Frank",
+    "lat": -23.586914699999998,
+    "lng": -46.6840305,
+    "category": "biblioteca",
+    "google_types": [
+      "library",
+      "point_of_interest",
+      "service",
+      "establishment"
+    ],
+    "decision": "accepted",
+    "reasoning": "Aceito por: accept_type_library (tipo: \"library\")",
+    "distance_meters": 1631,
+    "geographic_bucket": "inside_radius"
+  },
+  {
+    "place_id": "ChIJczFxsTk-tZQRig93wAorotM",
+    "name": "Biblioteca Municipal Dona Carlota",
+    "lat": -20.8858311,
+    "lng": -45.273190199999995,
+    "category": "biblioteca",
+    "google_types": [
+      "library",
+      "point_of_interest",
+      "service",
+      "establishment"
+    ],
+    "decision": "accepted",
+    "reasoning": "Aceito por: accept_type_library (tipo: \"library\")",
+    "distance_meters": 333562,
+    "geographic_bucket": "outside_region"
+  },
+  {
+    "place_id": "ChIJE8S7jflZzpQRyhiv9S6XmUo",
+    "name": "Bosque da Leitura Parque Ibirapuera",
+    "lat": -23.5916756,
+    "lng": -46.6622889,
+    "category": "biblioteca",
+    "google_types": [
+      "library",
+      "point_of_interest",
+      "service",
+      "establishment"
+    ],
+    "decision": "accepted",
+    "reasoning": "Aceito por: accept_type_library (tipo: \"library\")",
+    "distance_meters": 748,
+    "geographic_bucket": "inside_radius"
+  },
+  {
+    "place_id": "ChIJHVyeUelQzpQRS1tTeCW5eCM",
+    "name": "Biblioteca Chacara Santo Antônio - UNIP",
+    "lat": -23.6305991,
+    "lng": -46.694607,
+    "category": "biblioteca",
+    "google_types": [
+      "library",
+      "point_of_interest",
+      "service",
+      "establishment"
+    ],
+    "decision": "accepted",
+    "reasoning": "Aceito por: accept_type_library (tipo: \"library\")",
+    "distance_meters": 4900,
+    "geographic_bucket": "outside_region"
+  },
+  {
+    "place_id": "ChIJpbNN2C5azpQRsPZB-HJyFEk",
+    "name": "Biblioteca Municipal Viriato Corrêa",
+    "lat": -23.593233899999998,
+    "lng": -46.638784699999995,
+    "category": "biblioteca",
+    "google_types": [
+      "library",
+      "point_of_interest",
+      "service",
+      "establishment"
+    ],
+    "decision": "accepted",
+    "reasoning": "Aceito por: accept_type_library (tipo: \"library\")",
+    "distance_meters": 3128,
+    "geographic_bucket": "outside_region"
+  },
+  {
+    "place_id": "ChIJS5JlFgA_tZQRvuRhTjMilB4",
+    "name": "Biblioteca Pública Municipal Joaquim Alves Moreira",
+    "lat": -20.9070137,
+    "lng": -45.2670386,
+    "category": "biblioteca",
+    "google_types": [
+      "library",
+      "point_of_interest",
+      "service",
+      "establishment"
+    ],
+    "decision": "accepted",
+    "reasoning": "Aceito por: accept_type_library (tipo: \"library\")",
+    "distance_meters": 331709,
+    "geographic_bucket": "outside_region"
+  },
+  {
+    "place_id": "ChIJgTZ0Gz1azpQR0Qzvr0xQOUI",
+    "name": "Biblioteca Central UNIP",
+    "lat": -23.6024468,
+    "lng": -46.6491334,
+    "category": "biblioteca",
+    "google_types": [
+      "library",
+      "point_of_interest",
+      "service",
+      "establishment"
+    ],
+    "decision": "accepted",
+    "reasoning": "Aceito por: accept_type_library (tipo: \"library\")",
+    "distance_meters": 2323,
+    "geographic_bucket": "inside_radius"
+  },
+  {
+    "place_id": "ChIJhZJrO6BQzpQRNHz0hFQgYlI",
+    "name": "Seara Bendita",
+    "lat": -23.617925399999997,
+    "lng": -46.6720493,
+    "category": "biblioteca",
+    "google_types": [
+      "place_of_worship",
+      "association_or_organization",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "needs_review",
+    "reasoning": "Nenhuma regra heurística reconheceu este local — enviado para revisão por padrão de segurança.",
+    "distance_meters": 2781,
+    "geographic_bucket": "buffer_zone"
+  },
+  {
+    "place_id": "ChIJ38zMMr5bzpQRHNaL4PRPC8o",
+    "name": "Biblioteca Campus São Paulo Unifesp",
+    "lat": -23.5993246,
+    "lng": -46.644988399999995,
+    "category": "biblioteca",
+    "google_types": [
+      "library",
+      "point_of_interest",
+      "service",
+      "establishment"
+    ],
+    "decision": "accepted",
+    "reasoning": "Aceito por: accept_type_library (tipo: \"library\")",
+    "distance_meters": 2592,
+    "geographic_bucket": "buffer_zone"
+  },
+  {
+    "place_id": "ChIJ_alKtZlZzpQR917MEysP6s4",
+    "name": "Biblioteca Centro Cultural",
+    "lat": -23.5716514,
+    "lng": -46.6402898,
+    "category": "biblioteca",
+    "google_types": [
+      "library",
+      "point_of_interest",
+      "service",
+      "establishment"
+    ],
+    "decision": "accepted",
+    "reasoning": "Aceito por: accept_type_library (tipo: \"library\")",
+    "distance_meters": 3808,
+    "geographic_bucket": "outside_region"
+  },
+  {
+    "place_id": "ChIJw1MLripOzpQRe3TJxRFfsxo",
+    "name": "Biblioteca Pública Municipal Malba Tahan",
+    "lat": -23.6895633,
+    "lng": -46.709317299999995,
+    "category": "biblioteca",
+    "google_types": [
+      "library",
+      "point_of_interest",
+      "service",
+      "establishment"
+    ],
+    "decision": "accepted",
+    "reasoning": "Aceito por: accept_type_library (tipo: \"library\")",
+    "distance_meters": 11476,
+    "geographic_bucket": "outside_region"
+  },
+  {
+    "place_id": "ChIJA-FhwkY-tZQRz2QtTTEm_x8",
+    "name": "Biblioteca Municipal de Campo Belo",
+    "lat": -20.8845417,
+    "lng": -45.2764271,
+    "category": "biblioteca",
+    "google_types": [
+      "library",
+      "point_of_interest",
+      "service",
+      "establishment"
+    ],
+    "decision": "accepted",
+    "reasoning": "Aceito por: accept_type_library (tipo: \"library\")",
+    "distance_meters": 333549,
+    "geographic_bucket": "outside_region"
+  },
+  {
+    "place_id": "ChIJ6biTR6D4zpQRIlAT26Ljsqk",
+    "name": "Biblioteca Parque Villa-Lobos",
+    "lat": -23.5467595,
+    "lng": -46.727315499999996,
+    "category": "biblioteca",
+    "google_types": [
+      "library",
+      "point_of_interest",
+      "service",
+      "establishment"
+    ],
+    "decision": "accepted",
+    "reasoning": "Aceito por: accept_type_library (tipo: \"library\")",
+    "distance_meters": 7824,
+    "geographic_bucket": "outside_region"
+  },
+  {
+    "place_id": "ChIJX0Ps_-9bzpQRa1ccYj-mSU0",
+    "name": "Livraria e Papelaria Leitura - Shopping Ibirapuera",
+    "lat": -23.6103296,
+    "lng": -46.6659301,
+    "category": "biblioteca",
+    "google_types": [
+      "book_store",
+      "store",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "needs_review",
+    "reasoning": "Nenhuma regra heurística reconheceu este local — enviado para revisão por padrão de segurança.",
+    "distance_meters": 1957,
+    "geographic_bucket": "inside_radius"
+  },
+  {
+    "place_id": "ChIJMUiYwddbzpQRnFcl1CGoiMs",
+    "name": "Biblioteca Chácara do Castelo",
+    "lat": -23.583351699999998,
+    "lng": -46.6233903,
+    "category": "biblioteca",
+    "google_types": [
+      "library",
+      "point_of_interest",
+      "service",
+      "establishment"
+    ],
+    "decision": "accepted",
+    "reasoning": "Aceito por: accept_type_library (tipo: \"library\")",
+    "distance_meters": 4818,
+    "geographic_bucket": "outside_region"
+  },
+  {
+    "place_id": "ChIJfQCGp4JbzpQRAlQk9XgjICc",
+    "name": "Biblioteca Paulo Emílio Sales Gomes",
+    "lat": -23.592112699999998,
+    "lng": -46.6466426,
+    "category": "biblioteca",
+    "google_types": [
+      "library",
+      "point_of_interest",
+      "service",
+      "establishment"
+    ],
+    "decision": "accepted",
+    "reasoning": "Aceito por: accept_type_library (tipo: \"library\")",
+    "distance_meters": 2329,
+    "geographic_bucket": "inside_radius"
+  },
+  {
+    "place_id": "ChIJ4cjKTZhQzpQRLY5ByNg3rZo",
+    "name": "Projeto Brasil Natação & Fitness",
+    "lat": -23.6187526,
+    "lng": -46.6750483,
+    "category": "hidroginastica",
+    "google_types": [
+      "gym",
+      "sports_activity_location",
+      "health",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "accepted",
+    "reasoning": "Aceito por: accept_keyword_activity_name_match (nome: \"natacao\")",
+    "distance_meters": 2916,
+    "geographic_bucket": "buffer_zone"
+  },
+  {
+    "place_id": "ChIJ50Z3u3dazpQRo6RYp1dPd8Y",
+    "name": "Rubel Academia - Unidade Campo Belo",
+    "lat": -23.6253282,
+    "lng": -46.6688634,
+    "category": "hidroginastica",
+    "google_types": [
+      "gym",
+      "sports_activity_location",
+      "health",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "likely_fitness_generic",
+    "reasoning": "Provável academia/estúdio genérico, sem indicação clara de atender o público 60+ por: fitness_generic_type (tipo: \"gym\")",
+    "distance_meters": 3592,
+    "geographic_bucket": "outside_region"
+  },
+  {
+    "place_id": "ChIJB3-J2ZlQzpQRbHqJP00wJpo",
+    "name": "Saga Natação",
+    "lat": -23.617254000000003,
+    "lng": -46.6736417,
+    "category": "hidroginastica",
+    "google_types": [
+      "gym",
+      "medical_clinic",
+      "school",
+      "educational_institution",
+      "sports_school",
+      "sports_activity_location",
+      "doctor",
+      "health",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "rejected",
+    "reasoning": "Rejeitado por: reject_type_private_no_public_activity (tipo: \"doctor\")",
+    "distance_meters": 2727,
+    "geographic_bucket": "buffer_zone"
+  },
+  {
+    "place_id": "ChIJPW222p1QzpQRaqWdAmU1Ay8",
+    "name": "BIOClub Fitness - Campo Belo",
+    "lat": -23.623791399999998,
+    "lng": -46.6724113,
+    "category": "hidroginastica",
+    "google_types": [
+      "gym",
+      "sports_activity_location",
+      "health",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "likely_fitness_generic",
+    "reasoning": "Provável academia/estúdio genérico, sem indicação clara de atender o público 60+ por: fitness_generic_type (tipo: \"gym\")",
+    "distance_meters": 3434,
+    "geographic_bucket": "outside_region"
+  },
+  {
+    "place_id": "ChIJK0bzj5dQzpQRCrPvN_Uqr4Q",
+    "name": "Academia Flipper",
+    "lat": -23.6234951,
+    "lng": -46.681306299999996,
+    "category": "hidroginastica",
+    "google_types": [
+      "fitness_center",
+      "sports_school",
+      "sports_complex",
+      "gym",
+      "sports_activity_location",
+      "health",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "likely_fitness_generic",
+    "reasoning": "Provável academia/estúdio genérico, sem indicação clara de atender o público 60+ por: fitness_generic_type (tipo: \"gym\")",
+    "distance_meters": 3596,
+    "geographic_bucket": "outside_region"
+  },
+  {
+    "place_id": "ChIJX1Me1KFQzpQRAOtZCGHdHOk",
+    "name": "Academia BIO RITMO - Campo Belo",
+    "lat": -23.61863,
+    "lng": -46.673461499999995,
+    "category": "hidroginastica",
+    "google_types": [
+      "gym",
+      "sports_activity_location",
+      "health",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "likely_fitness_generic",
+    "reasoning": "Provável academia/estúdio genérico, sem indicação clara de atender o público 60+ por: fitness_generic_type (tipo: \"gym\")",
+    "distance_meters": 2875,
+    "geographic_bucket": "buffer_zone"
+  },
+  {
+    "place_id": "ChIJW0qSK4dazpQRkM76J_8BWP0",
+    "name": "Academia Volt",
+    "lat": -23.6374762,
+    "lng": -46.665636,
+    "category": "hidroginastica",
+    "google_types": [
+      "gym",
+      "sports_activity_location",
+      "health",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "likely_fitness_generic",
+    "reasoning": "Provável academia/estúdio genérico, sem indicação clara de atender o público 60+ por: fitness_generic_type (tipo: \"gym\")",
+    "distance_meters": 4958,
+    "geographic_bucket": "outside_region"
+  },
+  {
+    "place_id": "ChIJ8wqovKBQzpQRv5WwtEslHA8",
+    "name": "Yandê Dança e Movimento",
+    "lat": -23.6140382,
+    "lng": -46.6713422,
+    "category": "danca_idosos",
+    "google_types": [
+      "sports_school",
+      "point_of_interest",
+      "service",
+      "establishment"
+    ],
+    "decision": "accepted",
+    "reasoning": "Aceito por: accept_keyword_activity_name_match (nome: \"danca\")",
+    "distance_meters": 2344,
+    "geographic_bucket": "inside_radius"
+  },
+  {
+    "place_id": "ChIJV4L9vKBQzpQRDOCOZ-027vQ",
+    "name": "Studio de Ballet In-Pulso",
+    "lat": -23.6209712,
+    "lng": -46.670750899999994,
+    "category": "danca_idosos",
+    "google_types": [
+      "sports_school",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "likely_fitness_generic",
+    "reasoning": "Provável academia/estúdio genérico, sem indicação clara de atender o público 60+ por: fitness_generic_type (tipo: \"sports_school\")",
+    "distance_meters": 3110,
+    "geographic_bucket": "outside_region"
+  },
+  {
+    "place_id": "ChIJXZgBxKJRzpQRS3TwuCX9DDw",
+    "name": "Studio Kharteer Em Movimento",
+    "lat": -23.6001396,
+    "lng": -46.6780671,
+    "category": "danca_idosos",
+    "google_types": [
+      "sports_school",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "likely_fitness_generic",
+    "reasoning": "Provável academia/estúdio genérico, sem indicação clara de atender o público 60+ por: fitness_generic_type (tipo: \"sports_school\")",
+    "distance_meters": 1179,
+    "geographic_bucket": "inside_radius"
+  },
+  {
+    "place_id": "ChIJWfUriqNQzpQRd_9d0dPLXAg",
+    "name": "Pavilhão D",
+    "lat": -23.6155465,
+    "lng": -46.676947399999996,
+    "category": "danca_idosos",
+    "google_types": [
+      "sports_school",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "likely_fitness_generic",
+    "reasoning": "Provável academia/estúdio genérico, sem indicação clara de atender o público 60+ por: fitness_generic_type (tipo: \"sports_school\")",
+    "distance_meters": 2617,
+    "geographic_bucket": "buffer_zone"
+  },
+  {
+    "place_id": "ChIJ5bbljy1RzpQRj0JhAm-ukPY",
+    "name": "Ehab Gadalla Escola de Dança",
+    "lat": -23.6222645,
+    "lng": -46.671231899999995,
+    "category": "danca_idosos",
+    "google_types": [
+      "sports_school",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "accepted",
+    "reasoning": "Aceito por: accept_keyword_activity_name_match (nome: \"danca\")",
+    "distance_meters": 3256,
+    "geographic_bucket": "outside_region"
+  }
+]

@@ -1,0 +1,806 @@
+[
+  {
+    "place_id": "ChIJ28DVdosTlwAR_GKX18HR2Pg",
+    "name": "Casa da cultura",
+    "lat": -22.838522700000002,
+    "lng": -42.225903900000006,
+    "category": "teatro",
+    "google_types": [
+      "tourist_attraction",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "needs_review",
+    "reasoning": "Caso intermediário, requer revisão por: review_type_tourist_attraction (tipo: \"tourist_attraction\")",
+    "distance_meters": 538,
+    "geographic_bucket": "inside_radius"
+  },
+  {
+    "place_id": "ChIJ7Rw8LwATlwARnK0ngkQZGNY",
+    "name": "Mirante Dona Célia",
+    "lat": -22.8363737,
+    "lng": -42.234719999999996,
+    "category": "teatro",
+    "google_types": [
+      "tourist_attraction",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "needs_review",
+    "reasoning": "Caso intermediário, requer revisão por: review_type_tourist_attraction (tipo: \"tourist_attraction\")",
+    "distance_meters": 1472,
+    "geographic_bucket": "inside_radius"
+  },
+  {
+    "place_id": "ChIJF10m9bcSlwARjJ8KoMS4S9I",
+    "name": "Praça Municipal José Gomes Filho",
+    "lat": -22.835764599999997,
+    "lng": -42.2261865,
+    "category": "teatro",
+    "google_types": [
+      "tourist_attraction",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "needs_review",
+    "reasoning": "Caso intermediário, requer revisão por: review_keyword_praca (nome: \"praca \"); review_type_tourist_attraction (tipo: \"tourist_attraction\")",
+    "distance_meters": 697,
+    "geographic_bucket": "inside_radius"
+  },
+  {
+    "place_id": "ChIJGx1v18cSlwAR_LbGo1uyGSQ",
+    "name": "Praça Edyla Pinheiro (centro de convenções)",
+    "lat": -22.8387094,
+    "lng": -42.2261731,
+    "category": "teatro",
+    "google_types": [
+      "park",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "needs_review",
+    "reasoning": "Caso intermediário, requer revisão por: review_keyword_praca (nome: \"praca \")",
+    "distance_meters": 561,
+    "geographic_bucket": "inside_radius"
+  },
+  {
+    "place_id": "ChIJefBc5L8PlwARJTJgvceTTeY",
+    "name": "Teatro Municipal Dr. Átila Costa",
+    "lat": -22.8396188,
+    "lng": -42.0977661,
+    "category": "teatro",
+    "google_types": [
+      "performing_arts_theater",
+      "event_venue",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "accepted",
+    "reasoning": "Aceito por: accept_type_theater (tipo: \"performing_arts_theater\")",
+    "distance_meters": 12605,
+    "geographic_bucket": "outside_region"
+  },
+  {
+    "place_id": "ChIJkT0CxncTlwARJZig8a8MbI4",
+    "name": "Ilha de Santa Rita",
+    "lat": -22.8444216,
+    "lng": -42.2137819,
+    "category": "teatro",
+    "google_types": [
+      "tourist_attraction",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "needs_review",
+    "reasoning": "Caso intermediário, requer revisão por: review_type_tourist_attraction (tipo: \"tourist_attraction\")",
+    "distance_meters": 897,
+    "geographic_bucket": "inside_radius"
+  },
+  {
+    "place_id": "ChIJS6illBZplwARPjP1FM2goX8",
+    "name": "Espaço Multicultural Gene Insanno - eMGI",
+    "lat": -22.879991399999998,
+    "lng": -42.340902,
+    "category": "teatro",
+    "google_types": [
+      "philharmonic_hall",
+      "association_or_organization",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "needs_review",
+    "reasoning": "Nenhuma regra heurística reconheceu este local — enviado para revisão por padrão de segurança.",
+    "distance_meters": 13104,
+    "geographic_bucket": "outside_region"
+  },
+  {
+    "place_id": "ChIJ5yB6OdESlwARDo7HlMWuzag",
+    "name": "Praia do Popeye",
+    "lat": -22.8488498,
+    "lng": -42.229921499999996,
+    "category": "teatro",
+    "google_types": [
+      "tourist_attraction",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "needs_review",
+    "reasoning": "Caso intermediário, requer revisão por: review_type_tourist_attraction (tipo: \"tourist_attraction\")",
+    "distance_meters": 1395,
+    "geographic_bucket": "inside_radius"
+  },
+  {
+    "place_id": "ChIJ60W_gjYTlwARR75ymNA3_70",
+    "name": "Praia dos Ubás",
+    "lat": -22.845075299999998,
+    "lng": -42.2022541,
+    "category": "teatro",
+    "google_types": [
+      "tourist_attraction",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "needs_review",
+    "reasoning": "Caso intermediário, requer revisão por: review_type_tourist_attraction (tipo: \"tourist_attraction\")",
+    "distance_meters": 1994,
+    "geographic_bucket": "inside_radius"
+  },
+  {
+    "place_id": "ChIJb4m7Y1ITlwARmKuQLwQlzJs",
+    "name": "Secretaria Municipal de Turismo e Lazer",
+    "lat": -22.842291600000003,
+    "lng": -42.2055046,
+    "category": "teatro",
+    "google_types": [
+      "government_office",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "rejected",
+    "reasoning": "Rejeitado por: reject_keyword_government_office (nome: \"secretaria municipal\")",
+    "distance_meters": 1594,
+    "geographic_bucket": "inside_radius"
+  },
+  {
+    "place_id": "ChIJlWqAVkZplwARkKMTRLPKa-8",
+    "name": "Teatro Municipal de Araruama",
+    "lat": -22.872193,
+    "lng": -42.332350700000006,
+    "category": "teatro",
+    "google_types": [
+      "performing_arts_theater",
+      "event_venue",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "accepted",
+    "reasoning": "Aceito por: accept_type_theater (tipo: \"performing_arts_theater\")",
+    "distance_meters": 11995,
+    "geographic_bucket": "outside_region"
+  },
+  {
+    "place_id": "ChIJyQZLisUSlwARcavGQK-g4_w",
+    "name": "Prefeitura Municipal de Iguaba Grande",
+    "lat": -22.8405407,
+    "lng": -42.21238290000001,
+    "category": "teatro",
+    "google_types": [
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "needs_review",
+    "reasoning": "Nenhuma regra heurística reconheceu este local — enviado para revisão por padrão de segurança.",
+    "distance_meters": 867,
+    "geographic_bucket": "inside_radius"
+  },
+  {
+    "place_id": "ChIJ0RtSsj5plwARAtIutKH_X88",
+    "name": "Centro de Artes Elizabeth Oliveira",
+    "lat": -22.878053299999998,
+    "lng": -42.34439,
+    "category": "teatro",
+    "google_types": [
+      "sporting_goods_store",
+      "sports_school",
+      "sports_activity_location",
+      "educational_institution",
+      "store",
+      "health",
+      "point_of_interest",
+      "service",
+      "establishment"
+    ],
+    "decision": "likely_fitness_generic",
+    "reasoning": "Provável academia/estúdio genérico, sem indicação clara de atender o público 60+ por: fitness_generic_type (tipo: \"sports_activity_location\")",
+    "distance_meters": 13370,
+    "geographic_bucket": "outside_region"
+  },
+  {
+    "place_id": "ChIJYWmPiVBplwAR48K-th7RJ0M",
+    "name": "Espaço Teatrama",
+    "lat": -22.8732887,
+    "lng": -42.327339599999995,
+    "category": "teatro",
+    "google_types": [
+      "performing_arts_theater",
+      "event_venue",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "accepted",
+    "reasoning": "Aceito por: accept_type_theater (tipo: \"performing_arts_theater\")",
+    "distance_meters": 11545,
+    "geographic_bucket": "outside_region"
+  },
+  {
+    "place_id": "ChIJba4BevcTlwARMO-SfaFC-C0",
+    "name": "Projeto Monike Azevedo",
+    "lat": -22.842363499999998,
+    "lng": -42.2064586,
+    "category": "teatro",
+    "google_types": [
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "needs_review",
+    "reasoning": "Nenhuma regra heurística reconheceu este local — enviado para revisão por padrão de segurança.",
+    "distance_meters": 1500,
+    "geographic_bucket": "inside_radius"
+  },
+  {
+    "place_id": "ChIJWXVk42wTlwARk6Eo7_3sFz8",
+    "name": "CNA Iguaba Grande",
+    "lat": -22.8407905,
+    "lng": -42.2262602,
+    "category": "centro_cultural",
+    "google_types": [
+      "educational_institution",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "needs_review",
+    "reasoning": "Nenhuma regra heurística reconheceu este local — enviado para revisão por padrão de segurança.",
+    "distance_meters": 579,
+    "geographic_bucket": "inside_radius"
+  },
+  {
+    "place_id": "ChIJfQfo9rkSlwAR3ftGR3Nmbts",
+    "name": "Espaço Cultural Para Verso",
+    "lat": -22.8324157,
+    "lng": -42.2252357,
+    "category": "centro_cultural",
+    "google_types": [
+      "educational_institution",
+      "cultural_center",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "accepted",
+    "reasoning": "Aceito por: accept_type_cultural_center (tipo: \"cultural_center\"); accept_keyword_espaco_cultural (nome: \"espaco cultural\")",
+    "distance_meters": 917,
+    "geographic_bucket": "inside_radius"
+  },
+  {
+    "place_id": "ChIJH6WkA0wOlwARRBN6nDSO7sc",
+    "name": "Museu Regional do Sal Manoel Maria de Mattos",
+    "lat": -22.8266155,
+    "lng": -42.122487299999996,
+    "category": "museu",
+    "google_types": [
+      "museum",
+      "tourist_attraction",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "accepted",
+    "reasoning": "Aceito por: accept_type_museum (tipo: \"museum\")",
+    "distance_meters": 10175,
+    "geographic_bucket": "outside_region"
+  },
+  {
+    "place_id": "ChIJW3xuxt4NlwARXKc4D0id5dU",
+    "name": "Espaço Ecológico Célia Barbosa da Silva - Lagoa de Bulcão",
+    "lat": -22.8169121,
+    "lng": -42.2087699,
+    "category": "museu",
+    "google_types": [
+      "amusement_center",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "needs_review",
+    "reasoning": "Nenhuma regra heurística reconheceu este local — enviado para revisão por padrão de segurança.",
+    "distance_meters": 2803,
+    "geographic_bucket": "inside_radius"
+  },
+  {
+    "place_id": "ChIJ_Xjnu8ETlwARzppaX856TU0",
+    "name": "Casa do Pescador da Praia das Andorinhas",
+    "lat": -22.856965499999998,
+    "lng": -42.2333219,
+    "category": "museu",
+    "google_types": [
+      "museum",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "accepted",
+    "reasoning": "Aceito por: accept_type_museum (tipo: \"museum\")",
+    "distance_meters": 2323,
+    "geographic_bucket": "inside_radius"
+  },
+  {
+    "place_id": "ChIJdcTMRQBtlwARZjHA9Q94_JM",
+    "name": "Ilha dos Dinossauros Park - Iguaba Grande",
+    "lat": -22.8574207,
+    "lng": -42.2394129,
+    "category": "parque",
+    "google_types": [
+      "amusement_park",
+      "amusement_center",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "needs_review",
+    "reasoning": "Nenhuma regra heurística reconheceu este local — enviado para revisão por padrão de segurança.",
+    "distance_meters": 2755,
+    "geographic_bucket": "inside_radius"
+  },
+  {
+    "place_id": "ChIJhTkoHkQTlwARbblZM21kwlw",
+    "name": "Iguaba Grande",
+    "lat": -22.848768099999997,
+    "lng": -42.229529299999996,
+    "category": "parque",
+    "google_types": [
+      "park",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "accepted",
+    "reasoning": "Aceito por: accept_type_park (tipo: \"park\")",
+    "distance_meters": 1361,
+    "geographic_bucket": "inside_radius"
+  },
+  {
+    "place_id": "ChIJFVKaiqYTlwARyw0pMxeSzmQ",
+    "name": "Praça Dona Joana",
+    "lat": -22.838383699999998,
+    "lng": -42.2173795,
+    "category": "parque",
+    "google_types": [
+      "park",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "needs_review",
+    "reasoning": "Caso intermediário, requer revisão por: review_keyword_praca (nome: \"praca \")",
+    "distance_meters": 372,
+    "geographic_bucket": "inside_radius"
+  },
+  {
+    "place_id": "ChIJw16MVosSlwARLZY1ODOEKmg",
+    "name": "Área de Lazer Nice dos Santos Vieira",
+    "lat": -22.844485,
+    "lng": -42.201527899999995,
+    "category": "parque",
+    "google_types": [
+      "park",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "accepted",
+    "reasoning": "Aceito por: accept_type_park (tipo: \"park\")",
+    "distance_meters": 2047,
+    "geographic_bucket": "inside_radius"
+  },
+  {
+    "place_id": "ChIJ_Y4tloYTlwAR57Ei2LS5EOY",
+    "name": "Horto Municipal de Iguaba Grande",
+    "lat": -22.825636199999998,
+    "lng": -42.2199124,
+    "category": "parque",
+    "google_types": [
+      "tourist_attraction",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "needs_review",
+    "reasoning": "Caso intermediário, requer revisão por: review_type_tourist_attraction (tipo: \"tourist_attraction\")",
+    "distance_meters": 1551,
+    "geographic_bucket": "inside_radius"
+  },
+  {
+    "place_id": "ChIJhdMD-fYSlwARN0FvJhJcsrQ",
+    "name": "Reserva Ponta da Farinha",
+    "lat": -22.8523472,
+    "lng": -42.199404,
+    "category": "parque",
+    "google_types": [
+      "nature_preserve",
+      "tourist_attraction",
+      "park",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "accepted",
+    "reasoning": "Aceito por: accept_type_park (tipo: \"park\")",
+    "distance_meters": 2611,
+    "geographic_bucket": "inside_radius"
+  },
+  {
+    "place_id": "ChIJdZcJSB4TlwARJVFCXqjyWLo",
+    "name": "Calçadão iguaba grande",
+    "lat": -22.8409835,
+    "lng": -42.2238034,
+    "category": "parque",
+    "google_types": [
+      "park",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "accepted",
+    "reasoning": "Aceito por: accept_type_park (tipo: \"park\")",
+    "distance_meters": 348,
+    "geographic_bucket": "inside_radius"
+  },
+  {
+    "place_id": "ChIJZXSZDdESlwARCNx1n8FNvVs",
+    "name": "Praça Nossa Senhora da Assunção",
+    "lat": -22.848247900000004,
+    "lng": -42.229895899999995,
+    "category": "parque",
+    "google_types": [
+      "plaza",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "needs_review",
+    "reasoning": "Caso intermediário, requer revisão por: review_keyword_praca (nome: \"praca \")",
+    "distance_meters": 1344,
+    "geographic_bucket": "inside_radius"
+  },
+  {
+    "place_id": "ChIJyQxYwhwNlwAR6zAI76_oPiM",
+    "name": "Praça do Terral 2",
+    "lat": -22.8200277,
+    "lng": -42.216018899999995,
+    "category": "parque",
+    "google_types": [
+      "park",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "needs_review",
+    "reasoning": "Caso intermediário, requer revisão por: review_keyword_praca (nome: \"praca \")",
+    "distance_meters": 2226,
+    "geographic_bucket": "inside_radius"
+  },
+  {
+    "place_id": "ChIJRSwYEgATlwARlzz5FGBp13w",
+    "name": "Parque Municipal de Iguaba Grande",
+    "lat": -22.822288,
+    "lng": -42.220567599999995,
+    "category": "parque",
+    "google_types": [
+      "park",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "accepted",
+    "reasoning": "Aceito por: accept_type_park (tipo: \"park\")",
+    "distance_meters": 1921,
+    "geographic_bucket": "inside_radius"
+  },
+  {
+    "place_id": "ChIJmU2xD2QTlwARQ8HWgCAW-Pw",
+    "name": "Praça da Rhãnna e Zeus Goldens",
+    "lat": -22.8425482,
+    "lng": -42.201563799999995,
+    "category": "parque",
+    "google_types": [
+      "park",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "needs_review",
+    "reasoning": "Caso intermediário, requer revisão por: review_keyword_praca (nome: \"praca \")",
+    "distance_meters": 1996,
+    "geographic_bucket": "inside_radius"
+  },
+  {
+    "place_id": "ChIJWUL6sNESlwARJwTO11VG4cU",
+    "name": "Água na Boca",
+    "lat": -22.847122799999998,
+    "lng": -42.229391899999996,
+    "category": "parque",
+    "google_types": [
+      "buffet_restaurant",
+      "restaurant",
+      "food",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "needs_review",
+    "reasoning": "Caso intermediário, requer revisão por: review_type_food_uncertain (tipo: \"restaurant\")",
+    "distance_meters": 1219,
+    "geographic_bucket": "inside_radius"
+  },
+  {
+    "place_id": "ChIJtTT0vs8SlwARpBhHUp7YNMg",
+    "name": "Villas Romanas",
+    "lat": -22.8446993,
+    "lng": -42.227781,
+    "category": "parque",
+    "google_types": [
+      "condominium_complex",
+      "bed_and_breakfast",
+      "lodging",
+      "point_of_interest",
+      "service",
+      "establishment"
+    ],
+    "decision": "needs_review",
+    "reasoning": "Nenhuma regra heurística reconheceu este local — enviado para revisão por padrão de segurança.",
+    "distance_meters": 918,
+    "geographic_bucket": "inside_radius"
+  },
+  {
+    "place_id": "ChIJY_xAl64_mQARu0xzY3hnt4U",
+    "name": "Terra dos Dinos",
+    "lat": -22.4943244,
+    "lng": -43.522617499999996,
+    "category": "parque",
+    "google_types": [
+      "amusement_park",
+      "amusement_center",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "needs_review",
+    "reasoning": "Nenhuma regra heurística reconheceu este local — enviado para revisão por padrão de segurança.",
+    "distance_meters": 138983,
+    "geographic_bucket": "outside_region"
+  },
+  {
+    "place_id": "ChIJndBBjoQTlwARu-i0HLX3nS4",
+    "name": "Biblioteca Municipal de Iguaba Grande",
+    "lat": -22.835596199999998,
+    "lng": -42.2267089,
+    "category": "biblioteca",
+    "google_types": [
+      "government_office",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "needs_review",
+    "reasoning": "Nenhuma regra heurística reconheceu este local — enviado para revisão por padrão de segurança.",
+    "distance_meters": 751,
+    "geographic_bucket": "inside_radius"
+  },
+  {
+    "place_id": "ChIJlVAIgpQSlwARQbF08Vle44I",
+    "name": "Natação Alla",
+    "lat": -22.8381866,
+    "lng": -42.211142699999996,
+    "category": "hidroginastica",
+    "google_types": [
+      "gym",
+      "sports_activity_location",
+      "health",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "accepted",
+    "reasoning": "Aceito por: accept_keyword_activity_name_match (nome: \"natacao\")",
+    "distance_meters": 999,
+    "geographic_bucket": "inside_radius"
+  },
+  {
+    "place_id": "ChIJdW6RXQATlwARmZwSRapjCAk",
+    "name": "Aquafisio",
+    "lat": -22.840628199999998,
+    "lng": -42.2277288,
+    "category": "hidroginastica",
+    "google_types": [
+      "gym",
+      "sports_activity_location",
+      "health",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "likely_fitness_generic",
+    "reasoning": "Provável academia/estúdio genérico, sem indicação clara de atender o público 60+ por: fitness_generic_type (tipo: \"gym\")",
+    "distance_meters": 723,
+    "geographic_bucket": "inside_radius"
+  },
+  {
+    "place_id": "ChIJhQK-M7kTlwARmQ8gnhA5TUY",
+    "name": "Aster Fit",
+    "lat": -22.8409433,
+    "lng": -42.20989420000001,
+    "category": "hidroginastica",
+    "google_types": [
+      "gym",
+      "sports_activity_location",
+      "health",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "likely_fitness_generic",
+    "reasoning": "Provável academia/estúdio genérico, sem indicação clara de atender o público 60+ por: fitness_generic_type (tipo: \"gym\")",
+    "distance_meters": 1125,
+    "geographic_bucket": "inside_radius"
+  },
+  {
+    "place_id": "ChIJxYJJXX8NlwARz0RGkqrTZ70",
+    "name": "Studio Fernanda Lessa",
+    "lat": -22.811888999999997,
+    "lng": -42.189075900000006,
+    "category": "hidroginastica",
+    "google_types": [
+      "sports_school",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "likely_fitness_generic",
+    "reasoning": "Provável academia/estúdio genérico, sem indicação clara de atender o público 60+ por: fitness_generic_type (tipo: \"sports_school\")",
+    "distance_meters": 4475,
+    "geographic_bucket": "buffer_zone"
+  },
+  {
+    "place_id": "ChIJ028u9rATlwARR8MMC-hpMqM",
+    "name": "CHRONUS CENTRO DE TREINAMENTO",
+    "lat": -22.8314828,
+    "lng": -42.225077399999996,
+    "category": "hidroginastica",
+    "google_types": [
+      "gym",
+      "sports_activity_location",
+      "health",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "likely_fitness_generic",
+    "reasoning": "Provável academia/estúdio genérico, sem indicação clara de atender o público 60+ por: fitness_generic_type (tipo: \"gym\")",
+    "distance_meters": 1001,
+    "geographic_bucket": "inside_radius"
+  },
+  {
+    "place_id": "ChIJ9xftytESlwARfGG_65wMNNY",
+    "name": "Academia nitro gym",
+    "lat": -22.8465232,
+    "lng": -42.2290573,
+    "category": "hidroginastica",
+    "google_types": [
+      "gym",
+      "sports_activity_location",
+      "health",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "likely_fitness_generic",
+    "reasoning": "Provável academia/estúdio genérico, sem indicação clara de atender o público 60+ por: fitness_generic_type (tipo: \"gym\")",
+    "distance_meters": 1149,
+    "geographic_bucket": "inside_radius"
+  },
+  {
+    "place_id": "ChIJB0-JL6QTlwARVLZd_FFfqCg",
+    "name": "Academia Espaço Fitness",
+    "lat": -22.8391475,
+    "lng": -42.2246179,
+    "category": "hidroginastica",
+    "google_types": [
+      "fitness_center",
+      "gym",
+      "sports_activity_location",
+      "health",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "likely_fitness_generic",
+    "reasoning": "Provável academia/estúdio genérico, sem indicação clara de atender o público 60+ por: fitness_generic_type (tipo: \"gym\")",
+    "distance_meters": 397,
+    "geographic_bucket": "inside_radius"
+  },
+  {
+    "place_id": "ChIJDTQMhLMSlwARDIodR_uw4ls",
+    "name": "ACADEMIA DA SAÚDE",
+    "lat": -22.8293085,
+    "lng": -42.2334412,
+    "category": "hidroginastica",
+    "google_types": [
+      "gym",
+      "sports_activity_location",
+      "health",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "likely_fitness_generic",
+    "reasoning": "Provável academia/estúdio genérico, sem indicação clara de atender o público 60+ por: fitness_generic_type (tipo: \"gym\")",
+    "distance_meters": 1728,
+    "geographic_bucket": "inside_radius"
+  },
+  {
+    "place_id": "ChIJrWWSWQATlwAR9jbM6IQbFIE",
+    "name": "Atitude Dance - Escola de Dança Iguaba Grande",
+    "lat": -22.837338,
+    "lng": -42.2202286,
+    "category": "danca_idosos",
+    "google_types": [
+      "sports_school",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "accepted",
+    "reasoning": "Aceito por: accept_keyword_activity_name_match (nome: \"danca\")",
+    "distance_meters": 253,
+    "geographic_bucket": "inside_radius"
+  },
+  {
+    "place_id": "ChIJyem4fPkTlwARBdKa6nFXqkc",
+    "name": "Studio Bailarte",
+    "lat": -22.840151799999997,
+    "lng": -42.2246921,
+    "category": "danca_idosos",
+    "google_types": [
+      "sports_school",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "likely_fitness_generic",
+    "reasoning": "Provável academia/estúdio genérico, sem indicação clara de atender o público 60+ por: fitness_generic_type (tipo: \"sports_school\")",
+    "distance_meters": 407,
+    "geographic_bucket": "inside_radius"
+  },
+  {
+    "place_id": "ChIJsdC81MsTlwARMgMayIDrnXM",
+    "name": "Cidade do Idoso (SEPIES)",
+    "lat": -22.842248400000003,
+    "lng": -42.2055435,
+    "category": "danca_idosos",
+    "google_types": [
+      "gym",
+      "sports_activity_location",
+      "health",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "accepted",
+    "reasoning": "Aceito por: accept_keyword_activity_name_match (nome: \"idoso\")",
+    "distance_meters": 1589,
+    "geographic_bucket": "inside_radius"
+  },
+  {
+    "place_id": "ChIJ3ZzCYwATlwAROMkHvFswgw0",
+    "name": "Cemo - Centro de Movimento Paula Andrade",
+    "lat": -22.836072899999998,
+    "lng": -42.2258336,
+    "category": "danca_idosos",
+    "google_types": [
+      "sports_school",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "likely_fitness_generic",
+    "reasoning": "Provável academia/estúdio genérico, sem indicação clara de atender o público 60+ por: fitness_generic_type (tipo: \"sports_school\")",
+    "distance_meters": 648,
+    "geographic_bucket": "inside_radius"
+  },
+  {
+    "place_id": "ChIJL7boV8YSlwARdL2kR7p3IUQ",
+    "name": "Jaime Arôxa Escola de Dança",
+    "lat": -22.8405308,
+    "lng": -42.2239549,
+    "category": "danca_idosos",
+    "google_types": [
+      "sports_school",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "accepted",
+    "reasoning": "Aceito por: accept_keyword_activity_name_match (nome: \"danca\")",
+    "distance_meters": 343,
+    "geographic_bucket": "inside_radius"
+  }
+]
