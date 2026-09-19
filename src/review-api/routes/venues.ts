@@ -20,6 +20,9 @@ export function venueRoutes(reviewService: ReviewService): Hono<Env> {
         city:        c.req.query('city')        || undefined,
         category:    c.req.query('category')    || undefined,
         source:      c.req.query('source')      || undefined,
+        // ADR-0022 — dimensão independente de proposal_status; mesmo
+        // padrão dos outros filtros opcionais (query string → repositório).
+        geographic_status: c.req.query('geographic_status') || undefined,
         sort:        c.req.query('sort')        || undefined,
         order:       (c.req.query('order') as 'asc' | 'desc') || undefined,
       });

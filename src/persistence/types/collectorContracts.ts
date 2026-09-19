@@ -44,4 +44,11 @@ export interface ActivityCollectorContract<TOptions = Record<string, unknown>> {
 export interface SourceConfigContract {
   readonly source_key: string;
   readonly product_key: string;
+  /**
+   * ADR-0022 (Regional Geographic Gate) — opcional, aditivo. Presente
+   * apenas em fontes com noção de região geográfica (ex: Google Places).
+   * Quando ausente, o gate não é aplicado — comportamento inalterado
+   * para fontes sem geolocalização (ex: WordPress).
+   */
+  readonly regions?: readonly { display_label: string; lat: number; lng: number; radius_m: number }[];
 }

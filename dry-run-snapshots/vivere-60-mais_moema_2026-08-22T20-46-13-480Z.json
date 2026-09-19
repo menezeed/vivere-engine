@@ -1,0 +1,1374 @@
+[
+  {
+    "place_id": "ChIJcyv8ccxXzpQRdmDBFfuN2BQ",
+    "name": "Escola Mutatis de Teatro e Artes",
+    "lat": -23.603316799999998,
+    "lng": -46.6731863,
+    "category": "teatro",
+    "google_types": [
+      "educational_institution",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "needs_review",
+    "reasoning": "Nenhuma regra heurística reconheceu este local — enviado para revisão por padrão de segurança.",
+    "distance_meters": 1146,
+    "geographic_bucket": "inside_radius"
+  },
+  {
+    "place_id": "ChIJr4ITlgNazpQRTcitIi1lQI4",
+    "name": "Teatro Consa",
+    "lat": -23.6003658,
+    "lng": -46.6641681,
+    "category": "teatro",
+    "google_types": [
+      "performing_arts_theater",
+      "event_venue",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "accepted",
+    "reasoning": "Aceito por: accept_type_theater (tipo: \"performing_arts_theater\")",
+    "distance_meters": 426,
+    "geographic_bucket": "inside_radius"
+  },
+  {
+    "place_id": "ChIJjUB5uEhXzpQR-tjOqgiR7t0",
+    "name": "Teatro Claro MAIS SP",
+    "lat": -23.595563799999997,
+    "lng": -46.6868701,
+    "category": "teatro",
+    "google_types": [
+      "performing_arts_theater",
+      "event_venue",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "accepted",
+    "reasoning": "Aceito por: accept_type_theater (tipo: \"performing_arts_theater\")",
+    "distance_meters": 2693,
+    "geographic_bucket": "buffer_zone"
+  },
+  {
+    "place_id": "ChIJyXCozENXzpQRc6CukDull2E",
+    "name": "Teatro Décio de Almeida Prado",
+    "lat": -23.5871674,
+    "lng": -46.683613799999996,
+    "category": "teatro",
+    "google_types": [
+      "performing_arts_theater",
+      "event_venue",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "accepted",
+    "reasoning": "Aceito por: accept_type_theater (tipo: \"performing_arts_theater\")",
+    "distance_meters": 2867,
+    "geographic_bucket": "buffer_zone"
+  },
+  {
+    "place_id": "ChIJywlpsQZazpQRLgswqQEjVmo",
+    "name": "Espaço Cultural Jacutinga",
+    "lat": -23.6027395,
+    "lng": -46.6667366,
+    "category": "centro_cultural",
+    "google_types": [
+      "museum",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "accepted",
+    "reasoning": "Aceito por: accept_type_museum (tipo: \"museum\"); accept_keyword_espaco_cultural (nome: \"espaco cultural\")",
+    "distance_meters": 498,
+    "geographic_bucket": "inside_radius"
+  },
+  {
+    "place_id": "ChIJFUg4MwVazpQR4U9X6IOh2rc",
+    "name": "Feira Arte e Cultura Moema - Praça Nossa Senhora Aparecida - São Paulo - SP 🇧🇷",
+    "lat": -23.603617999999997,
+    "lng": -46.6610632,
+    "category": "centro_cultural",
+    "google_types": [
+      "food_court",
+      "event_venue",
+      "food",
+      "service",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "needs_review",
+    "reasoning": "Caso intermediário, requer revisão por: review_keyword_praca (nome: \"praca \"); review_type_food_uncertain (tipo: \"food\")",
+    "distance_meters": 89,
+    "geographic_bucket": "inside_radius"
+  },
+  {
+    "place_id": "ChIJq6qqS5hZzpQR1_CuoXYKR44",
+    "name": "Centro Cultural São Paulo",
+    "lat": -23.571113500000003,
+    "lng": -46.6401295,
+    "category": "centro_cultural",
+    "google_types": [
+      "cultural_center",
+      "library",
+      "museum",
+      "service",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "accepted",
+    "reasoning": "Aceito por: accept_type_museum (tipo: \"museum\"); accept_type_cultural_center (tipo: \"cultural_center\"); accept_type_library (tipo: \"library\")",
+    "distance_meters": 4242,
+    "geographic_bucket": "outside_region"
+  },
+  {
+    "place_id": "ChIJAZGCze9bzpQRWdbMBvOc5L4",
+    "name": "Casa de Metal - Espaço Cultural",
+    "lat": -23.615092399999998,
+    "lng": -46.6687078,
+    "category": "centro_cultural",
+    "google_types": [
+      "cultural_center",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "accepted",
+    "reasoning": "Aceito por: accept_type_cultural_center (tipo: \"cultural_center\"); accept_keyword_espaco_cultural (nome: \"espaco cultural\")",
+    "distance_meters": 1451,
+    "geographic_bucket": "inside_radius"
+  },
+  {
+    "place_id": "ChIJqR1ygYlXzpQR2VZIEFgRsMA",
+    "name": "Centro Cultural da Diversidade",
+    "lat": -23.5871551,
+    "lng": -46.683904999999996,
+    "category": "centro_cultural",
+    "google_types": [
+      "cultural_center",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "accepted",
+    "reasoning": "Aceito por: accept_type_cultural_center (tipo: \"cultural_center\")",
+    "distance_meters": 2891,
+    "geographic_bucket": "buffer_zone"
+  },
+  {
+    "place_id": "ChIJaWRXnElXzpQRwfihd8kWHwA",
+    "name": "Centro Cultural Vereda",
+    "lat": -23.5528995,
+    "lng": -46.68049690000001,
+    "category": "centro_cultural",
+    "google_types": [
+      "cultural_center",
+      "association_or_organization",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "accepted",
+    "reasoning": "Aceito por: accept_type_cultural_center (tipo: \"cultural_center\")",
+    "distance_meters": 5947,
+    "geographic_bucket": "outside_region"
+  },
+  {
+    "place_id": "ChIJfW2X8QRazpQRKCbs7q7kiLI",
+    "name": "Casa Arca",
+    "lat": -23.6023835,
+    "lng": -46.6627839,
+    "category": "centro_cultural",
+    "google_types": [
+      "cultural_center",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "accepted",
+    "reasoning": "Aceito por: accept_type_cultural_center (tipo: \"cultural_center\")",
+    "distance_meters": 161,
+    "geographic_bucket": "inside_radius"
+  },
+  {
+    "place_id": "ChIJLyfR2_lQzpQRvrPVWxtowYs",
+    "name": "Itaú Cultural",
+    "lat": -23.5703654,
+    "lng": -46.645882199999996,
+    "category": "centro_cultural",
+    "google_types": [
+      "cultural_center",
+      "tourist_attraction",
+      "philharmonic_hall",
+      "museum",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "rejected",
+    "reasoning": "Rejeitado por: reject_keyword_bank_branch (nome: \"itau\")",
+    "distance_meters": 4043,
+    "geographic_bucket": "outside_region"
+  },
+  {
+    "place_id": "ChIJDcJsKapQzpQRO_gj7a_vHU8",
+    "name": "Espaço APESP",
+    "lat": -23.603943299999997,
+    "lng": -46.6726683,
+    "category": "centro_cultural",
+    "google_types": [
+      "event_venue",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "needs_review",
+    "reasoning": "Nenhuma regra heurística reconheceu este local — enviado para revisão por padrão de segurança.",
+    "distance_meters": 1094,
+    "geographic_bucket": "inside_radius"
+  },
+  {
+    "place_id": "ChIJmaVBGKhQzpQRJMYSIZizmtU",
+    "name": "Urban Arts - Moema",
+    "lat": -23.606326,
+    "lng": -46.671557,
+    "category": "centro_cultural",
+    "google_types": [
+      "art_gallery",
+      "service",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "accepted",
+    "reasoning": "Aceito por: accept_type_art_gallery (tipo: \"art_gallery\")",
+    "distance_meters": 1025,
+    "geographic_bucket": "inside_radius"
+  },
+  {
+    "place_id": "ChIJn7NeGxtazpQRdy7zH2po8Rg",
+    "name": "FGM - Produções Culturais",
+    "lat": -23.601688499999998,
+    "lng": -46.659124899999995,
+    "category": "centro_cultural",
+    "google_types": [
+      "cultural_center",
+      "association_or_organization",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "accepted",
+    "reasoning": "Aceito por: accept_type_cultural_center (tipo: \"cultural_center\")",
+    "distance_meters": 358,
+    "geographic_bucket": "inside_radius"
+  },
+  {
+    "place_id": "ChIJfeWjWwBazpQRT2NAfKdSKvQ",
+    "name": "Museo Verónica",
+    "lat": -23.6001971,
+    "lng": -46.669039999999995,
+    "category": "museu",
+    "google_types": [
+      "spanish_restaurant",
+      "bar",
+      "restaurant",
+      "food",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "needs_review",
+    "reasoning": "Caso intermediário, requer revisão por: review_type_food_uncertain (tipo: \"restaurant\")",
+    "distance_meters": 817,
+    "geographic_bucket": "inside_radius"
+  },
+  {
+    "place_id": "ChIJSxyT0fNZzpQRm9NL3hdpPJg",
+    "name": "Oca - Parque Ibirapuera",
+    "lat": -23.5868604,
+    "lng": -46.6554973,
+    "category": "museu",
+    "google_types": [
+      "art_museum",
+      "tourist_attraction",
+      "art_gallery",
+      "museum",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "accepted",
+    "reasoning": "Aceito por: accept_type_museum (tipo: \"museum\"); accept_type_art_gallery (tipo: \"art_gallery\")",
+    "distance_meters": 1975,
+    "geographic_bucket": "inside_radius"
+  },
+  {
+    "place_id": "ChIJ-UXtMotZzpQRGeDvgIuDEd0",
+    "name": "Museu de Arte Contemporânea da Universidade de São Paulo",
+    "lat": -23.5889906,
+    "lng": -46.650996199999994,
+    "category": "museu",
+    "google_types": [
+      "art_museum",
+      "tourist_attraction",
+      "museum",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "accepted",
+    "reasoning": "Aceito por: accept_type_museum (tipo: \"museum\")",
+    "distance_meters": 1971,
+    "geographic_bucket": "inside_radius"
+  },
+  {
+    "place_id": "ChIJi2C8z5hXzpQRXiL7PTDS-e8",
+    "name": "Selfie",
+    "lat": -23.6095887,
+    "lng": -46.6676059,
+    "category": "museu",
+    "google_types": [
+      "museum",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "accepted",
+    "reasoning": "Aceito por: accept_type_museum (tipo: \"museum\")",
+    "distance_meters": 880,
+    "geographic_bucket": "inside_radius"
+  },
+  {
+    "place_id": "ChIJZblwumRXzpQRwdTlPeI0uJQ",
+    "name": "Museu da Imagem e do Som (MIS) - São Paulo",
+    "lat": -23.5728902,
+    "lng": -46.676059699999996,
+    "category": "museu",
+    "google_types": [
+      "museum",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "accepted",
+    "reasoning": "Aceito por: accept_type_museum (tipo: \"museum\")",
+    "distance_meters": 3707,
+    "geographic_bucket": "outside_region"
+  },
+  {
+    "place_id": "ChIJo2Ygwe9ZzpQRD-ge7J12tnk",
+    "name": "Museu Afro Brasil Emanoel Araujo",
+    "lat": -23.583783699999998,
+    "lng": -46.6591203,
+    "category": "museu",
+    "google_types": [
+      "cultural_center",
+      "tourist_attraction",
+      "museum",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "accepted",
+    "reasoning": "Aceito por: accept_type_museum (tipo: \"museum\"); accept_type_cultural_center (tipo: \"cultural_center\")",
+    "distance_meters": 2223,
+    "geographic_bucket": "inside_radius"
+  },
+  {
+    "place_id": "ChIJq7WXZf5YzpQRguKUxFINMrU",
+    "name": "Museu Catavento",
+    "lat": -23.5444078,
+    "lng": -46.6273522,
+    "category": "museu",
+    "google_types": [
+      "tourist_attraction",
+      "museum",
+      "educational_institution",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "accepted",
+    "reasoning": "Aceito por: accept_type_museum (tipo: \"museum\")",
+    "distance_meters": 7467,
+    "geographic_bucket": "outside_region"
+  },
+  {
+    "place_id": "ChIJwU5UdIxZzpQRzQPAQxJItWc",
+    "name": "Museu do Instituto Biológico",
+    "lat": -23.5858223,
+    "lng": -46.648515499999995,
+    "category": "museu",
+    "google_types": [
+      "zoo",
+      "museum",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "accepted",
+    "reasoning": "Aceito por: accept_type_museum (tipo: \"museum\")",
+    "distance_meters": 2405,
+    "geographic_bucket": "inside_radius"
+  },
+  {
+    "place_id": "ChIJabsYiu5ZzpQR15HhzAPvMFk",
+    "name": "Planetário do Ibirapuera Aristóteles Orsini",
+    "lat": -23.5843334,
+    "lng": -46.660913699999995,
+    "category": "museu",
+    "google_types": [
+      "planetarium",
+      "tourist_attraction",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "needs_review",
+    "reasoning": "Caso intermediário, requer revisão por: review_type_tourist_attraction (tipo: \"tourist_attraction\")",
+    "distance_meters": 2146,
+    "geographic_bucket": "inside_radius"
+  },
+  {
+    "place_id": "ChIJ6zAYvO9ZzpQRf9KnEv8zMmc",
+    "name": "Museu de Magia e Bruxaria",
+    "lat": -23.5841721,
+    "lng": -46.63959810000001,
+    "category": "museu",
+    "google_types": [
+      "museum",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "accepted",
+    "reasoning": "Aceito por: accept_type_museum (tipo: \"museum\")",
+    "distance_meters": 3139,
+    "geographic_bucket": "outside_region"
+  },
+  {
+    "place_id": "ChIJhzXtoInHyJQRZzq981siqmI",
+    "name": "Museu das Ilusões - Shopping SP Market",
+    "lat": -23.6784373,
+    "lng": -46.6983002,
+    "category": "museu",
+    "google_types": [
+      "museum",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "accepted",
+    "reasoning": "Aceito por: accept_type_museum (tipo: \"museum\")",
+    "distance_meters": 9108,
+    "geographic_bucket": "outside_region"
+  },
+  {
+    "place_id": "ChIJH3frsc5ZzpQRoU10aab2BOk",
+    "name": "Museu de Arte de São Paulo Assis Chateaubriand",
+    "lat": -23.561414,
+    "lng": -46.6558819,
+    "category": "museu",
+    "google_types": [
+      "art_museum",
+      "tourist_attraction",
+      "museum",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "accepted",
+    "reasoning": "Aceito por: accept_type_museum (tipo: \"museum\")",
+    "distance_meters": 4732,
+    "geographic_bucket": "outside_region"
+  },
+  {
+    "place_id": "ChIJ3bb7OB1ZzpQR1HfF-h9-LlY",
+    "name": "Museu das Favelas",
+    "lat": -23.548496,
+    "lng": -46.6325261,
+    "category": "museu",
+    "google_types": [
+      "museum",
+      "art_museum",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "accepted",
+    "reasoning": "Aceito por: accept_type_museum (tipo: \"museum\")",
+    "distance_meters": 6822,
+    "geographic_bucket": "outside_region"
+  },
+  {
+    "place_id": "ChIJ1_WBAwBZzpQRjlm0scsUv1s",
+    "name": "Mirante MAC USP",
+    "lat": -23.5885353,
+    "lng": -46.6514646,
+    "category": "museu",
+    "google_types": [
+      "tourist_attraction",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "needs_review",
+    "reasoning": "Caso intermediário, requer revisão por: review_type_tourist_attraction (tipo: \"tourist_attraction\")",
+    "distance_meters": 1987,
+    "geographic_bucket": "inside_radius"
+  },
+  {
+    "place_id": "ChIJGddDxWRXzpQR8GESlCP-o5A",
+    "name": "MuBE - Museu Brasileiro de Escultura e Ecologia",
+    "lat": -23.573178499999997,
+    "lng": -46.676896799999994,
+    "category": "museu",
+    "google_types": [
+      "art_museum",
+      "museum",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "accepted",
+    "reasoning": "Aceito por: accept_type_museum (tipo: \"museum\")",
+    "distance_meters": 3711,
+    "geographic_bucket": "outside_region"
+  },
+  {
+    "place_id": "ChIJcWlkc4xZzpQRjOPt0eOW8bg",
+    "name": "Planeta Inseto",
+    "lat": -23.585775599999998,
+    "lng": -46.648496699999995,
+    "category": "museu",
+    "google_types": [
+      "zoo",
+      "tourist_attraction",
+      "museum",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "accepted",
+    "reasoning": "Aceito por: accept_type_museum (tipo: \"museum\")",
+    "distance_meters": 2410,
+    "geographic_bucket": "inside_radius"
+  },
+  {
+    "place_id": "ChIJ86I-l2RXzpQRQ88BYOMo2R4",
+    "name": "Casa Museu Ema Klabin",
+    "lat": -23.573598,
+    "lng": -46.6757079,
+    "category": "museu",
+    "google_types": [
+      "art_museum",
+      "cultural_center",
+      "tourist_attraction",
+      "museum",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "accepted",
+    "reasoning": "Aceito por: accept_type_museum (tipo: \"museum\"); accept_type_cultural_center (tipo: \"cultural_center\")",
+    "distance_meters": 3620,
+    "geographic_bucket": "outside_region"
+  },
+  {
+    "place_id": "ChIJzZV4WwBazpQRENOqQah9dD8",
+    "name": "Taberna Del Museo",
+    "lat": -23.600202,
+    "lng": -46.6690008,
+    "category": "museu",
+    "google_types": [
+      "restaurant",
+      "food",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "needs_review",
+    "reasoning": "Caso intermediário, requer revisão por: review_type_food_uncertain (tipo: \"restaurant\")",
+    "distance_meters": 813,
+    "geographic_bucket": "inside_radius"
+  },
+  {
+    "place_id": "ChIJw5U5SuVZzpQRgOFnTfmbllY",
+    "name": "Pavilhão Japonês",
+    "lat": -23.5860083,
+    "lng": -46.6618383,
+    "category": "museu",
+    "google_types": [
+      "tourist_attraction",
+      "event_venue",
+      "service",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "needs_review",
+    "reasoning": "Caso intermediário, requer revisão por: review_type_tourist_attraction (tipo: \"tourist_attraction\")",
+    "distance_meters": 1957,
+    "geographic_bucket": "inside_radius"
+  },
+  {
+    "place_id": "ChIJKTUNoxtazpQRRfyIPvdYY5I",
+    "name": "Parque das Bicicletas",
+    "lat": -23.599511600000003,
+    "lng": -46.6566846,
+    "category": "parque",
+    "google_types": [
+      "park",
+      "tourist_attraction",
+      "bike_sharing_station",
+      "parking",
+      "transportation_service",
+      "service",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "accepted",
+    "reasoning": "Aceito por: accept_type_park (tipo: \"park\")",
+    "distance_meters": 703,
+    "geographic_bucket": "inside_radius"
+  },
+  {
+    "place_id": "ChIJz9xnZXRbzpQRLrwIW8KQ3eQ",
+    "name": "Altitude Park - Moema",
+    "lat": -23.6223109,
+    "lng": -46.6533489,
+    "category": "parque",
+    "google_types": [
+      "amusement_park",
+      "amusement_center",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "needs_review",
+    "reasoning": "Nenhuma regra heurística reconheceu este local — enviado para revisão por padrão de segurança.",
+    "distance_meters": 2256,
+    "geographic_bucket": "inside_radius"
+  },
+  {
+    "place_id": "ChIJA8R3toxbzpQRNTVLlu26aB8",
+    "name": "ParCão Moema - Zeus",
+    "lat": -23.603828699999998,
+    "lng": -46.6609945,
+    "category": "parque",
+    "google_types": [
+      "dog_park",
+      "park",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "accepted",
+    "reasoning": "Aceito por: accept_type_park (tipo: \"park\")",
+    "distance_meters": 99,
+    "geographic_bucket": "inside_radius"
+  },
+  {
+    "place_id": "ChIJ0RGdBvFZzpQRQeWcrwlhk8s",
+    "name": "Parque Ibirapuera",
+    "lat": -23.585959499999998,
+    "lng": -46.6584346,
+    "category": "parque",
+    "google_types": [
+      "park",
+      "tourist_attraction",
+      "city_park",
+      "event_venue",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "accepted",
+    "reasoning": "Aceito por: accept_type_park (tipo: \"park\")",
+    "distance_meters": 1995,
+    "geographic_bucket": "inside_radius"
+  },
+  {
+    "place_id": "ChIJ3eTVUHJbzpQR2TB7ojHGw-4",
+    "name": "Cachorrodromo",
+    "lat": -23.603824200000002,
+    "lng": -46.6610788,
+    "category": "parque",
+    "google_types": [
+      "park",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "accepted",
+    "reasoning": "Aceito por: accept_type_park (tipo: \"park\")",
+    "distance_meters": 91,
+    "geographic_bucket": "inside_radius"
+  },
+  {
+    "place_id": "ChIJr6qqMvtZzpQR_KbwGd-_gm8",
+    "name": "Clube Atlético Monte Líbano",
+    "lat": -23.5988074,
+    "lng": -46.659256299999996,
+    "category": "parque",
+    "google_types": [
+      "sports_club",
+      "association_or_organization",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "likely_fitness_generic",
+    "reasoning": "Provável academia/estúdio genérico, sem indicação clara de atender o público 60+ por: fitness_generic_type (tipo: \"sports_club\")",
+    "distance_meters": 600,
+    "geographic_bucket": "inside_radius"
+  },
+  {
+    "place_id": "ChIJ6S7zMPlZzpQR2momrkFcVSA",
+    "name": "Fonte Milão - São Paulo",
+    "lat": -23.593792399999998,
+    "lng": -46.6651793,
+    "category": "parque",
+    "google_types": [
+      "tourist_attraction",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "needs_review",
+    "reasoning": "Caso intermediário, requer revisão por: review_type_tourist_attraction (tipo: \"tourist_attraction\")",
+    "distance_meters": 1140,
+    "geographic_bucket": "inside_radius"
+  },
+  {
+    "place_id": "ChIJgSQxFgVazpQRJEXusq9Yg-k",
+    "name": "Moema",
+    "lat": -23.60351,
+    "lng": -46.662020000000005,
+    "category": "parque",
+    "google_types": [
+      "subway_station",
+      "transit_station",
+      "transportation_service",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "needs_review",
+    "reasoning": "Nenhuma regra heurística reconheceu este local — enviado para revisão por padrão de segurança.",
+    "distance_meters": 14,
+    "geographic_bucket": "inside_radius"
+  },
+  {
+    "place_id": "ChIJ94TgxkBXzpQR8AOkGLMY9HE",
+    "name": "Parque do Povo Mário Pimenta Camargo",
+    "lat": -23.587594,
+    "lng": -46.688417099999995,
+    "category": "parque",
+    "google_types": [
+      "city_park",
+      "tourist_attraction",
+      "park",
+      "event_venue",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "accepted",
+    "reasoning": "Aceito por: accept_type_park (tipo: \"park\")",
+    "distance_meters": 3233,
+    "geographic_bucket": "outside_region"
+  },
+  {
+    "place_id": "ChIJNTabMgVazpQRQnDg-NLPlEg",
+    "name": "Paróquia Nossa Senhora Aparecida de Moema",
+    "lat": -23.6031837,
+    "lng": -46.661117499999996,
+    "category": "parque",
+    "google_types": [
+      "tourist_attraction",
+      "church",
+      "place_of_worship",
+      "association_or_organization",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "needs_review",
+    "reasoning": "Caso intermediário, requer revisão por: review_type_tourist_attraction (tipo: \"tourist_attraction\")",
+    "distance_meters": 96,
+    "geographic_bucket": "inside_radius"
+  },
+  {
+    "place_id": "ChIJz_SdflxbzpQR6CTOBIotSms",
+    "name": "Estacionamento Parque das Bicicletas",
+    "lat": -23.5998817,
+    "lng": -46.6569601,
+    "category": "parque",
+    "google_types": [
+      "parking_lot",
+      "parking",
+      "transportation_service",
+      "service",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "needs_review",
+    "reasoning": "Nenhuma regra heurística reconheceu este local — enviado para revisão por padrão de segurança.",
+    "distance_meters": 655,
+    "geographic_bucket": "inside_radius"
+  },
+  {
+    "place_id": "ChIJQeaQloxbzpQR6UNPuxnk-2A",
+    "name": "Park Avenue Ibirapuera",
+    "lat": -23.6046972,
+    "lng": -46.6604211,
+    "category": "parque",
+    "google_types": [
+      "apartment_complex",
+      "condominium_complex",
+      "service",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "needs_review",
+    "reasoning": "Nenhuma regra heurística reconheceu este local — enviado para revisão por padrão de segurança.",
+    "distance_meters": 196,
+    "geographic_bucket": "inside_radius"
+  },
+  {
+    "place_id": "ChIJsdrivZdXzpQR4ULharLGl34",
+    "name": "Altitude trampolim park",
+    "lat": -23.5952979,
+    "lng": -46.686681799999995,
+    "category": "parque",
+    "google_types": [
+      "park",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "accepted",
+    "reasoning": "Aceito por: accept_type_park (tipo: \"park\")",
+    "distance_meters": 2685,
+    "geographic_bucket": "buffer_zone"
+  },
+  {
+    "place_id": "ChIJd50RtjlbzpQRAi-4nQxP-g4",
+    "name": "Praça Professor Rossini Tavares de Lima",
+    "lat": -23.5939347,
+    "lng": -46.655654899999995,
+    "category": "parque",
+    "google_types": [
+      "park",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "needs_review",
+    "reasoning": "Caso intermediário, requer revisão por: review_keyword_praca (nome: \"praca \")",
+    "distance_meters": 1252,
+    "geographic_bucket": "inside_radius"
+  },
+  {
+    "place_id": "ChIJc-rYdg1azpQR3dPPZX6QwOk",
+    "name": "Pração Moema",
+    "lat": -23.6127605,
+    "lng": -46.6615785,
+    "category": "parque",
+    "google_types": [
+      "pet_store",
+      "store",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "needs_review",
+    "reasoning": "Nenhuma regra heurística reconheceu este local — enviado para revisão por padrão de segurança.",
+    "distance_meters": 1018,
+    "geographic_bucket": "inside_radius"
+  },
+  {
+    "place_id": "ChIJX60aKABbzpQRrYQo3isGV20",
+    "name": "Parque das Bicicletas - Portão Principal",
+    "lat": -23.6006061,
+    "lng": -46.6579331,
+    "category": "parque",
+    "google_types": [
+      "park",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "accepted",
+    "reasoning": "Aceito por: accept_type_park (tipo: \"park\")",
+    "distance_meters": 528,
+    "geographic_bucket": "inside_radius"
+  },
+  {
+    "place_id": "ChIJ0e2cvwRazpQReD_zAn_Mptw",
+    "name": "Piadina Tree",
+    "lat": -23.601537,
+    "lng": -46.662001,
+    "category": "parque",
+    "google_types": [
+      "snack_bar",
+      "juice_shop",
+      "wine_bar",
+      "coffee_shop",
+      "beer_garden",
+      "italian_restaurant",
+      "cafe",
+      "meal_takeaway",
+      "bar",
+      "food_store",
+      "store",
+      "restaurant",
+      "food",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "rejected",
+    "reasoning": "Rejeitado por: reject_type_grocery (tipo: \"food_store\")",
+    "distance_meters": 231,
+    "geographic_bucket": "inside_radius"
+  },
+  {
+    "place_id": "ChIJNwtMfgBbzpQRDQ4CUOVXhSE",
+    "name": "Praça Nossa Senhora Aparecida",
+    "lat": -23.603341,
+    "lng": -46.661007999999995,
+    "category": "parque",
+    "google_types": [
+      "park",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "needs_review",
+    "reasoning": "Caso intermediário, requer revisão por: review_keyword_praca (nome: \"praca \")",
+    "distance_meters": 100,
+    "geographic_bucket": "inside_radius"
+  },
+  {
+    "place_id": "ChIJB-w_JhFazpQRv7_uDyEvbFc",
+    "name": "Livraria da Vila - Moema",
+    "lat": -23.6060713,
+    "lng": -46.6565004,
+    "category": "biblioteca",
+    "google_types": [
+      "book_store",
+      "store",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "needs_review",
+    "reasoning": "Nenhuma regra heurística reconheceu este local — enviado para revisão por padrão de segurança.",
+    "distance_meters": 618,
+    "geographic_bucket": "inside_radius"
+  },
+  {
+    "place_id": "ChIJX0Ps_-9bzpQRa1ccYj-mSU0",
+    "name": "Livraria e Papelaria Leitura - Shopping Ibirapuera",
+    "lat": -23.6103296,
+    "lng": -46.6659301,
+    "category": "biblioteca",
+    "google_types": [
+      "book_store",
+      "store",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "needs_review",
+    "reasoning": "Nenhuma regra heurística reconheceu este local — enviado para revisão por padrão de segurança.",
+    "distance_meters": 851,
+    "geographic_bucket": "inside_radius"
+  },
+  {
+    "place_id": "ChIJE8S7jflZzpQRyhiv9S6XmUo",
+    "name": "Bosque da Leitura Parque Ibirapuera",
+    "lat": -23.5916756,
+    "lng": -46.6622889,
+    "category": "biblioteca",
+    "google_types": [
+      "library",
+      "service",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "accepted",
+    "reasoning": "Aceito por: accept_type_library (tipo: \"library\")",
+    "distance_meters": 1328,
+    "geographic_bucket": "inside_radius"
+  },
+  {
+    "place_id": "ChIJKUBRmgRazpQRUb5NDrKLTco",
+    "name": "CPB Livraria",
+    "lat": -23.601256799999998,
+    "lng": -46.662492099999994,
+    "category": "biblioteca",
+    "google_types": [
+      "book_store",
+      "store",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "needs_review",
+    "reasoning": "Nenhuma regra heurística reconheceu este local — enviado para revisão por padrão de segurança.",
+    "distance_meters": 268,
+    "geographic_bucket": "inside_radius"
+  },
+  {
+    "place_id": "ChIJr8mcXgVazpQRZn4YN9vMB8w",
+    "name": "Minha Biblioteca Católica Internacional Ltda",
+    "lat": -23.6050598,
+    "lng": -46.6618947,
+    "category": "biblioteca",
+    "google_types": [
+      "corporate_office",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "needs_review",
+    "reasoning": "Nenhuma regra heurística reconheceu este local — enviado para revisão por padrão de segurança.",
+    "distance_meters": 161,
+    "geographic_bucket": "inside_radius"
+  },
+  {
+    "place_id": "ChIJTeX4CZpXzpQRipzQOp_AV3U",
+    "name": "Biblioteca Pública Municipal Anne Frank",
+    "lat": -23.586914699999998,
+    "lng": -46.6840305,
+    "category": "biblioteca",
+    "google_types": [
+      "library",
+      "service",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "accepted",
+    "reasoning": "Aceito por: accept_type_library (tipo: \"library\")",
+    "distance_meters": 2918,
+    "geographic_bucket": "buffer_zone"
+  },
+  {
+    "place_id": "ChIJLas4GatQzpQRjMh5di4vMVU",
+    "name": "Kisoul - Leitura como Desenvolvimento",
+    "lat": -23.6010647,
+    "lng": -46.6735605,
+    "category": "biblioteca",
+    "google_types": [
+      "service",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "needs_review",
+    "reasoning": "Nenhuma regra heurística reconheceu este local — enviado para revisão por padrão de segurança.",
+    "distance_meters": 1217,
+    "geographic_bucket": "inside_radius"
+  },
+  {
+    "place_id": "ChIJn7uU0RNbzpQRI4GI9KHOo_s",
+    "name": "Jogasampa",
+    "lat": -23.6124767,
+    "lng": -46.6632458,
+    "category": "biblioteca",
+    "google_types": [
+      "store",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "needs_review",
+    "reasoning": "Nenhuma regra heurística reconheceu este local — enviado para revisão por padrão de segurança.",
+    "distance_meters": 995,
+    "geographic_bucket": "inside_radius"
+  },
+  {
+    "place_id": "ChIJ00DDf3VZzpQRNHm124F0m0U",
+    "name": "Biblioteca Paulo Mendes de Almeida – Centro de Estudos Luís Martins, CELM",
+    "lat": -23.5878248,
+    "lng": -46.655811299999996,
+    "category": "biblioteca",
+    "google_types": [
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "needs_review",
+    "reasoning": "Nenhuma regra heurística reconheceu este local — enviado para revisão por padrão de segurança.",
+    "distance_meters": 1863,
+    "geographic_bucket": "inside_radius"
+  },
+  {
+    "place_id": "ChIJnwJPraVQzpQR-GL5zgGHJr4",
+    "name": "ABRA - Academia Brasileira de Arte",
+    "lat": -23.60515,
+    "lng": -46.665031299999995,
+    "category": "biblioteca",
+    "google_types": [
+      "educational_institution",
+      "art_studio",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "needs_review",
+    "reasoning": "Nenhuma regra heurística reconheceu este local — enviado para revisão por padrão de segurança.",
+    "distance_meters": 359,
+    "geographic_bucket": "inside_radius"
+  },
+  {
+    "place_id": "ChIJw0McLINRzpQRyx32kApU5BI",
+    "name": "Baixe Livros",
+    "lat": -23.611942799999998,
+    "lng": -46.696996,
+    "category": "biblioteca",
+    "google_types": [
+      "library",
+      "service",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "accepted",
+    "reasoning": "Aceito por: accept_type_library (tipo: \"library\")",
+    "distance_meters": 3690,
+    "geographic_bucket": "outside_region"
+  },
+  {
+    "place_id": "ChIJVVUVdVNXzpQRwbiDp6cV798",
+    "name": "Biblioteca Telles",
+    "lat": -23.5985537,
+    "lng": -46.6764948,
+    "category": "biblioteca",
+    "google_types": [
+      "library",
+      "service",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "accepted",
+    "reasoning": "Aceito por: accept_type_library (tipo: \"library\")",
+    "distance_meters": 1586,
+    "geographic_bucket": "inside_radius"
+  },
+  {
+    "place_id": "ChIJZz29dnVXzpQRvRh7_YKyUN4",
+    "name": "Encounter | Jogos de Tabuleiro | Board Games",
+    "lat": -23.606458399999998,
+    "lng": -46.6738581,
+    "category": "biblioteca",
+    "google_types": [
+      "restaurant",
+      "food",
+      "association_or_organization",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "needs_review",
+    "reasoning": "Caso intermediário, requer revisão por: review_type_food_uncertain (tipo: \"restaurant\")",
+    "distance_meters": 1255,
+    "geographic_bucket": "inside_radius"
+  },
+  {
+    "place_id": "ChIJ_alKtZlZzpQR917MEysP6s4",
+    "name": "Biblioteca Centro Cultural",
+    "lat": -23.5716514,
+    "lng": -46.6402898,
+    "category": "biblioteca",
+    "google_types": [
+      "library",
+      "service",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "accepted",
+    "reasoning": "Aceito por: accept_type_library (tipo: \"library\")",
+    "distance_meters": 4183,
+    "geographic_bucket": "outside_region"
+  },
+  {
+    "place_id": "ChIJpbNN2C5azpQRsPZB-HJyFEk",
+    "name": "Biblioteca Municipal Viriato Corrêa",
+    "lat": -23.593233899999998,
+    "lng": -46.638784699999995,
+    "category": "biblioteca",
+    "google_types": [
+      "library",
+      "service",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "accepted",
+    "reasoning": "Aceito por: accept_type_library (tipo: \"library\")",
+    "distance_meters": 2626,
+    "geographic_bucket": "buffer_zone"
+  },
+  {
+    "place_id": "ChIJh7kJ23FZzpQRirMfUvEzwvg",
+    "name": "Biblioteca da Alesp - Alceu de Amoroso Lima",
+    "lat": -23.5805079,
+    "lng": -46.657702,
+    "category": "biblioteca",
+    "google_types": [
+      "library",
+      "service",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "accepted",
+    "reasoning": "Aceito por: accept_type_library (tipo: \"library\")",
+    "distance_meters": 2605,
+    "geographic_bucket": "buffer_zone"
+  },
+  {
+    "place_id": "ChIJP4C4yyBazpQRL7SDfLyXF4g",
+    "name": "Cinemateca Brasileira",
+    "lat": -23.5921163,
+    "lng": -46.646774699999995,
+    "category": "biblioteca",
+    "google_types": [
+      "movie_theater",
+      "cultural_center",
+      "library",
+      "service",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "accepted",
+    "reasoning": "Aceito por: accept_type_cultural_center (tipo: \"cultural_center\"); accept_type_library (tipo: \"library\")",
+    "distance_meters": 2005,
+    "geographic_bucket": "inside_radius"
+  },
+  {
+    "place_id": "ChIJM85OPeFbzpQRyo_KunpNun0",
+    "name": "Biblioteca SENAI \"Anchieta\"",
+    "lat": -23.5914696,
+    "lng": -46.6450112,
+    "category": "biblioteca",
+    "google_types": [
+      "library",
+      "service",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "accepted",
+    "reasoning": "Aceito por: accept_type_library (tipo: \"library\")",
+    "distance_meters": 2190,
+    "geographic_bucket": "inside_radius"
+  },
+  {
+    "place_id": "ChIJ8zYoIARazpQRPUVV3IOyN1A",
+    "name": "Mori Escola de Natação",
+    "lat": -23.603002,
+    "lng": -46.665534,
+    "category": "hidroginastica",
+    "google_types": [
+      "sports_school",
+      "sports_activity_location",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "accepted",
+    "reasoning": "Aceito por: accept_keyword_activity_name_match (nome: \"natacao\")",
+    "distance_meters": 372,
+    "geographic_bucket": "inside_radius"
+  },
+  {
+    "place_id": "ChIJt4jkDIlbzpQRaF9BSGwaYLE",
+    "name": "Moema Fit ACADEMIA",
+    "lat": -23.606796199999998,
+    "lng": -46.6712011,
+    "category": "hidroginastica",
+    "google_types": [
+      "gym",
+      "yoga_studio",
+      "fitness_center",
+      "sports_school",
+      "sports_complex",
+      "sports_activity_location",
+      "health",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "likely_fitness_generic",
+    "reasoning": "Provável academia/estúdio genérico, sem indicação clara de atender o público 60+ por: fitness_generic_type (tipo: \"gym\")",
+    "distance_meters": 1008,
+    "geographic_bucket": "inside_radius"
+  },
+  {
+    "place_id": "ChIJJbk95KpQzpQRPh31JKWLz4g",
+    "name": "Muroazul",
+    "lat": -23.6049763,
+    "lng": -46.671775499999995,
+    "category": "hidroginastica",
+    "google_types": [
+      "gym",
+      "sports_activity_location",
+      "health",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "likely_fitness_generic",
+    "reasoning": "Provável academia/estúdio genérico, sem indicação clara de atender o público 60+ por: fitness_generic_type (tipo: \"gym\")",
+    "distance_meters": 1014,
+    "geographic_bucket": "inside_radius"
+  },
+  {
+    "place_id": "ChIJy98tbg5azpQRwnDAxz3Byi8",
+    "name": "Academia BIO RITMO - Moema",
+    "lat": -23.609541300000004,
+    "lng": -46.6624285,
+    "category": "hidroginastica",
+    "google_types": [
+      "gym",
+      "sports_activity_location",
+      "health",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "likely_fitness_generic",
+    "reasoning": "Provável academia/estúdio genérico, sem indicação clara de atender o público 60+ por: fitness_generic_type (tipo: \"gym\")",
+    "distance_meters": 661,
+    "geographic_bucket": "inside_radius"
+  },
+  {
+    "place_id": "ChIJW-ecqqpQzpQR3y0F-cVim1A",
+    "name": "Viva",
+    "lat": -23.5989249,
+    "lng": -46.670598299999995,
+    "category": "hidroginastica",
+    "google_types": [
+      "gym",
+      "sports_activity_location",
+      "health",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "likely_fitness_generic",
+    "reasoning": "Provável academia/estúdio genérico, sem indicação clara de atender o público 60+ por: fitness_generic_type (tipo: \"gym\")",
+    "distance_meters": 1025,
+    "geographic_bucket": "inside_radius"
+  },
+  {
+    "place_id": "ChIJNSPw0BNazpQRgkUFNBA63ds",
+    "name": "Núcleo de Dança Stella Aguiar",
+    "lat": -23.6110276,
+    "lng": -46.6635115,
+    "category": "danca_idosos",
+    "google_types": [
+      "sports_school",
+      "point_of_interest",
+      "service",
+      "establishment"
+    ],
+    "decision": "accepted",
+    "reasoning": "Aceito por: accept_keyword_activity_name_match (nome: \"danca\")",
+    "distance_meters": 840,
+    "geographic_bucket": "inside_radius"
+  },
+  {
+    "place_id": "ChIJr3GF9xFazpQROW5mrZWpdzQ",
+    "name": "Central Da Dança",
+    "lat": -23.6093533,
+    "lng": -46.660351899999995,
+    "category": "danca_idosos",
+    "google_types": [
+      "sports_school",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "accepted",
+    "reasoning": "Aceito por: accept_keyword_activity_name_match (nome: \"danca\")",
+    "distance_meters": 659,
+    "geographic_bucket": "inside_radius"
+  },
+  {
+    "place_id": "ChIJu4PKFAhazpQRDXZXLdYAyBs",
+    "name": "Millennium Dance Complex",
+    "lat": -23.6089909,
+    "lng": -46.6690019,
+    "category": "danca_idosos",
+    "google_types": [
+      "sports_school",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "likely_fitness_generic",
+    "reasoning": "Provável academia/estúdio genérico, sem indicação clara de atender o público 60+ por: fitness_generic_type (tipo: \"sports_school\")",
+    "distance_meters": 936,
+    "geographic_bucket": "inside_radius"
+  },
+  {
+    "place_id": "ChIJzWA-RQRazpQRjwDReFj0E8k",
+    "name": "Escola Paulista de Dança",
+    "lat": -23.602739399999997,
+    "lng": -46.663870499999994,
+    "category": "danca_idosos",
+    "google_types": [
+      "sports_school",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "accepted",
+    "reasoning": "Aceito por: accept_keyword_activity_name_match (nome: \"danca\")",
+    "distance_meters": 219,
+    "geographic_bucket": "inside_radius"
+  }
+]

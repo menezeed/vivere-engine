@@ -40,9 +40,30 @@ export interface PublishableVenue {
   readonly imageUrl:           string | null;
   readonly promotedVenueId:    PublicVenueId | null;  // null = nunca publicado
   readonly stagingUpdatedAt:   Date;
+  /**
+   * Sprint 8.7 — venues_staging.city. Puramente informativo (relatório de
+   * duplicados no preview, ver duplicateDetection.ts). NUNCA usado por
+   * PublicationTransformer nem escrito em public.venues — ADR-0018 exclui
+   * `city` da whitelist explicitamente.
+   */
+  readonly city:               string | null;
 }
 
 // ── Publishable activity — o que o engine lê de staging ──────────────────────
+
+/**
+ * Uma ocorrência de raw_activity_items.occurrences (Sprint 8.7 / ADR-0020).
+ * date/time/endDate/endTime na forma bruta como persistidos (strings), sem
+ * conversão para Date aqui — a combinação date+time e a selecção de qual
+ * ocorrência usar são responsabilidade pura do PublicationTransformer
+ * (dependem de `asOf`, que tem de ser injectado, nunca lido do relógio local).
+ */
+export interface ActivityOccurrence {
+  readonly date:     string;       // 'YYYY-MM-DD'
+  readonly time:     string | null; // 'HH:MM'
+  readonly endDate:  string | null;
+  readonly endTime:  string | null;
+}
 
 export interface PublishableActivity {
   readonly stagingId:              StagingActivityId;
@@ -50,13 +71,47 @@ export interface PublishableActivity {
   readonly sourceKey:              string;
   readonly title:                  string;
   readonly description:            string | null;
+  /**
+   * Fonte completa de datas (ADR-0020) — raw_activity_items.occurrences,
+   * já parseado (tolerante a array nativo ou string JSON legada — ver
+   * PublishableActivityRepository). Único array vazio nunca ocorre na
+   * leitura real (occurrences é sempre not-null em raw_activity_items,
+   * confirmado na Sprint 8.7), mas o tipo permite-o defensivamente.
+   */
+  readonly occurrences:            readonly ActivityOccurrence[];
+  /**
+   * Placeholders quando lida directamente de staging — nunca populados por
+   * PublishableActivityRepository (occurrences é a fonte de verdade). Só
+   * ganham significado numa instância reconstruída por
+   * ActivityPublisher.adaptToPublishableActivity (Sprint 8.6/8.7), a partir
+   * da ocorrência já seleccionada pelo Transformer.
+   */
   readonly startDate:              Date | null;
   readonly endDate:                Date | null;
   readonly imageUrl:               string | null;
   readonly sourceUrl:              string | null;
   readonly phone:                  string | null;
-  // venue resolvido → public.venues.id (null para proposed_new)
+  // venue resolvido → public.venues.id (null para proposed_new OU para
+  // matched cujo venue ainda não foi promovido — ver venueResolutionStatus)
   readonly resolvedPublicVenueId:  PublicVenueId | null;
+  /**
+   * Sprint 8.7 — activities_staging.venue_resolution_status ('matched' |
+   * 'proposed_new'; 'unresolved' nunca aparece aqui, já filtrado pela query).
+   * Necessário para distinguir, quando resolvedPublicVenueId é null, entre:
+   *   - proposed_new genuína (nunca terá venue_id, por desenho);
+   *   - matched cujo venue staging ainda não foi promovido — no preview,
+   *     porque VenuePublisher ainda não correu nesta run (nunca acontece na
+   *     execução real, onde venues são sempre publicados primeiro).
+   */
+  readonly venueResolutionStatus:  'matched' | 'proposed_new';
+  /**
+   * Sprint 8.7 — activities_staging.resolved_venue_staging_id, sem passar
+   * pelo mapeamento para public venue id. Presente sempre que
+   * venueResolutionStatus = 'matched'; null para proposed_new. Usado pelo
+   * preview do publish.ts para cruzar com as decisões de venues (venue
+   * ainda por publicar nesta mesma run → PENDING_PUBLICATION).
+   */
+  readonly resolvedVenueStagingId: StagingVenueId | null;
   readonly promotedActivityId:     PublicActivityId | null;
   readonly stagingUpdatedAt:       Date;
 }
@@ -124,6 +179,29 @@ export interface PublicVenuePublicationState {
   readonly publicVenueId:    PublicVenueId;
   readonly lastPublishedAt:  Date;
   readonly engineStatus:     EngineStatus;
+}
+
+/** Estado mínimo de publicação de uma activity em public.activities, por engine_activity_id. */
+export interface PublicActivityPublicationState {
+  readonly publicActivityId: PublicActivityId;
+  readonly lastPublishedAt:  Date;
+  readonly engineStatus:     EngineStatus;
+}
+
+/**
+ * Sprint 8.7 — funil de elegibilidade de activities_staging, para o
+ * --preview explicar exactamente quantas activities existem, por que
+ * estados, e quantas ficam de fora do critério de publicação (venue_resolution_status
+ * IN ('matched','proposed_new')). Método aditivo em IPublishableActivityRepository
+ * (describeFunnel) — puramente informativo, nunca usado por
+ * findUnpublished()/findDirty()/publish().
+ */
+export interface ActivityFunnel {
+  readonly total:                   number;
+  /** Contagem por venue_resolution_status, incluindo estados fora do critério de publicação (ex: 'unresolved'). */
+  readonly byVenueResolutionStatus: Readonly<Record<string, number>>;
+  /** De entre matched+proposed_new, quantas já têm promoted_activity_id preenchido. */
+  readonly alreadyPublished:        number;
 }
 
 // ── Operational Model inputs — saída pura do PublicationTransformer (Sprint 8.3) ──

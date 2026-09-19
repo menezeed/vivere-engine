@@ -1,5 +1,13 @@
 import type { ProposalStatus } from './review';
 
+/**
+ * ADR-0022 (Regional Geographic Gate) — dimensão independente de
+ * proposal_status. Espelha exactamente o tipo do backend
+ * (src/review-api/types/reviewTypes.ts) — mesmos três valores, mesma
+ * semântica de null.
+ */
+export type GeographicStatus = 'inside_radius' | 'buffer_zone' | 'outside_region';
+
 export interface VenueStagingItem {
   id: string;
   raw_venue_item_id: string;
@@ -7,6 +15,8 @@ export interface VenueStagingItem {
   source_item_id: string;
   product_key: string;
   proposal_status: ProposalStatus;
+  /** ADR-0022 — nunca confundir com proposal_status. Null quando a fonte não tem região. */
+  geographic_status?: GeographicStatus | null;
   reviewed_by: string | null;
   reviewed_at: string | null;
   promoted_at: string | null;

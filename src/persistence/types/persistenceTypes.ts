@@ -25,4 +25,6 @@ export interface IngestionSummary {
   rawItemsErrored: number;
   stagedItems: number;
   rejectedItems: number;
+  /** ADR-0022 (Regional Geographic Gate) — itens excluídos da onda regional, nunca chegam a venues_staging. 0 quando a fonte não declara regions. */
+  geoExcludedItems: number;
 }

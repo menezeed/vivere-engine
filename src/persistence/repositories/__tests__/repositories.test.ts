@@ -124,7 +124,7 @@ describe('RawActivityItemRepository.insertBatch', () => {
     expect(row['venue_mention']).toBeUndefined();
   });
 
-  it('serializa occurrences como JSON string para JSONB', async () => {
+  it('grava occurrences como array nativo, sem JSON.stringify() manual (Sprint 8.7 — bug de dupla serialização)', async () => {
     const db = makeUpsertDb([{ id: 'raw-act-uuid', source_item_id: 'post_110155' }]);
     const repo = new RawActivityItemRepository(db as never);
 
@@ -133,9 +133,12 @@ describe('RawActivityItemRepository.insertBatch', () => {
     const [rows] = db.upsert.mock.calls[0] as [object[]];
     const row = rows[0] as Record<string, unknown>;
 
-    expect(typeof row['occurrences']).toBe('string');
-    const parsed = JSON.parse(row['occurrences'] as string);
-    expect(parsed[0]).toMatchObject({ date: '2026-06-28', time: '07:00' });
+    // O Collector já entrega um array nativo — nunca deve ser convertido
+    // para string aqui. O cliente Supabase serializa o corpo do pedido
+    // inteiro; um JSON.stringify() manual aqui causaria dupla
+    // serialização (jsonb_typeof = 'string' em vez de 'array' no banco).
+    expect(Array.isArray(row['occurrences'])).toBe(true);
+    expect(row['occurrences']).toMatchObject([{ date: '2026-06-28', time: '07:00' }]);
   });
 
   it('mapeia venue_mention=null quando a atividade não tem venue', async () => {
@@ -224,6 +227,70 @@ describe('VenueStagingRepository.insertBatch', () => {
 
     const [rows] = db.upsert.mock.calls[0] as [object[]];
     expect((rows[0] as Record<string, unknown>)['proposal_status']).toBe('pending_review');
+  });
+
+  it('ADR-0022: item outside_region É persistido (nunca descartado), com proposal_status inalterado e geographic_status próprio', async () => {
+    const db = makeUpsertDb([{ id: 'staging-uuid' }]);
+    const repo = new VenueStagingRepository(db as never);
+
+    const geoExcludedItem = {
+      ...makeFiltered('accepted', 'ChIJ_masp'),
+      geographic: { bucket: 'outside_region' as const, distanceMeters: 6300 },
+    };
+
+    const count = await repo.insertBatch(
+      [geoExcludedItem],
+      [{ id: 'raw-masp', source_item_id: 'ChIJ_masp' }],
+      'vivere-60-mais',
+    );
+
+    // Persistido — não descartado, ao contrário de 'rejected'.
+    expect(db.upsert).toHaveBeenCalled();
+    expect(count).toBe(1);
+
+    const [rows] = db.upsert.mock.calls[0] as [object[]];
+    const row = rows[0] as Record<string, unknown>;
+    // proposal_status é SEMPRE de curadoria — nunca reflecte o gate geográfico.
+    expect(row['proposal_status']).toBe('pending_review');
+    // geographic_status é a dimensão técnica, própria e independente (migration 0018).
+    expect(row['geographic_status']).toBe('outside_region');
+  });
+
+  it('ADR-0022: item inside_radius/buffer_zone continua pending_review, com geographic_status próprio', async () => {
+    const db = makeUpsertDb([{ id: 'staging-uuid' }]);
+    const repo = new VenueStagingRepository(db as never);
+
+    const insideItem = {
+      ...makeFiltered('accepted', 'ChIJ_dentro'),
+      geographic: { bucket: 'inside_radius' as const, distanceMeters: 800 },
+    };
+
+    await repo.insertBatch(
+      [insideItem],
+      [{ id: 'raw-dentro', source_item_id: 'ChIJ_dentro' }],
+      'vivere-60-mais',
+    );
+
+    const [rows] = db.upsert.mock.calls[0] as [object[]];
+    const row = rows[0] as Record<string, unknown>;
+    expect(row['proposal_status']).toBe('pending_review');
+    expect(row['geographic_status']).toBe('inside_radius');
+  });
+
+  it('ADR-0022: geographic_status é NULL quando a fonte não anexa geographic (ex: WordPress)', async () => {
+    const db = makeUpsertDb([{ id: 'staging-uuid' }]);
+    const repo = new VenueStagingRepository(db as never);
+
+    await repo.insertBatch(
+      [makeFiltered('accepted', 'ChIJ_sem_geo')], // sem campo geographic
+      [{ id: 'raw-sem-geo', source_item_id: 'ChIJ_sem_geo' }],
+      'vivere-60-mais',
+    );
+
+    const [rows] = db.upsert.mock.calls[0] as [object[]];
+    const row = rows[0] as Record<string, unknown>;
+    expect(row['proposal_status']).toBe('pending_review');
+    expect(row['geographic_status']).toBeNull();
   });
 });
 
