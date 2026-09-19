@@ -38,6 +38,7 @@ const mockVenue: PublishableVenue = {
   imageUrl:         null,
   promotedVenueId:  null,
   stagingUpdatedAt: new Date('2026-07-01'),
+  city:             'Cabo Frio',
 };
 
 const mockActivity: PublishableActivity = {
@@ -46,12 +47,15 @@ const mockActivity: PublishableActivity = {
   sourceKey:             'prefeitura_cabo_frio',
   title:                 'Yoga no Forte',
   description:           'Aula de yoga na praia',
-  startDate:             new Date('2026-08-01'),
+  occurrences:           [{ date: '2026-08-01', time: null, endDate: null, endTime: null }],
+  startDate:             null,
   endDate:               null,
   imageUrl:              null,
   sourceUrl:             'https://cabofrio.rj.gov.br/yoga',
   phone:                 null,
   resolvedPublicVenueId: VENUE_ID,
+  venueResolutionStatus:  'matched',
+  resolvedVenueStagingId: S_VENUE_ID,
   promotedActivityId:    null,
   stagingUpdatedAt:      new Date('2026-07-01'),
 };
@@ -68,6 +72,8 @@ function makeMockRepos(): IPublishingRepositorySet {
     publishableActivity: {
       findUnpublished: vi.fn().mockResolvedValue([mockActivity]),
       findDirty:       vi.fn().mockResolvedValue([]),
+      // Método aditivo (Sprint 8.7) — não altera nenhum método existente.
+      describeFunnel:  vi.fn().mockResolvedValue({ total: 1, byVenueResolutionStatus: { matched: 1 }, alreadyPublished: 0 }),
     },
     publicVenue: {
       insert:         vi.fn().mockResolvedValue(VENUE_ID),
@@ -84,6 +90,8 @@ function makeMockRepos(): IPublishingRepositorySet {
       archive:        vi.fn().mockResolvedValue(undefined),
       linkToStaging:  vi.fn().mockResolvedValue(undefined),
       findByEngineId: vi.fn().mockResolvedValue(null),
+      // Método aditivo (Sprint 8.5) — não altera nenhum método existente.
+      findPublicationStateByEngineId: vi.fn().mockResolvedValue(null),
     },
     run: {
       start:             vi.fn().mockResolvedValue(RUN_ID),
@@ -141,6 +149,14 @@ describe('IPublishableActivityRepository (contrato)', () => {
     expect(result[0]!.title).toBe('Yoga no Forte');
     expect(result[0]!.resolvedPublicVenueId).toBe(VENUE_ID);
   });
+
+  it('describeFunnel retorna o funil completo (método aditivo, Sprint 8.7)', async () => {
+    const repos  = makeMockRepos();
+    const funnel = await repos.publishableActivity.describeFunnel('vivere-60-mais');
+    expect(funnel.total).toBe(1);
+    expect(funnel.byVenueResolutionStatus['matched']).toBe(1);
+    expect(funnel.alreadyPublished).toBe(0);
+  });
 });
 
 describe('IPublicVenueRepository (contrato)', () => {
@@ -186,6 +202,12 @@ describe('IPublicActivityRepository (contrato)', () => {
     const repos = makeMockRepos();
     const id    = await repos.publicActivity.insert(mockActivity, RUN_ID);
     expect(id).toBe(ACTIVITY_ID);
+  });
+
+  it('findPublicationStateByEngineId retorna null quando não publicado (método aditivo, Sprint 8.5)', async () => {
+    const repos  = makeMockRepos();
+    const result = await repos.publicActivity.findPublicationStateByEngineId(S_ACT_ID);
+    expect(result).toBeNull();
   });
 });
 
