@@ -33,6 +33,43 @@ function toRow(item: RawVenueItem, ingestionRunId: string): Record<string, unkno
 }
 
 /**
+ * Mapeamento inverso de toRow() — reconstrói um RawVenueItem a partir
+ * de uma row lida de staging.raw_venue_items, junto com o
+ * PersistedRawVenueItem (id + source_item_id) que já existe nessa
+ * mesma row. Usado só por findByRegionLabel — insertBatch nunca lê,
+ * só escreve.
+ */
+function fromRow(row: Record<string, unknown>): { item: RawVenueItem; persisted: PersistedRawVenueItem } {
+  const item: RawVenueItem = {
+    source_key:             row.source_key as string,
+    source_item_id:         row.source_item_id as string,
+    collected_at:           row.collected_at as string,
+    name:                   row.name as string,
+    address:                row.address as string | null,
+    lat:                    row.lat as number,
+    lng:                    row.lng as number,
+    phone:                  row.phone as string | null,
+    website:                row.website as string | null,
+    opening_hours_raw:      row.opening_hours_raw as string[] | null,
+    image_url:              row.image_url as string | null,
+    source_category_hint:   row.source_category_hint as string,
+    source_query_text:      row.source_query_text as string,
+    source_query_kind:      row.source_query_kind as RawVenueItem['source_query_kind'],
+    source_region_label:    (row.source_region_label as string | null) ?? undefined,
+    google_types:           row.google_types as string[],
+    google_business_status: row.google_business_status as RawVenueItem['google_business_status'],
+    raw_payload:            row.raw_payload as Record<string, unknown>,
+  };
+
+  const persisted: PersistedRawVenueItem = {
+    id: row.id as string,
+    source_item_id: row.source_item_id as string,
+  };
+
+  return { item, persisted };
+}
+
+/**
  * Persiste RawVenueItem na Camada A (staging.raw_venue_items).
  *
  * APPEND-ONLY: nunca usa UPDATE. A idempotência é garantida pela
@@ -85,5 +122,47 @@ export class RawVenueItemRepository {
     );
 
     return persisted;
+  }
+
+  /**
+   * Lê itens já persistidos na Camada A por source_key + região —
+   * NUNCA por product_key, que não existe nesta tabela. Usado pelo
+   * reprocessamento (IngestionOrchestrator.reprocessVenuesFromRaw)
+   * para reaproveitar dados já coletados e pagos, sem chamar a fonte
+   * externa outra vez.
+   *
+   * Devolve id + item reconstruído na MESMA query — nunca passa por
+   * insertBatch, cujo upsert com ignoreDuplicates:true devolveria
+   * lista vazia para linhas já existentes (ON CONFLICT DO NOTHING não
+   * retorna as linhas em conflito).
+   */
+  async findByRegionLabel(
+    sourceKey: string,
+    regionLabel: string,
+  ): Promise<{ item: RawVenueItem; persisted: PersistedRawVenueItem }[]> {
+    const { data, error } = await this.db
+      .schema('staging')
+      .from('raw_venue_items')
+      .select(
+        'id, source_key, source_item_id, collected_at, name, address, lat, lng, phone, website, ' +
+          'opening_hours_raw, image_url, source_category_hint, source_query_text, source_query_kind, ' +
+          'source_region_label, google_types, google_business_status, raw_payload',
+      )
+      .eq('source_key', sourceKey)
+      .eq('source_region_label', regionLabel);
+
+    if (error) {
+      logger.error({ sourceKey, regionLabel, error: error.message }, 'erro ao ler raw_venue_items');
+      throw new Error(`RawVenueItemRepository.findByRegionLabel: ${error.message}`);
+    }
+
+    const result = (data ?? []).map((row) => fromRow(row as unknown as Record<string, unknown>));
+
+    logger.info(
+      { sourceKey, regionLabel, found: result.length },
+      'raw_venue_items lidos para reprocessamento',
+    );
+
+    return result;
   }
 }

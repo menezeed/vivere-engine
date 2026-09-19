@@ -1,0 +1,1002 @@
+[
+  {
+    "place_id": "ChIJHfGeYPhQzpQRRw2Al5CvJVY",
+    "name": "Teatro Paulo Eiró",
+    "lat": -23.6465577,
+    "lng": -46.701950599999996,
+    "category": "teatro",
+    "google_types": [
+      "performing_arts_theater",
+      "event_venue",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "accepted",
+    "reasoning": "Aceito por: accept_type_theater (tipo: \"performing_arts_theater\")",
+    "distance_meters": 765,
+    "geographic_bucket": "inside_radius"
+  },
+  {
+    "place_id": "ChIJSfFK-P1QzpQR_A6KtoubfWo",
+    "name": "Teatro Leopoldo Fróes - Centro Cultural de Santo Amaro",
+    "lat": -23.645110400000004,
+    "lng": -46.7087315,
+    "category": "teatro",
+    "google_types": [
+      "cultural_center",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "accepted",
+    "reasoning": "Aceito por: accept_type_cultural_center (tipo: \"cultural_center\")",
+    "distance_meters": 756,
+    "geographic_bucket": "inside_radius"
+  },
+  {
+    "place_id": "ChIJseStzSxRzpQRXIf6UgQxY3w",
+    "name": "Centro Cultural Santo Amaro",
+    "lat": -23.6454544,
+    "lng": -46.708692,
+    "category": "centro_cultural",
+    "google_types": [
+      "cultural_center",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "accepted",
+    "reasoning": "Aceito por: accept_type_cultural_center (tipo: \"cultural_center\")",
+    "distance_meters": 718,
+    "geographic_bucket": "inside_radius"
+  },
+  {
+    "place_id": "ChIJ35G-Ov5QzpQR2EroMQZJv4A",
+    "name": "Casa de Cultura Municipal Santo Amaro - Manoel Mendonça",
+    "lat": -23.646646699999998,
+    "lng": -46.7084291,
+    "category": "centro_cultural",
+    "google_types": [
+      "cultural_center",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "accepted",
+    "reasoning": "Aceito por: accept_type_cultural_center (tipo: \"cultural_center\")",
+    "distance_meters": 583,
+    "geographic_bucket": "inside_radius"
+  },
+  {
+    "place_id": "ChIJa2jqFVVQzpQRR1VkKQNvw9A",
+    "name": "Casa de Cultura Municipal Santo Amaro - Júlio Guerra",
+    "lat": -23.650993,
+    "lng": -46.7077233,
+    "category": "centro_cultural",
+    "google_types": [
+      "cultural_center",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "accepted",
+    "reasoning": "Aceito por: accept_type_cultural_center (tipo: \"cultural_center\")",
+    "distance_meters": 114,
+    "geographic_bucket": "inside_radius"
+  },
+  {
+    "place_id": "ChIJ6XBkFR5RzpQRxf9SNL-tpn8",
+    "name": "Museu de Santo Amaro - CETRASA",
+    "lat": -23.635383899999997,
+    "lng": -46.712433,
+    "category": "museu",
+    "google_types": [
+      "museum",
+      "tourist_attraction",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "accepted",
+    "reasoning": "Aceito por: accept_type_museum (tipo: \"museum\")",
+    "distance_meters": 1900,
+    "geographic_bucket": "inside_radius"
+  },
+  {
+    "place_id": "ChIJl5sdIKRRzpQRBa063jUO1to",
+    "name": "Parque Alto da Boa Vista",
+    "lat": -23.647429000000002,
+    "lng": -46.690069,
+    "category": "parque",
+    "google_types": [
+      "city_park",
+      "park",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "accepted",
+    "reasoning": "Aceito por: accept_type_park (tipo: \"park\")",
+    "distance_meters": 1782,
+    "geographic_bucket": "inside_radius"
+  },
+  {
+    "place_id": "ChIJ_74lX-NQzpQRvy1smN0iAbw",
+    "name": "Parque Severo Gomes",
+    "lat": -23.638265800000003,
+    "lng": -46.7044515,
+    "category": "parque",
+    "google_types": [
+      "park",
+      "tourist_attraction",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "accepted",
+    "reasoning": "Aceito por: accept_type_park (tipo: \"park\")",
+    "distance_meters": 1516,
+    "geographic_bucket": "inside_radius"
+  },
+  {
+    "place_id": "ChIJUz29exBRzpQReBo_4xAZYdM",
+    "name": "PopHaus - Santo Amaro",
+    "lat": -23.642244599999998,
+    "lng": -46.7193733,
+    "category": "parque",
+    "google_types": [
+      "amusement_park",
+      "amusement_center",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "needs_review",
+    "reasoning": "Nenhuma regra heurística reconheceu este local — enviado para revisão por padrão de segurança.",
+    "distance_meters": 1647,
+    "geographic_bucket": "inside_radius"
+  },
+  {
+    "place_id": "ChIJ65egMZRRzpQR4fanDyj9Dl4",
+    "name": "Arcade Haus - Santo Amaro",
+    "lat": -23.6422644,
+    "lng": -46.7192517,
+    "category": "parque",
+    "google_types": [
+      "amusement_park",
+      "amusement_center",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "needs_review",
+    "reasoning": "Nenhuma regra heurística reconheceu este local — enviado para revisão por padrão de segurança.",
+    "distance_meters": 1637,
+    "geographic_bucket": "inside_radius"
+  },
+  {
+    "place_id": "ChIJj7zBLwBRzpQRlCoJXFLS-bE",
+    "name": "Jucabowling - TRAMPOLIM",
+    "lat": -23.6546329,
+    "lng": -46.7012873,
+    "category": "parque",
+    "google_types": [
+      "amusement_park",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "needs_review",
+    "reasoning": "Nenhuma regra heurística reconheceu este local — enviado para revisão por padrão de segurança.",
+    "distance_meters": 660,
+    "geographic_bucket": "inside_radius"
+  },
+  {
+    "place_id": "ChIJtU6eUq9RzpQRhr4aey8hQds",
+    "name": "Parque Rivera",
+    "lat": -23.643514,
+    "lng": -46.7234681,
+    "category": "parque",
+    "google_types": [
+      "event_venue",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "needs_review",
+    "reasoning": "Nenhuma regra heurística reconheceu este local — enviado para revisão por padrão de segurança.",
+    "distance_meters": 1915,
+    "geographic_bucket": "inside_radius"
+  },
+  {
+    "place_id": "ChIJK6VrSwBRzpQRWDp4D58im0c",
+    "name": "Pop indoor",
+    "lat": -23.653663299999998,
+    "lng": -46.7066927,
+    "category": "parque",
+    "google_types": [
+      "park",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "accepted",
+    "reasoning": "Aceito por: accept_type_park (tipo: \"park\")",
+    "distance_meters": 219,
+    "geographic_bucket": "inside_radius"
+  },
+  {
+    "place_id": "ChIJk1e2BERRzpQRz3VSp2ETOjo",
+    "name": "Action Park",
+    "lat": -23.6394181,
+    "lng": -46.7180293,
+    "category": "parque",
+    "google_types": [
+      "amusement_park",
+      "adventure_sports_center",
+      "event_venue",
+      "sports_complex",
+      "sports_activity_location",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "likely_fitness_generic",
+    "reasoning": "Provável academia/estúdio genérico, sem indicação clara de atender o público 60+ por: fitness_generic_type (tipo: \"sports_activity_location\")",
+    "distance_meters": 1774,
+    "geographic_bucket": "inside_radius"
+  },
+  {
+    "place_id": "ChIJ-cnCHJpRzpQR3NVjcrZZSXs",
+    "name": "Parque Adolfo Pinheiro",
+    "lat": -23.646129400000003,
+    "lng": -46.701497599999996,
+    "category": "parque",
+    "google_types": [
+      "park",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "accepted",
+    "reasoning": "Aceito por: accept_type_park (tipo: \"park\")",
+    "distance_meters": 831,
+    "geographic_bucket": "inside_radius"
+  },
+  {
+    "place_id": "ChIJpS-c7FVQzpQR7HsZ52rk0JM",
+    "name": "Praça Dona Benta",
+    "lat": -23.650474199999998,
+    "lng": -46.7059532,
+    "category": "parque",
+    "google_types": [
+      "park",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "needs_review",
+    "reasoning": "Caso intermediário, requer revisão por: review_keyword_praca (nome: \"praca \")",
+    "distance_meters": 170,
+    "geographic_bucket": "inside_radius"
+  },
+  {
+    "place_id": "ChIJMZCQLLNRzpQRk4nfE7uotq8",
+    "name": "Parque Burle Marx",
+    "lat": -23.6333022,
+    "lng": -46.7221829,
+    "category": "parque",
+    "google_types": [
+      "city_park",
+      "park",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "accepted",
+    "reasoning": "Aceito por: accept_type_park (tipo: \"park\")",
+    "distance_meters": 2570,
+    "geographic_bucket": "buffer_zone"
+  },
+  {
+    "place_id": "ChIJ0WG1S_tQzpQRw1nlipXrkZc",
+    "name": "Tanque de Areia",
+    "lat": -23.6389709,
+    "lng": -46.7032932,
+    "category": "parque",
+    "google_types": [
+      "city_park",
+      "park",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "accepted",
+    "reasoning": "Aceito por: accept_type_park (tipo: \"park\")",
+    "distance_meters": 1464,
+    "geographic_bucket": "inside_radius"
+  },
+  {
+    "place_id": "ChIJGyuEkdFRzpQRy0PJyN1mnF8",
+    "name": "Raiz São Paulo Parque Resort",
+    "lat": -23.6564156,
+    "lng": -46.703156500000006,
+    "category": "parque",
+    "google_types": [
+      "apartment_complex",
+      "service",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "needs_review",
+    "reasoning": "Nenhuma regra heurística reconheceu este local — enviado para revisão por padrão de segurança.",
+    "distance_meters": 649,
+    "geographic_bucket": "inside_radius"
+  },
+  {
+    "place_id": "ChIJ-7NQpRhRzpQRWJ4fkvDDfuQ",
+    "name": "Praça Dina / Cantora Ângela Maria",
+    "lat": -23.6334932,
+    "lng": -46.7151345,
+    "category": "parque",
+    "google_types": [
+      "city_park",
+      "park",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "needs_review",
+    "reasoning": "Caso intermediário, requer revisão por: review_keyword_praca (nome: \"praca \")",
+    "distance_meters": 2191,
+    "geographic_bucket": "inside_radius"
+  },
+  {
+    "place_id": "ChIJF_SjpKtRzpQRRfN2aGXZRcI",
+    "name": "Centro Esportivo Santo Amaro - C.E.E. Joerg Bruder",
+    "lat": -23.6548128,
+    "lng": -46.710280999999995,
+    "category": "parque",
+    "google_types": [
+      "sports_activity_location",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "likely_fitness_generic",
+    "reasoning": "Provável academia/estúdio genérico, sem indicação clara de atender o público 60+ por: fitness_generic_type (tipo: \"sports_activity_location\")",
+    "distance_meters": 485,
+    "geographic_bucket": "inside_radius"
+  },
+  {
+    "place_id": "ChIJZWIxQqpRzpQROkuIzHuDdQ0",
+    "name": "SESC Santo Amaro",
+    "lat": -23.6529886,
+    "lng": -46.712739199999994,
+    "category": "parque",
+    "google_types": [
+      "association_or_organization",
+      "service",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "needs_review",
+    "reasoning": "Nenhuma regra heurística reconheceu este local — enviado para revisão por padrão de segurança.",
+    "distance_meters": 609,
+    "geographic_bucket": "inside_radius"
+  },
+  {
+    "place_id": "ChIJgZYdwuBRzpQRzgjT88eN8Lk",
+    "name": "Davi Capistrano Costa Square",
+    "lat": -23.648996999999998,
+    "lng": -46.6952797,
+    "category": "parque",
+    "google_types": [
+      "park",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "accepted",
+    "reasoning": "Aceito por: accept_type_park (tipo: \"park\")",
+    "distance_meters": 1224,
+    "geographic_bucket": "inside_radius"
+  },
+  {
+    "place_id": "ChIJde8qB_lRzpQRsjVg4LqPU2Y",
+    "name": "Cachorródromo Público",
+    "lat": -23.6458728,
+    "lng": -46.701491600000004,
+    "category": "parque",
+    "google_types": [
+      "park",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "accepted",
+    "reasoning": "Aceito por: accept_type_park (tipo: \"park\")",
+    "distance_meters": 853,
+    "geographic_bucket": "inside_radius"
+  },
+  {
+    "place_id": "ChIJRfp9QldQzpQRCKrbyBjunN0",
+    "name": "Santo Mercado",
+    "lat": -23.6501998,
+    "lng": -46.6998928,
+    "category": "parque",
+    "google_types": [
+      "market",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "needs_review",
+    "reasoning": "Nenhuma regra heurística reconheceu este local — enviado para revisão por padrão de segurança.",
+    "distance_meters": 736,
+    "geographic_bucket": "inside_radius"
+  },
+  {
+    "place_id": "ChIJH-ljqnhRzpQRwE0ojVqwcHc",
+    "name": "Game Station - Boa Vista Shopping",
+    "lat": -23.654750000000003,
+    "lng": -46.7008765,
+    "category": "parque",
+    "google_types": [
+      "playground",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "needs_review",
+    "reasoning": "Nenhuma regra heurística reconheceu este local — enviado para revisão por padrão de segurança.",
+    "distance_meters": 703,
+    "geographic_bucket": "inside_radius"
+  },
+  {
+    "place_id": "ChIJ8XRFA_5QzpQRrDy7Gg5Yz4Q",
+    "name": "Biblioteca Pref. Prestes Maia",
+    "lat": -23.645449,
+    "lng": -46.70863500000001,
+    "category": "biblioteca",
+    "google_types": [
+      "library",
+      "service",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "accepted",
+    "reasoning": "Aceito por: accept_type_library (tipo: \"library\")",
+    "distance_meters": 718,
+    "geographic_bucket": "inside_radius"
+  },
+  {
+    "place_id": "ChIJP2C4QlVQzpQRLSgen52QV-E",
+    "name": "Biblioteca Municipal Belmonte",
+    "lat": -23.650691,
+    "lng": -46.708486,
+    "category": "biblioteca",
+    "google_types": [
+      "library",
+      "service",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "accepted",
+    "reasoning": "Aceito por: accept_type_library (tipo: \"library\")",
+    "distance_meters": 195,
+    "geographic_bucket": "inside_radius"
+  },
+  {
+    "place_id": "ChIJrXQ6UwBRzpQR9tboMutj1Gc",
+    "name": "Biblioteca Dr. Milton Soldani Afonso",
+    "lat": -23.6509926,
+    "lng": -46.702084299999996,
+    "category": "biblioteca",
+    "google_types": [
+      "library",
+      "service",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "accepted",
+    "reasoning": "Aceito por: accept_type_library (tipo: \"library\")",
+    "distance_meters": 500,
+    "geographic_bucket": "inside_radius"
+  },
+  {
+    "place_id": "ChIJvQEbTBBRzpQRInGUiwHUy9U",
+    "name": "Ítalo - Biblioteca Dante Alighieri",
+    "lat": -23.6433328,
+    "lng": -46.7209845,
+    "category": "biblioteca",
+    "google_types": [
+      "library",
+      "service",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "accepted",
+    "reasoning": "Aceito por: accept_type_library (tipo: \"library\")",
+    "distance_meters": 1708,
+    "geographic_bucket": "inside_radius"
+  },
+  {
+    "place_id": "ChIJ5dpHDzdQzpQRBpH6F3Yn-5U",
+    "name": "Biblioteca - Centro Universitário SENAC",
+    "lat": -23.6693782,
+    "lng": -46.701256099999995,
+    "category": "biblioteca",
+    "google_types": [
+      "library",
+      "service",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "accepted",
+    "reasoning": "Aceito por: accept_type_library (tipo: \"library\")",
+    "distance_meters": 2048,
+    "geographic_bucket": "inside_radius"
+  },
+  {
+    "place_id": "ChIJHVyeUelQzpQRS1tTeCW5eCM",
+    "name": "Biblioteca Chacara Santo Antônio - UNIP",
+    "lat": -23.6305991,
+    "lng": -46.694607,
+    "category": "biblioteca",
+    "google_types": [
+      "library",
+      "service",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "accepted",
+    "reasoning": "Aceito por: accept_type_library (tipo: \"library\")",
+    "distance_meters": 2662,
+    "geographic_bucket": "buffer_zone"
+  },
+  {
+    "place_id": "ChIJCebLyP9QzpQRY_U0fVaanXQ",
+    "name": "Livraria Racional Santo Amaro",
+    "lat": -23.6486624,
+    "lng": -46.7080335,
+    "category": "biblioteca",
+    "google_types": [
+      "book_store",
+      "store",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "needs_review",
+    "reasoning": "Nenhuma regra heurística reconheceu este local — enviado para revisão por padrão de segurança.",
+    "distance_meters": 357,
+    "geographic_bucket": "inside_radius"
+  },
+  {
+    "place_id": "ChIJ-RBhwF1RzpQR5NixmzxPxOY",
+    "name": "ROSENO ADVOGADOS ASSOCIADOS",
+    "lat": -23.6444404,
+    "lng": -46.7005036,
+    "category": "biblioteca",
+    "google_types": [
+      "library",
+      "service",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "rejected",
+    "reasoning": "Rejeitado por: reject_keyword_legal_office (nome: \"advogados\")",
+    "distance_meters": 1040,
+    "geographic_bucket": "inside_radius"
+  },
+  {
+    "place_id": "ChIJK9i3FVVQzpQRPbu4KKl5QEM",
+    "name": "Subprefeitura Santo Amaro",
+    "lat": -23.651469,
+    "lng": -46.7070173,
+    "category": "biblioteca",
+    "google_types": [
+      "city_hall",
+      "local_government_office",
+      "government_office",
+      "service",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "rejected",
+    "reasoning": "Rejeitado por: reject_type_government (tipo: \"local_government_office\")",
+    "distance_meters": 28,
+    "geographic_bucket": "inside_radius"
+  },
+  {
+    "place_id": "ChIJLQIbTBBRzpQRJo35Dwz_rkI",
+    "name": "UNI ITALO",
+    "lat": -23.6446081,
+    "lng": -46.7201291,
+    "category": "biblioteca",
+    "google_types": [
+      "university",
+      "educational_institution",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "rejected",
+    "reasoning": "Rejeitado por: reject_type_education_admin (tipo: \"university\")",
+    "distance_meters": 1559,
+    "geographic_bucket": "inside_radius"
+  },
+  {
+    "place_id": "ChIJNfgqB1lRzpQRa_ezURcYXPQ",
+    "name": "Biblioteca Rudolf Lanz",
+    "lat": -23.6390225,
+    "lng": -46.6845299,
+    "category": "biblioteca",
+    "google_types": [
+      "library",
+      "service",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "accepted",
+    "reasoning": "Aceito por: accept_type_library (tipo: \"library\")",
+    "distance_meters": 2683,
+    "geographic_bucket": "buffer_zone"
+  },
+  {
+    "place_id": "ChIJabimqvlQzpQR7O6Re7eS0hc",
+    "name": "LET'S FIT ACADEMIA",
+    "lat": -23.640161199999998,
+    "lng": -46.6989282,
+    "category": "hidroginastica",
+    "google_types": [
+      "gym",
+      "sports_activity_location",
+      "health",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "likely_fitness_generic",
+    "reasoning": "Provável academia/estúdio genérico, sem indicação clara de atender o público 60+ por: fitness_generic_type (tipo: \"gym\")",
+    "distance_meters": 1521,
+    "geographic_bucket": "inside_radius"
+  },
+  {
+    "place_id": "ChIJIenOyUxQzpQRWGipgQG9uZU",
+    "name": "ACM Santo Amaro",
+    "lat": -23.662993399999998,
+    "lng": -46.7089182,
+    "category": "hidroginastica",
+    "google_types": [
+      "association_or_organization",
+      "gym",
+      "sports_activity_location",
+      "non_profit_organization",
+      "health",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "likely_fitness_generic",
+    "reasoning": "Provável academia/estúdio genérico, sem indicação clara de atender o público 60+ por: fitness_generic_type (tipo: \"gym\")",
+    "distance_meters": 1271,
+    "geographic_bucket": "inside_radius"
+  },
+  {
+    "place_id": "ChIJVVXo_1lQzpQRuuLN0dews2c",
+    "name": "RPM Natação",
+    "lat": -23.6516421,
+    "lng": -46.6994823,
+    "category": "hidroginastica",
+    "google_types": [
+      "educational_institution",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "accepted",
+    "reasoning": "Aceito por: accept_keyword_activity_name_match (nome: \"natacao\")",
+    "distance_meters": 759,
+    "geographic_bucket": "inside_radius"
+  },
+  {
+    "place_id": "ChIJ1UiWUzZQzpQR6SH5K875gmM",
+    "name": "Projeto Academia",
+    "lat": -23.6705388,
+    "lng": -46.698749299999996,
+    "category": "hidroginastica",
+    "google_types": [
+      "gym",
+      "sports_activity_location",
+      "health",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "likely_fitness_generic",
+    "reasoning": "Provável academia/estúdio genérico, sem indicação clara de atender o público 60+ por: fitness_generic_type (tipo: \"gym\")",
+    "distance_meters": 2253,
+    "geographic_bucket": "inside_radius"
+  },
+  {
+    "place_id": "ChIJAcfnTu9QzpQRf5k5ar46Cs8",
+    "name": "Showa • Natação",
+    "lat": -23.632774299999998,
+    "lng": -46.6985435,
+    "category": "hidroginastica",
+    "google_types": [
+      "fitness_center",
+      "sports_school",
+      "sports_complex",
+      "gym",
+      "sports_activity_location",
+      "health",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "accepted",
+    "reasoning": "Aceito por: accept_keyword_activity_name_match (nome: \"natacao\")",
+    "distance_meters": 2272,
+    "geographic_bucket": "inside_radius"
+  },
+  {
+    "place_id": "ChIJ8U_mokVQzpQRreJ_ox_VWXc",
+    "name": "Cristal Academia Sabará",
+    "lat": -23.6589057,
+    "lng": -46.6980514,
+    "category": "hidroginastica",
+    "google_types": [
+      "gym",
+      "sports_activity_location",
+      "health",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "likely_fitness_generic",
+    "reasoning": "Provável academia/estúdio genérico, sem indicação clara de atender o público 60+ por: fitness_generic_type (tipo: \"gym\")",
+    "distance_meters": 1207,
+    "geographic_bucket": "inside_radius"
+  },
+  {
+    "place_id": "ChIJIz_A9qlRzpQRoEzxy83vd0U",
+    "name": "Academia BIO RITMO - Santander Radar",
+    "lat": -23.6528276,
+    "lng": -46.7143459,
+    "category": "hidroginastica",
+    "google_types": [
+      "gym",
+      "sports_activity_location",
+      "health",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "rejected",
+    "reasoning": "Rejeitado por: reject_keyword_bank_branch (nome: \"santander\")",
+    "distance_meters": 765,
+    "geographic_bucket": "inside_radius"
+  },
+  {
+    "place_id": "ChIJ5RUN-qNRzpQR_ZHuxN0SHI0",
+    "name": "Maior Barato Esportes - Galeria Largo 13",
+    "lat": -23.652856,
+    "lng": -46.705865200000005,
+    "category": "hidroginastica",
+    "google_types": [
+      "sporting_goods_store",
+      "store",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "needs_review",
+    "reasoning": "Nenhuma regra heurística reconheceu este local — enviado para revisão por padrão de segurança.",
+    "distance_meters": 167,
+    "geographic_bucket": "inside_radius"
+  },
+  {
+    "place_id": "ChIJyZc3jRD3zpQRZkFN_WQQuCk",
+    "name": "Polly-Sport Center",
+    "lat": -23.6564253,
+    "lng": -46.679986,
+    "category": "hidroginastica",
+    "google_types": [
+      "gym",
+      "sports_activity_location",
+      "health",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "likely_fitness_generic",
+    "reasoning": "Provável academia/estúdio genérico, sem indicação clara de atender o público 60+ por: fitness_generic_type (tipo: \"gym\")",
+    "distance_meters": 2794,
+    "geographic_bucket": "buffer_zone"
+  },
+  {
+    "place_id": "ChIJSXL1FU9RzpQRwCmNe0kyaQE",
+    "name": "Mori Natação",
+    "lat": -23.629400399999998,
+    "lng": -46.734394900000005,
+    "category": "hidroginastica",
+    "google_types": [
+      "sports_school",
+      "gym",
+      "sports_activity_location",
+      "health",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "accepted",
+    "reasoning": "Aceito por: accept_keyword_activity_name_match (nome: \"natacao\")",
+    "distance_meters": 3739,
+    "geographic_bucket": "outside_region"
+  },
+  {
+    "place_id": "ChIJ9Z4zCaxTzpQRzjIWpOpDADw",
+    "name": "Let’s Fit Morumbi Sul",
+    "lat": -23.6464452,
+    "lng": -46.752439800000005,
+    "category": "hidroginastica",
+    "google_types": [
+      "gym",
+      "sports_activity_location",
+      "health",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "likely_fitness_generic",
+    "reasoning": "Provável academia/estúdio genérico, sem indicação clara de atender o público 60+ por: fitness_generic_type (tipo: \"gym\")",
+    "distance_meters": 4672,
+    "geographic_bucket": "outside_region"
+  },
+  {
+    "place_id": "ChIJLfx1BQBRzpQRKXdTtdaaxwc",
+    "name": "Clube de natação",
+    "lat": -23.6549479,
+    "lng": -46.7094513,
+    "category": "hidroginastica",
+    "google_types": [
+      "sports_club",
+      "association_or_organization",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "accepted",
+    "reasoning": "Aceito por: accept_keyword_activity_name_match (nome: \"natacao\")",
+    "distance_meters": 442,
+    "geographic_bucket": "inside_radius"
+  },
+  {
+    "place_id": "ChIJ1QTrvFJQzpQRIStgvYWL4sI",
+    "name": "CCA ACM - SANTO AMARO",
+    "lat": -23.6588143,
+    "lng": -46.7081307,
+    "category": "hidroginastica",
+    "google_types": [
+      "educational_institution",
+      "association_or_organization",
+      "service",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "needs_review",
+    "reasoning": "Nenhuma regra heurística reconheceu este local — enviado para revisão por padrão de segurança.",
+    "distance_meters": 799,
+    "geographic_bucket": "inside_radius"
+  },
+  {
+    "place_id": "ChIJK0bzj5dQzpQRCrPvN_Uqr4Q",
+    "name": "Academia Flipper",
+    "lat": -23.6234951,
+    "lng": -46.681306299999996,
+    "category": "hidroginastica",
+    "google_types": [
+      "fitness_center",
+      "sports_school",
+      "sports_complex",
+      "gym",
+      "sports_activity_location",
+      "health",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "likely_fitness_generic",
+    "reasoning": "Provável academia/estúdio genérico, sem indicação clara de atender o público 60+ por: fitness_generic_type (tipo: \"gym\")",
+    "distance_meters": 4081,
+    "geographic_bucket": "outside_region"
+  },
+  {
+    "place_id": "ChIJx1fhZ1JRzpQRcp4u-EaKK4k",
+    "name": "Território da Dança - Lounge & Café SP",
+    "lat": -23.6394016,
+    "lng": -46.6963011,
+    "category": "danca_idosos",
+    "google_types": [
+      "sports_school",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "accepted",
+    "reasoning": "Aceito por: accept_keyword_activity_name_match (nome: \"danca\")",
+    "distance_meters": 1745,
+    "geographic_bucket": "inside_radius"
+  },
+  {
+    "place_id": "ChIJYQcwUv9QzpQRG6JroBA2xy8",
+    "name": "Escola de Dança Andreia Bothõmé",
+    "lat": -23.6482404,
+    "lng": -46.704600799999994,
+    "category": "danca_idosos",
+    "google_types": [
+      "sports_school",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "accepted",
+    "reasoning": "Aceito por: accept_keyword_activity_name_match (nome: \"danca\")",
+    "distance_meters": 453,
+    "geographic_bucket": "inside_radius"
+  },
+  {
+    "place_id": "ChIJG6khYv5RzpQRcdN8Z0_D_2A",
+    "name": "Instituto de Ensino Musicalidade na Dança",
+    "lat": -23.6530286,
+    "lng": -46.710535799999995,
+    "category": "danca_idosos",
+    "google_types": [
+      "sports_school",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "accepted",
+    "reasoning": "Aceito por: accept_keyword_activity_name_match (nome: \"danca\")",
+    "distance_meters": 395,
+    "geographic_bucket": "inside_radius"
+  },
+  {
+    "place_id": "ChIJrU4um_dQzpQRfLSO7u1ibQk",
+    "name": "STUDIO DE DANÇA HELOISA CARMO",
+    "lat": -23.6448437,
+    "lng": -46.6990873,
+    "category": "danca_idosos",
+    "google_types": [
+      "gym",
+      "sports_complex",
+      "sports_school",
+      "sports_activity_location",
+      "health",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "accepted",
+    "reasoning": "Aceito por: accept_keyword_activity_name_match (nome: \"danca\")",
+    "distance_meters": 1105,
+    "geographic_bucket": "inside_radius"
+  },
+  {
+    "place_id": "ChIJmYSawn9QzpQRqUPIslwW0Ds",
+    "name": "Bora Dançá? Centro de Danças",
+    "lat": -23.6380767,
+    "lng": -46.671693,
+    "category": "danca_idosos",
+    "google_types": [
+      "dance_hall",
+      "event_venue",
+      "association_or_organization",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "needs_review",
+    "reasoning": "Nenhuma regra heurística reconheceu este local — enviado para revisão por padrão de segurança.",
+    "distance_meters": 3896,
+    "geographic_bucket": "outside_region"
+  },
+  {
+    "place_id": "ChIJ7Xjk5OZQzpQRYhq1iRxIoQ4",
+    "name": "Dafne Macruz Dança e Movimento",
+    "lat": -23.6316575,
+    "lng": -46.7025395,
+    "category": "danca_idosos",
+    "google_types": [
+      "gym",
+      "sports_complex",
+      "sports_school",
+      "sports_activity_location",
+      "health",
+      "point_of_interest",
+      "service",
+      "establishment"
+    ],
+    "decision": "accepted",
+    "reasoning": "Aceito por: accept_keyword_activity_name_match (nome: \"danca\")",
+    "distance_meters": 2274,
+    "geographic_bucket": "inside_radius"
+  },
+  {
+    "place_id": "ChIJvURJvMNRzpQRIcuIYW9neYQ",
+    "name": "Dança Materna Chácara Santo Antonio",
+    "lat": -23.6316375,
+    "lng": -46.70252620000001,
+    "category": "danca_idosos",
+    "google_types": [
+      "sports_school",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "accepted",
+    "reasoning": "Aceito por: accept_keyword_activity_name_match (nome: \"danca\")",
+    "distance_meters": 2277,
+    "geographic_bucket": "inside_radius"
+  }
+]

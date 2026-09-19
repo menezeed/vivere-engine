@@ -35,7 +35,11 @@ describe('mapToRawActivityItems — bloco SERVIÇO simples (caso real "Yoga no F
     const [item] = mapToRawActivityItems(post).items;
     expect(item.title).toBe('Yoga no Forte – Edição de junho');
     expect(item.occurrences).toEqual([{ date: '2026-06-28', time: '07:00', end_date: null, end_time: '08:00' }]);
-    expect(item.venue_name).toBe('Canto do Forte, na Praia do Forte');
+    expect(item.venue_mention).toEqual({
+      raw_text: 'Canto do Forte, na Praia do Forte',
+      raw_address_text: null,
+      confidence_hint: 'explicit_name',
+    });
   });
 
   it('source_item_id combina post.id com índice de sub-evento', () => {
@@ -79,11 +83,19 @@ describe('mapToRawActivityItems — bloco SERVIÇO com múltiplos eventos (caso 
   it('cada item preserva seu próprio título, venue e horário, sem misturar entre sub-eventos', () => {
     const [first, second] = mapToRawActivityItems(post).items;
     expect(first.title).toBe('Arraiá da Praça da Bandeira');
-    expect(first.venue_name).toBe('Passagem');
+    expect(first.venue_mention).toEqual({
+      raw_text: 'Passagem',
+      raw_address_text: null,
+      confidence_hint: 'explicit_name',
+    });
     expect(first.occurrences[0].time).toBe('16:00');
 
     expect(second.title).toBe('Arraiá do Peró');
-    expect(second.venue_name).toBe('Praça do Moinho');
+    expect(second.venue_mention).toEqual({
+      raw_text: 'Praça do Moinho',
+      raw_address_text: null,
+      confidence_hint: 'explicit_name',
+    });
     expect(second.occurrences[0].time).toBe('17:00');
   });
 });

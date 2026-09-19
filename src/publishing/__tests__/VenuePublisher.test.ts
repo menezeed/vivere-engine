@@ -44,6 +44,7 @@ function makeVenue(overrides: Partial<PublishableVenue> = {}): PublishableVenue 
     imageUrl:         null,
     promotedVenueId:  null,
     stagingUpdatedAt: new Date('2026-07-01T00:00:00.000Z'),
+    city:             'Cabo Frio',
     ...overrides,
   };
 }
@@ -64,12 +65,12 @@ function makeRepos(overrides: {
   };
 
   const publicVenue: IPublicVenueRepository = {
-    insert:                         overrides.insertImpl       ?? vi.fn().mockResolvedValue('venue-new-001' as PublicVenueId),
-    update:                         overrides.updateImpl       ?? vi.fn().mockResolvedValue(undefined),
-    archive:                        overrides.archiveImpl      ?? vi.fn().mockResolvedValue(undefined),
+    insert:                         (overrides.insertImpl       ?? vi.fn().mockResolvedValue('venue-new-001' as PublicVenueId)) as IPublicVenueRepository['insert'],
+    update:                         (overrides.updateImpl       ?? vi.fn().mockResolvedValue(undefined)) as IPublicVenueRepository['update'],
+    archive:                        (overrides.archiveImpl      ?? vi.fn().mockResolvedValue(undefined)) as IPublicVenueRepository['archive'],
     linkToStaging:                  vi.fn().mockResolvedValue(undefined),
     findByEngineId:                 vi.fn().mockResolvedValue(null),
-    findPublicationStateByEngineId: overrides.publicationState ?? vi.fn().mockResolvedValue(null),
+    findPublicationStateByEngineId: (overrides.publicationState ?? vi.fn().mockResolvedValue(null)) as IPublicVenueRepository['findPublicationStateByEngineId'],
   };
 
   const eventRepo: IPublicationEventRepository = {
@@ -279,7 +280,7 @@ describe('VenuePublisher — métricas', () => {
     const venueOk   = makeVenue({ stagingId: 'sv-ok' as StagingVenueId });
     const venueFail = makeVenue({ stagingId: 'sv-fail' as StagingVenueId });
 
-    const insertImpl = vi.fn()
+    const insertImpl = vi.fn<IPublicVenueRepository['insert']>()
       .mockRejectedValueOnce(new Error('falha simulada de escrita'))
       .mockResolvedValueOnce('venue-ok' as PublicVenueId);
 
@@ -338,5 +339,123 @@ describe('VenuePublisher.adaptToPublishableVenue', () => {
     expect(adapted.stagingId).toBe(original.stagingId);
     expect(adapted.promotedVenueId).toBe('venue-x');
     expect(adapted.stagingUpdatedAt).toBe(original.stagingUpdatedAt);
+  });
+});
+
+// ── preview() — Sprint 8.7 ────────────────────────────────────────────────────
+
+describe('VenuePublisher.preview', () => {
+  it('nunca escreve: zero insert/update/archive/linkToStaging/eventos', async () => {
+    const newVenue = makeVenue({ stagingId: 'sv-new' as StagingVenueId });
+    const dirtyVenue = makeVenue({
+      stagingId:        'sv-dirty' as StagingVenueId,
+      promotedVenueId:  'venue-dirty' as PublicVenueId,
+      stagingUpdatedAt: new Date('2026-07-08T00:00:00.000Z'),
+    });
+    const archivedVenue = makeVenue({
+      stagingId:       'sv-archived' as StagingVenueId,
+      promotedVenueId: 'venue-archived' as PublicVenueId,
+    });
+
+    const publicationState = vi.fn().mockResolvedValue(makeState('venue-dirty' as PublicVenueId, new Date('2026-07-01T00:00:00.000Z')));
+    const { publishableVenue, publicVenue, eventRepo } = makeRepos({
+      findUnpublished: [newVenue],
+      findDirty:       [dirtyVenue],
+      findToArchive:   [archivedVenue],
+      publicationState,
+    });
+
+    const publisher = new VenuePublisher(publishableVenue, publicVenue, eventRepo, () => NOW);
+    await publisher.preview(PRODUCT_KEY);
+
+    expect(publicVenue.insert).not.toHaveBeenCalled();
+    expect(publicVenue.update).not.toHaveBeenCalled();
+    expect(publicVenue.archive).not.toHaveBeenCalled();
+    expect(publicVenue.linkToStaging).not.toHaveBeenCalled();
+    expect(eventRepo.record).not.toHaveBeenCalled();
+  });
+
+  it('classifica venue novo como insert, com operational calculado', async () => {
+    const venue = makeVenue({ name: 'Praia Nova' });
+    const { publishableVenue, publicVenue, eventRepo } = makeRepos({ findUnpublished: [venue] });
+
+    const publisher = new VenuePublisher(publishableVenue, publicVenue, eventRepo, () => NOW);
+    const decisions = await publisher.preview(PRODUCT_KEY);
+
+    expect(decisions).toHaveLength(1);
+    expect(decisions[0]!.action).toBe('insert');
+    expect(decisions[0]!.venue).toBe(venue);
+    if (decisions[0]!.action === 'insert') {
+      expect(decisions[0].operational.name).toBe('Praia Nova');
+    }
+  });
+
+  it('classifica venue dirty como update, com publicVenueId', async () => {
+    const publicId = 'venue-x' as PublicVenueId;
+    const venue = makeVenue({ promotedVenueId: publicId, stagingUpdatedAt: new Date('2026-07-08T00:00:00.000Z') });
+    const publicationState = vi.fn().mockResolvedValue(makeState(publicId, new Date('2026-07-01T00:00:00.000Z')));
+    const { publishableVenue, publicVenue, eventRepo } = makeRepos({ findDirty: [venue], publicationState });
+
+    const publisher = new VenuePublisher(publishableVenue, publicVenue, eventRepo, () => NOW);
+    const decisions = await publisher.preview(PRODUCT_KEY);
+
+    expect(decisions[0]).toMatchObject({ action: 'update', publicVenueId: publicId });
+  });
+
+  it('classifica venue não-dirty como skip_not_dirty', async () => {
+    const publicId = 'venue-y' as PublicVenueId;
+    const venue = makeVenue({ promotedVenueId: publicId, stagingUpdatedAt: new Date('2026-07-01T00:00:00.000Z') });
+    const publicationState = vi.fn().mockResolvedValue(makeState(publicId, new Date('2026-07-01T00:00:00.000Z')));
+    const { publishableVenue, publicVenue, eventRepo } = makeRepos({ findDirty: [venue], publicationState });
+
+    const publisher = new VenuePublisher(publishableVenue, publicVenue, eventRepo, () => NOW);
+    const decisions = await publisher.preview(PRODUCT_KEY);
+
+    expect(decisions[0]).toMatchObject({ action: 'skip_not_dirty', publicVenueId: publicId });
+  });
+
+  it('classifica venue a arquivar como archive', async () => {
+    const publicId = 'venue-z' as PublicVenueId;
+    const venue = makeVenue({ promotedVenueId: publicId });
+    const { publishableVenue, publicVenue, eventRepo } = makeRepos({ findToArchive: [venue] });
+
+    const publisher = new VenuePublisher(publishableVenue, publicVenue, eventRepo, () => NOW);
+    const decisions = await publisher.preview(PRODUCT_KEY);
+
+    expect(decisions[0]).toMatchObject({ action: 'archive', publicVenueId: publicId });
+  });
+
+  it('classifica como error quando o dirty check falha, sem lançar', async () => {
+    const venue = makeVenue({ promotedVenueId: 'venue-orfao' as PublicVenueId, stagingUpdatedAt: new Date() });
+    const { publishableVenue, publicVenue, eventRepo } = makeRepos({
+      findDirty: [venue],
+      publicationState: vi.fn().mockResolvedValue(null),
+    });
+
+    const publisher = new VenuePublisher(publishableVenue, publicVenue, eventRepo, () => NOW);
+    const decisions = await publisher.preview(PRODUCT_KEY);
+
+    expect(decisions[0]!.action).toBe('error');
+  });
+
+  it('publish() e preview() produzem a mesma classificação para o mesmo estado (sem divergência)', async () => {
+    const dirtyVenue = makeVenue({
+      stagingId:        'sv-consistency' as StagingVenueId,
+      promotedVenueId:  'venue-consistency' as PublicVenueId,
+      stagingUpdatedAt: new Date('2026-07-08T00:00:00.000Z'),
+    });
+    const publicationState = vi.fn().mockResolvedValue(makeState('venue-consistency' as PublicVenueId, new Date('2026-07-01T00:00:00.000Z')));
+
+    const previewRepos = makeRepos({ findDirty: [dirtyVenue], publicationState });
+    const publishRepos = makeRepos({ findDirty: [dirtyVenue], publicationState });
+
+    const previewPublisher = new VenuePublisher(previewRepos.publishableVenue, previewRepos.publicVenue, previewRepos.eventRepo, () => NOW);
+    const publishPublisher = new VenuePublisher(publishRepos.publishableVenue, publishRepos.publicVenue, publishRepos.eventRepo, () => NOW);
+
+    const decisions = await previewPublisher.preview(PRODUCT_KEY);
+    await publishPublisher.publish(PRODUCT_KEY, RUN_ID);
+
+    expect(decisions[0]!.action).toBe('update');
+    expect(publishRepos.publicVenue.update).toHaveBeenCalledTimes(1);
   });
 });

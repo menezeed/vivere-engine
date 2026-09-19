@@ -1,0 +1,719 @@
+[
+  {
+    "place_id": "ChIJefBc5L8PlwARJTJgvceTTeY",
+    "name": "Teatro Municipal Dr. Átila Costa",
+    "lat": -22.8396188,
+    "lng": -42.0977661,
+    "category": "teatro",
+    "google_types": [
+      "performing_arts_theater",
+      "event_venue",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "accepted",
+    "reasoning": "Aceito por: accept_type_theater (tipo: \"performing_arts_theater\")",
+    "distance_meters": 503,
+    "geographic_bucket": "inside_radius"
+  },
+  {
+    "place_id": "ChIJ2ZqN82kPlwAR6BBWs7Wzo9E",
+    "name": "Ponto de Cultura Centro de Movimento D'Aldeia",
+    "lat": -22.8302792,
+    "lng": -42.1031286,
+    "category": "centro_cultural",
+    "google_types": [
+      "cultural_center",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "accepted",
+    "reasoning": "Aceito por: accept_type_cultural_center (tipo: \"cultural_center\")",
+    "distance_meters": 709,
+    "geographic_bucket": "inside_radius"
+  },
+  {
+    "place_id": "ChIJ__5zzsYPlwARFB6PweM5fc8",
+    "name": "Centro Cultural Art Studio",
+    "lat": -22.8412315,
+    "lng": -42.1032927,
+    "category": "centro_cultural",
+    "google_types": [
+      "cultural_center",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "accepted",
+    "reasoning": "Aceito por: accept_type_cultural_center (tipo: \"cultural_center\")",
+    "distance_meters": 822,
+    "geographic_bucket": "inside_radius"
+  },
+  {
+    "place_id": "ChIJWRk5xMAPlwARy_9fEU-IYFQ",
+    "name": "Casa da Cultura Gabriel Joaquim dos Santos",
+    "lat": -22.8401092,
+    "lng": -42.1019297,
+    "category": "centro_cultural",
+    "google_types": [
+      "museum",
+      "tourist_attraction",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "accepted",
+    "reasoning": "Aceito por: accept_type_museum (tipo: \"museum\")",
+    "distance_meters": 641,
+    "geographic_bucket": "inside_radius"
+  },
+  {
+    "place_id": "ChIJj5XuuLgPlwARfENr3B_TIEA",
+    "name": "Casa dos Azulejos - Secretaria Municipal de Turismo",
+    "lat": -22.8369425,
+    "lng": -42.103746,
+    "category": "centro_cultural",
+    "google_types": [
+      "cultural_center",
+      "event_venue",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "rejected",
+    "reasoning": "Rejeitado por: reject_keyword_government_office (nome: \"secretaria municipal\")",
+    "distance_meters": 553,
+    "geographic_bucket": "inside_radius"
+  },
+  {
+    "place_id": "ChIJmS7O3bgPlwARs9dEYA2btTo",
+    "name": "Casa do Artesão",
+    "lat": -22.835730599999998,
+    "lng": -42.104017299999995,
+    "category": "centro_cultural",
+    "google_types": [
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "needs_review",
+    "reasoning": "Nenhuma regra heurística reconheceu este local — enviado para revisão por padrão de segurança.",
+    "distance_meters": 549,
+    "geographic_bucket": "inside_radius"
+  },
+  {
+    "place_id": "ChIJV8mTwLQPlwARaGjHJXBC-yo",
+    "name": "Projeto Samba é Vida",
+    "lat": -22.8371787,
+    "lng": -42.103709699999996,
+    "category": "centro_cultural",
+    "google_types": [
+      "event_venue",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "needs_review",
+    "reasoning": "Nenhuma regra heurística reconheceu este local — enviado para revisão por padrão de segurança.",
+    "distance_meters": 560,
+    "geographic_bucket": "inside_radius"
+  },
+  {
+    "place_id": "ChIJX1WLQDsPlwARyk-hNs2zSVA",
+    "name": "Cultura Inglesa - São Pedro da Aldeia",
+    "lat": -22.8360639,
+    "lng": -42.1035068,
+    "category": "centro_cultural",
+    "google_types": [
+      "educational_institution",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "needs_review",
+    "reasoning": "Nenhuma regra heurística reconheceu este local — enviado para revisão por padrão de segurança.",
+    "distance_meters": 503,
+    "geographic_bucket": "inside_radius"
+  },
+  {
+    "place_id": "ChIJAc6dlWwFlwARmzkUoLIjUik",
+    "name": "Centro Cultural Passos Para O Futuro",
+    "lat": -22.8463398,
+    "lng": -42.0597613,
+    "category": "centro_cultural",
+    "google_types": [
+      "sports_school",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "likely_fitness_generic",
+    "reasoning": "Provável academia/estúdio genérico, sem indicação clara de atender o público 60+ por: fitness_generic_type (tipo: \"sports_school\")",
+    "distance_meters": 4179,
+    "geographic_bucket": "buffer_zone"
+  },
+  {
+    "place_id": "ChIJH6WkA0wOlwARRBN6nDSO7sc",
+    "name": "Museu Regional do Sal Manoel Maria de Mattos",
+    "lat": -22.8266155,
+    "lng": -42.122487299999996,
+    "category": "museu",
+    "google_types": [
+      "museum",
+      "tourist_attraction",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "accepted",
+    "reasoning": "Aceito por: accept_type_museum (tipo: \"museum\")",
+    "distance_meters": 2617,
+    "geographic_bucket": "inside_radius"
+  },
+  {
+    "place_id": "ChIJWUsOUBQFlwARPIlEPkgU2hI",
+    "name": "Casa da Flor",
+    "lat": -22.850457499999997,
+    "lng": -42.055316,
+    "category": "museu",
+    "google_types": [
+      "art_museum",
+      "museum",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "accepted",
+    "reasoning": "Aceito por: accept_type_museum (tipo: \"museum\")",
+    "distance_meters": 4759,
+    "geographic_bucket": "outside_region"
+  },
+  {
+    "place_id": "ChIJlcHwXT4PlwAR2cr7H_RgffY",
+    "name": "Balneário São Pedro 500",
+    "lat": -22.842181999999998,
+    "lng": -42.128629499999995,
+    "category": "parque",
+    "google_types": [
+      "tourist_attraction",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "needs_review",
+    "reasoning": "Caso intermediário, requer revisão por: review_type_tourist_attraction (tipo: \"tourist_attraction\")",
+    "distance_meters": 3165,
+    "geographic_bucket": "inside_radius"
+  },
+  {
+    "place_id": "ChIJz-nHjgQPlwARjom7jRsocyE",
+    "name": "Praça Hermógenes Freire da Costa",
+    "lat": -22.8352815,
+    "lng": -42.1043434,
+    "category": "parque",
+    "google_types": [
+      "tourist_attraction",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "needs_review",
+    "reasoning": "Caso intermediário, requer revisão por: review_keyword_praca (nome: \"praca \"); review_type_tourist_attraction (tipo: \"tourist_attraction\")",
+    "distance_meters": 579,
+    "geographic_bucket": "inside_radius"
+  },
+  {
+    "place_id": "ChIJJ1QTOMkPlwARvwYk_d76mdo",
+    "name": "Polo Rural São Pedro da Aldeia Cruz",
+    "lat": -22.8018964,
+    "lng": -42.1379945,
+    "category": "parque",
+    "google_types": [
+      "park",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "accepted",
+    "reasoning": "Aceito por: accept_type_park (tipo: \"park\")",
+    "distance_meters": 5469,
+    "geographic_bucket": "outside_region"
+  },
+  {
+    "place_id": "ChIJnR9crrgPlwARR29dtu-lYRY",
+    "name": "Praça Dr. Plinio de Assis Tavares.",
+    "lat": -22.8366993,
+    "lng": -42.103673199999996,
+    "category": "parque",
+    "google_types": [
+      "tourist_attraction",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "needs_review",
+    "reasoning": "Caso intermediário, requer revisão por: review_keyword_praca (nome: \"praca \"); review_type_tourist_attraction (tipo: \"tourist_attraction\")",
+    "distance_meters": 537,
+    "geographic_bucket": "inside_radius"
+  },
+  {
+    "place_id": "ChIJBcjUOQAPlwARUgiRmyEHMOw",
+    "name": "Parque nacional da mata atlântica Aldeense",
+    "lat": -22.814123499999997,
+    "lng": -42.0798948,
+    "category": "parque",
+    "google_types": [
+      "park",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "accepted",
+    "reasoning": "Aceito por: accept_type_park (tipo: \"park\")",
+    "distance_meters": 3032,
+    "geographic_bucket": "inside_radius"
+  },
+  {
+    "place_id": "ChIJ66D6OLsPlwARd7YhN2uNey8",
+    "name": "Parquinho do Centro de São Pedro da Aldeia",
+    "lat": -22.8389441,
+    "lng": -42.1030722,
+    "category": "parque",
+    "google_types": [
+      "playground",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "needs_review",
+    "reasoning": "Nenhuma regra heurística reconheceu este local — enviado para revisão por padrão de segurança.",
+    "distance_meters": 614,
+    "geographic_bucket": "inside_radius"
+  },
+  {
+    "place_id": "ChIJ8zbm37gPlwARoUcVX_jb_Q4",
+    "name": "Grupo Aldeense de Caminhada Ecológica",
+    "lat": -22.835424099999997,
+    "lng": -42.1041096,
+    "category": "parque",
+    "google_types": [
+      "park",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "accepted",
+    "reasoning": "Aceito por: accept_type_park (tipo: \"park\")",
+    "distance_meters": 555,
+    "geographic_bucket": "inside_radius"
+  },
+  {
+    "place_id": "ChIJnSvmcpsPlwARjD_cxiFIvak",
+    "name": "Praça do Bairro Fluminense",
+    "lat": -22.8289489,
+    "lng": -42.090044,
+    "category": "parque",
+    "google_types": [
+      "city_park",
+      "park",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "needs_review",
+    "reasoning": "Caso intermediário, requer revisão por: review_keyword_praca (nome: \"praca \")",
+    "distance_meters": 1125,
+    "geographic_bucket": "inside_radius"
+  },
+  {
+    "place_id": "ChIJ0wBdsPoNlwARzwwEm50KIFk",
+    "name": "Serra de Sapeatiba, São Pedro da Aldeia-RJ",
+    "lat": -22.8277969,
+    "lng": -42.166406099999996,
+    "category": "parque",
+    "google_types": [
+      "park",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "accepted",
+    "reasoning": "Aceito por: accept_type_park (tipo: \"park\")",
+    "distance_meters": 6987,
+    "geographic_bucket": "outside_region"
+  },
+  {
+    "place_id": "ChIJz_3KTscPlwAR8T2gyzcyMpc",
+    "name": "Praça da Igreja São Pedro",
+    "lat": -22.838933200000003,
+    "lng": -42.103303499999996,
+    "category": "parque",
+    "google_types": [
+      "park",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "needs_review",
+    "reasoning": "Caso intermediário, requer revisão por: review_keyword_praca (nome: \"praca \")",
+    "distance_meters": 630,
+    "geographic_bucket": "inside_radius"
+  },
+  {
+    "place_id": "ChIJ8572TboPlwARc8GjpPhQLD0",
+    "name": "Praça do Arruda",
+    "lat": -22.830654,
+    "lng": -42.105632,
+    "category": "parque",
+    "google_types": [
+      "plaza",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "needs_review",
+    "reasoning": "Caso intermediário, requer revisão por: review_keyword_praca (nome: \"praca \")",
+    "distance_meters": 870,
+    "geographic_bucket": "inside_radius"
+  },
+  {
+    "place_id": "ChIJ5agNvfgPlwARGHT-JPj9-cM",
+    "name": "Aguazul São Pedro Da Aldeia",
+    "lat": -22.829735499999998,
+    "lng": -42.128875699999995,
+    "category": "parque",
+    "google_types": [
+      "swimming_pool",
+      "sports_activity_location",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "likely_fitness_generic",
+    "reasoning": "Provável academia/estúdio genérico, sem indicação clara de atender o público 60+ por: fitness_generic_type (tipo: \"sports_activity_location\")",
+    "distance_meters": 3151,
+    "geographic_bucket": "inside_radius"
+  },
+  {
+    "place_id": "ChIJIU_3gPgRlwARIDC5Jzzkxbc",
+    "name": "Ilha do Boi",
+    "lat": -22.8561715,
+    "lng": -42.1493429,
+    "category": "parque",
+    "google_types": [
+      "tourist_attraction",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "needs_review",
+    "reasoning": "Caso intermediário, requer revisão por: review_type_tourist_attraction (tipo: \"tourist_attraction\")",
+    "distance_meters": 5691,
+    "geographic_bucket": "outside_region"
+  },
+  {
+    "place_id": "ChIJS8c_U7kPlwARyln189MltPE",
+    "name": "Horto Jardim Park - O shopping do seu jardim",
+    "lat": -22.8301493,
+    "lng": -42.0904197,
+    "category": "parque",
+    "google_types": [
+      "garden_center",
+      "florist",
+      "market",
+      "wholesaler",
+      "home_goods_store",
+      "building_materials_store",
+      "supplier",
+      "farm",
+      "store",
+      "food",
+      "general_contractor",
+      "service",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "needs_review",
+    "reasoning": "Caso intermediário, requer revisão por: review_type_food_uncertain (tipo: \"food\")",
+    "distance_meters": 1016,
+    "geographic_bucket": "inside_radius"
+  },
+  {
+    "place_id": "ChIJn3itCW0FlwAR4wReaZ9VUa0",
+    "name": "Praça Municipal do Bairro São João",
+    "lat": -22.8437881,
+    "lng": -42.060386799999996,
+    "category": "parque",
+    "google_types": [
+      "city_park",
+      "park",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "needs_review",
+    "reasoning": "Caso intermediário, requer revisão por: review_keyword_praca (nome: \"praca \")",
+    "distance_meters": 4041,
+    "geographic_bucket": "buffer_zone"
+  },
+  {
+    "place_id": "ChIJw1U8AQAPlwARv5ZzXo0OawI",
+    "name": "Orla do Camerum",
+    "lat": -22.8533399,
+    "lng": -42.100685899999995,
+    "category": "parque",
+    "google_types": [
+      "park",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "accepted",
+    "reasoning": "Aceito por: accept_type_park (tipo: \"park\")",
+    "distance_meters": 2030,
+    "geographic_bucket": "inside_radius"
+  },
+  {
+    "place_id": "ChIJpaaWTccPlwARXXb7fod3pxQ",
+    "name": "Praça da Igreja Matriz",
+    "lat": -22.838758799999997,
+    "lng": -42.1031194,
+    "category": "parque",
+    "google_types": [
+      "tourist_attraction",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "needs_review",
+    "reasoning": "Caso intermediário, requer revisão por: review_keyword_praca (nome: \"praca \"); review_type_tourist_attraction (tipo: \"tourist_attraction\")",
+    "distance_meters": 603,
+    "geographic_bucket": "inside_radius"
+  },
+  {
+    "place_id": "ChIJrzhkNwAFlwAR_vt0GvDbEUU",
+    "name": "Parque natural municipal da mata atlântica aldeense",
+    "lat": -22.8365783,
+    "lng": -42.060915,
+    "category": "parque",
+    "google_types": [
+      "hiking_area",
+      "sports_activity_location",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "likely_fitness_generic",
+    "reasoning": "Provável academia/estúdio genérico, sem indicação clara de atender o público 60+ por: fitness_generic_type (tipo: \"sports_activity_location\")",
+    "distance_meters": 3875,
+    "geographic_bucket": "inside_radius"
+  },
+  {
+    "place_id": "ChIJBUCqS7APlwARvTOW9Yck1kw",
+    "name": "Casa da Praia Clube - CPC",
+    "lat": -22.8275293,
+    "lng": -42.1101649,
+    "category": "parque",
+    "google_types": [
+      "park",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "accepted",
+    "reasoning": "Aceito por: accept_type_park (tipo: \"park\")",
+    "distance_meters": 1450,
+    "geographic_bucket": "inside_radius"
+  },
+  {
+    "place_id": "ChIJqyDBr8APlwARQYd-rIJ1BBI",
+    "name": "Biblioteca Municipal Prof. Cordelino T. Paulo",
+    "lat": -22.8388344,
+    "lng": -42.1022836,
+    "category": "biblioteca",
+    "google_types": [
+      "library",
+      "point_of_interest",
+      "service",
+      "establishment"
+    ],
+    "decision": "accepted",
+    "reasoning": "Aceito por: accept_type_library (tipo: \"library\")",
+    "distance_meters": 548,
+    "geographic_bucket": "inside_radius"
+  },
+  {
+    "place_id": "ChIJ_5FUWWkFlwARn1KURf1pe6o",
+    "name": "Biblioteca do CIEP 272",
+    "lat": -22.8468442,
+    "lng": -42.063157600000004,
+    "category": "biblioteca",
+    "google_types": [
+      "library",
+      "point_of_interest",
+      "service",
+      "establishment"
+    ],
+    "decision": "accepted",
+    "reasoning": "Aceito por: accept_type_library (tipo: \"library\")",
+    "distance_meters": 3866,
+    "geographic_bucket": "inside_radius"
+  },
+  {
+    "place_id": "ChIJR-Vx3MEPlwARpRbC2yphfMQ",
+    "name": "Espaço Aquafit",
+    "lat": -22.8428459,
+    "lng": -42.098451999999995,
+    "category": "hidroginastica",
+    "google_types": [
+      "gym",
+      "sports_activity_location",
+      "health",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "accepted",
+    "reasoning": "Aceito por: accept_keyword_activity_name_match (nome: \"aquafit\")",
+    "distance_meters": 853,
+    "geographic_bucket": "inside_radius"
+  },
+  {
+    "place_id": "ChIJ2Z2geKkPlwARMZu2jHmwdwo",
+    "name": "PRIME SPORT CENTER",
+    "lat": -22.8326708,
+    "lng": -42.093902199999995,
+    "category": "hidroginastica",
+    "google_types": [
+      "fitness_center",
+      "gym",
+      "sports_activity_location",
+      "health",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "likely_fitness_generic",
+    "reasoning": "Provável academia/estúdio genérico, sem indicação clara de atender o público 60+ por: fitness_generic_type (tipo: \"gym\")",
+    "distance_meters": 565,
+    "geographic_bucket": "inside_radius"
+  },
+  {
+    "place_id": "ChIJA4rZJbkPlwARXKS5xLUIqY4",
+    "name": "VIDATIVA ACADEMIA",
+    "lat": -22.835347,
+    "lng": -42.1035647,
+    "category": "hidroginastica",
+    "google_types": [
+      "gym",
+      "sports_activity_location",
+      "health",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "likely_fitness_generic",
+    "reasoning": "Provável academia/estúdio genérico, sem indicação clara de atender o público 60+ por: fitness_generic_type (tipo: \"gym\")",
+    "distance_meters": 499,
+    "geographic_bucket": "inside_radius"
+  },
+  {
+    "place_id": "ChIJWbkpoaIPlwARyHGwaGVIWUk",
+    "name": "Academia Wellness Fitness",
+    "lat": -22.830875700000004,
+    "lng": -42.0961171,
+    "category": "hidroginastica",
+    "google_types": [
+      "fitness_center",
+      "spa",
+      "gym",
+      "sports_activity_location",
+      "health",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "likely_fitness_generic",
+    "reasoning": "Provável academia/estúdio genérico, sem indicação clara de atender o público 60+ por: fitness_generic_type (tipo: \"gym\")",
+    "distance_meters": 546,
+    "geographic_bucket": "inside_radius"
+  },
+  {
+    "place_id": "ChIJC8__7r8PlwAR28vG5m3Re2A",
+    "name": "Academia Viva 100%",
+    "lat": -22.8397518,
+    "lng": -42.0696211,
+    "category": "hidroginastica",
+    "google_types": [
+      "gym",
+      "sports_activity_location",
+      "health",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "likely_fitness_generic",
+    "reasoning": "Provável academia/estúdio genérico, sem indicação clara de atender o público 60+ por: fitness_generic_type (tipo: \"gym\")",
+    "distance_meters": 3023,
+    "geographic_bucket": "inside_radius"
+  },
+  {
+    "place_id": "ChIJWXkoTNEPlwARQpM0TkAA6Xs",
+    "name": "Escola de natação Água Viva",
+    "lat": -22.8508216,
+    "lng": -42.0389007,
+    "category": "hidroginastica",
+    "google_types": [
+      "sports_school",
+      "sports_activity_location",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "accepted",
+    "reasoning": "Aceito por: accept_keyword_activity_name_match (nome: \"natacao\")",
+    "distance_meters": 6370,
+    "geographic_bucket": "outside_region"
+  },
+  {
+    "place_id": "ChIJ_1WHsFMFlwARczVuArIXmP8",
+    "name": "STUDIO VOLARE",
+    "lat": -22.844108199999997,
+    "lng": -42.1005709,
+    "category": "danca_idosos",
+    "google_types": [
+      "sports_school",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "likely_fitness_generic",
+    "reasoning": "Provável academia/estúdio genérico, sem indicação clara de atender o público 60+ por: fitness_generic_type (tipo: \"sports_school\")",
+    "distance_meters": 1012,
+    "geographic_bucket": "inside_radius"
+  },
+  {
+    "place_id": "ChIJfyeW1JkPlwARRR1b_KHxIlI",
+    "name": "Studio VT (Studio de Dança Viviane Teixeira - Escola de Dança) Ballet - Jazz - Street Dance",
+    "lat": -22.8305385,
+    "lng": -42.09538920000001,
+    "category": "danca_idosos",
+    "google_types": [
+      "educational_institution",
+      "sports_school",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "accepted",
+    "reasoning": "Aceito por: accept_keyword_activity_name_match (nome: \"danca\")",
+    "distance_meters": 617,
+    "geographic_bucket": "inside_radius"
+  },
+  {
+    "place_id": "ChIJZ29AH9QblwAR1fmITO-nm5M",
+    "name": "Silvestre’s Dança de Salão | Cabo Frio",
+    "lat": -22.894236400000004,
+    "lng": -42.043598599999996,
+    "category": "danca_idosos",
+    "google_types": [
+      "sports_school",
+      "point_of_interest",
+      "establishment"
+    ],
+    "decision": "accepted",
+    "reasoning": "Aceito por: accept_keyword_activity_name_match (nome: \"danca\")",
+    "distance_meters": 8660,
+    "geographic_bucket": "outside_region"
+  },
+  {
+    "place_id": "ChIJlTDn4RkPlwAR4AI04mN8KMw",
+    "name": "Mosaico Florido Terapia Integrativa",
+    "lat": -22.8182696,
+    "lng": -42.11148070000001,
+    "category": "danca_idosos",
+    "google_types": [
+      "yoga_studio",
+      "fitness_center",
+      "sports_complex",
+      "gym",
+      "massage",
+      "consultant",
+      "service",
+      "sports_school",
+      "sports_activity_location",
+      "point_of_interest",
+      "health",
+      "establishment"
+    ],
+    "decision": "likely_fitness_generic",
+    "reasoning": "Provável academia/estúdio genérico, sem indicação clara de atender o público 60+ por: fitness_generic_type (tipo: \"gym\")",
+    "distance_meters": 2291,
+    "geographic_bucket": "inside_radius"
+  }
+]

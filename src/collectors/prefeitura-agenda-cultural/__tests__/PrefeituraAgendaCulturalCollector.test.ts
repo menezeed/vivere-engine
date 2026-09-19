@@ -125,7 +125,7 @@ describe('PrefeituraAgendaCulturalCollector — integração sem rede real', () 
     const result = await collector.collect({ sinceDays: 30, maxPages: 5 });
 
     expect(result.stats.posts_fetched).toBe(4);
-    expect(result.stats.posts_parsed_servico_block).toBe(1);
+    expect(result.stats.posts_parsed_structured_block).toBe(1);
     expect(result.stats.posts_parsed_narrative_fallback).toBe(3); // sucesso + ambíguo + not_found, todas tentativas
     expect(result.stats.items_returned).toBe(2); // post 1 (servico) + post 2 (narrativa sucesso); 3 e 4 não geram item
   });

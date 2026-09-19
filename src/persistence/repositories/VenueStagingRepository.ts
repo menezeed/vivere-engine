@@ -1,13 +1,25 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { PersistedRawVenueItem } from '../types/persistenceTypes';
 import type { FilteredVenueItem } from '../../pipeline/stages/00-filter-venue/index';
+import type { GeographicMetadata } from '../../pipeline/stages/01-geographic-gate/types';
 import { logger } from '../../lib/logger';
 
 /**
  * Persiste o resultado do Venue Filtering Engine em staging.venues_staging.
  *
- * NUNCA persiste itens com decisão 'rejected' — esses são descartados
- * silenciosamente pelo Orchestrator antes de chegar aqui.
+ * NUNCA persiste itens com decisão 'rejected' (do Venue Filtering Engine,
+ * por tipo/keyword) — esses são descartados silenciosamente pelo
+ * Orchestrator antes de chegar aqui. Esta regra é anterior à ADR-0022 e
+ * não foi alterada por ela.
+ *
+ * ADR-0022 (Regional Geographic Gate) — cada item pode opcionalmente
+ * carregar `geographic: GeographicMetadata`. O bucket é persistido numa
+ * coluna PRÓPRIA e independente, `geographic_status` (migration 0018) —
+ * NUNCA em `proposal_status`. `proposal_status` representa
+ * exclusivamente decisão de CURADORIA/negócio (pending_review,
+ * approved, rejected, promoted) e nunca é alterado por este gate.
+ * `geographic` é opcional porque fontes sem geolocalização (ex:
+ * WordPress) nunca o anexam — `geographic_status` fica NULL nesse caso.
  *
  * A decisão do filtro (accepted, needs_review, <AmbiguityLabel>) é
  * guardada em raw_payload como metadado de auditoria — não como coluna
@@ -23,7 +35,7 @@ export class VenueStagingRepository {
   constructor(private readonly db: SupabaseClient) {}
 
   async insertBatch(
-    filteredItems: FilteredVenueItem<string, string>[],
+    filteredItems: (FilteredVenueItem<string, string> & { geographic?: GeographicMetadata })[],
     persistedRaw: PersistedRawVenueItem[],
     productKey: string,
   ): Promise<number> {
@@ -32,7 +44,10 @@ export class VenueStagingRepository {
       persistedRaw.map((p) => [p.source_item_id, p.id]),
     );
 
-    // Filtra rejected antes de qualquer operação de banco
+    // Filtra rejected antes de qualquer operação de banco — regra
+    // pré-existente, inalterada pela ADR-0022. outside_region NÃO é
+    // filtrado aqui: é persistido com geographic_status distinto (abaixo),
+    // proposal_status permanece 'pending_review' como qualquer outro item.
     const toInsert = filteredItems.filter((f) => f.filter.decision !== 'rejected');
 
     if (toInsert.length === 0) return 0;
@@ -60,7 +75,11 @@ export class VenueStagingRepository {
             source_key:        f.item.source_key,
             source_item_id:    f.item.source_item_id,
             product_key:       productKey,
-            proposal_status:   'pending_review',
+            proposal_status:   'pending_review', // sempre — decisão de curadoria, nunca tocada pelo gate geográfico
+            // ADR-0022: dimensão técnica independente, migration 0018.
+            // NULL quando a fonte não tem região (WordPress) ou
+            // geographic não foi anexado.
+            geographic_status: f.geographic?.bucket ?? null,
             city:              (f.item as import('../../types/RawVenueItem').RawVenueItem).source_region_label ?? null,
             name:              f.item.name ?? null,
           };

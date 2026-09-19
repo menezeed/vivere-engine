@@ -114,7 +114,7 @@ export class PrefeituraAgendaCulturalCollector {
       stats: {
         posts_fetched: postsFetched,
         posts_rejected_by_relevance: 0, // reservado para uso futuro do relevanceClassifier, ainda não conectado
-        posts_parsed_servico_block: postsServicoBlock,
+        posts_parsed_structured_block: postsServicoBlock,
         posts_parsed_narrative_fallback: postsNarrativeFallback,
         posts_no_extractable_schedule: postsNoSchedule,
         items_returned: items.length,

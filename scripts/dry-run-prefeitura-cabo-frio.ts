@@ -58,7 +58,7 @@ async function main() {
     console.log(`${needsReview ? '⚠ ' : '✓ '}${item.title}`);
     console.log(`  método: ${item.raw_payload.extraction_method} | confiança: ${item.raw_payload.extraction_confidence}`);
     console.log(`  ocorrência: ${item.occurrences.length > 0 ? JSON.stringify(item.occurrences[0]) : '(nenhuma data extraída)'}`);
-    console.log(`  venue: ${item.venue_name ?? '(não extraído)'}`);
+    console.log(`  venue: ${item.venue_mention?.raw_text ?? '(não extraído)'}`);
     console.log(`  url: ${item.external_url}`);
     if (needsReview) {
       console.log(`  revisão necessária: ${reviewReasons.join(', ')}`);
@@ -80,7 +80,7 @@ async function main() {
 
   console.log('\n=== CONTAGENS ===');
   console.log(`Posts lidos:                      ${result.stats.posts_fetched}`);
-  console.log(`Posts extraídos via camada 1 (SERVIÇO): ${result.stats.posts_parsed_servico_block}`);
+  console.log(`Posts extraídos via camada 1 (SERVIÇO): ${result.stats.posts_parsed_structured_block}`);
   console.log(`Posts processados via camada 2 (narrativa, toda tentativa): ${result.stats.posts_parsed_narrative_fallback}`);
   console.log(`  dos quais sem programação extraível: ${result.stats.posts_no_extractable_schedule}`);
   console.log(`Itens gerados (RawActivityItem):  ${result.stats.items_returned}`);

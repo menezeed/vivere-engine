@@ -13,6 +13,8 @@ import type {
   PublicActivityId,
   StagingActivityId,
   PublicationRunId,
+  PublicActivityPublicationState,
+  EngineStatus,
 } from '../../types/domain.js';
 
 export class PublicActivityRepository implements IPublicActivityRepository {
@@ -94,5 +96,22 @@ export class PublicActivityRepository implements IPublicActivityRepository {
 
     if (error) throw new Error(`PublicActivityRepository.findByEngineId: ${error.message}`);
     return data ? (data.id as PublicActivityId) : null;
+  }
+
+  async findPublicationStateByEngineId(engineActivityId: StagingActivityId): Promise<PublicActivityPublicationState | null> {
+    const { data, error } = await this.db
+      .from('activities')
+      .select('id, last_published_at, engine_status')
+      .eq('engine_activity_id', engineActivityId)
+      .maybeSingle();
+
+    if (error) throw new Error(`PublicActivityRepository.findPublicationStateByEngineId: ${error.message}`);
+    if (!data) return null;
+
+    return {
+      publicActivityId: data.id as PublicActivityId,
+      lastPublishedAt:  new Date(data.last_published_at as string),
+      engineStatus:     data.engine_status as EngineStatus,
+    };
   }
 }

@@ -77,12 +77,9 @@ function buildItemFromServicoSubEvent(
     occurrences: occurrence ? [occurrence] : [],
     recurrence_text_hint: null,
 
-    venue_name: ev.venueName,
-    venue_address: null,
-    venue_lat: null,
-    venue_lng: null,
-    venue_phone: null,
-    venue_website: null,
+    venue_mention: ev.venueName
+      ? { raw_text: ev.venueName, raw_address_text: null, confidence_hint: 'explicit_name' }
+      : null,
 
     price_text: null,
     is_free_hint: null,
@@ -126,12 +123,9 @@ function buildItemFromNarrative(
     occurrences: occurrence ? [occurrence] : [],
     recurrence_text_hint: null,
 
-    venue_name: narrative.venueName,
-    venue_address: null,
-    venue_lat: null,
-    venue_lng: null,
-    venue_phone: null,
-    venue_website: null,
+    venue_mention: narrative.venueName
+      ? { raw_text: narrative.venueName, raw_address_text: null, confidence_hint: 'inferred_from_context' }
+      : null,
 
     price_text: null,
     is_free_hint: null,

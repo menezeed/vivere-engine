@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useOutletContext, useNavigate } from 'react-router-dom';
 import { MapPin } from 'lucide-react';
 import { VenueService } from '@/services/VenueService';
-import { StatusBadge, SourceBadge } from '@/components/shared/StatusBadge';
+import { StatusBadge, SourceBadge, GeographicStatusBadge } from '@/components/shared/StatusBadge';
 import { ReviewActions } from '@/components/shared/ReviewActions';
 import { DataTable, type ColumnDef } from '@/components/ui/DataTable';
 import { FilterBar, type FilterDef, type FilterValues } from '@/components/ui/FilterBar';
@@ -16,7 +16,7 @@ import { useDebounce } from '@/hooks/useDebounce';
 import { useReviewMutation } from '@/hooks/useReviewMutation';
 import type { AppOutletContext } from '@/types/shell';
 import type { ProposalStatus, ReviewAction } from '@/types/review';
-import type { VenueStagingItem } from '@/types/venue';
+import type { VenueStagingItem, GeographicStatus } from '@/types/venue';
 
 
 // Configuração de filtros — sem referência a Venue nos componentes
@@ -50,6 +50,20 @@ const FILTER_DEFS: FilterDef[] = [
       { value: 'danca_idosos',  label: 'Dança' },
     ],
   },
+  // ADR-0022 — dimensão independente de status (proposal_status).
+  // Um reviewer pode filtrar explicitamente por 'outside_region' para
+  // limpar essa fila em bloco, ou escondê-la do trabalho do dia a dia.
+  {
+    key: 'geographic_status',
+    label: 'Região',
+    type: 'select',
+    width: 'w-44',
+    options: [
+      { value: 'inside_radius',  label: 'Dentro da região' },
+      { value: 'buffer_zone',    label: 'Margem' },
+      { value: 'outside_region', label: 'Fora da região' },
+    ],
+  },
 ];
 
 const STATUS_TABS: { value: ProposalStatus; label: string }[] = [
@@ -75,6 +89,7 @@ export function VenuesPage() {
     search:   undefined as string | undefined,
     city:     undefined as string | undefined,
     category: undefined as string | undefined,
+    geographic_status: undefined as string | undefined,
     pageSize: '20',
     sort:     'created_at',
     order:    'desc',
@@ -99,12 +114,13 @@ export function VenuesPage() {
   });
 
   const { data, isLoading } = useQuery({
-    queryKey: ['venues', productKey, status, page, pageSize, search, city, filters.category, filters.sort, filters.order],
+    queryKey: ['venues', productKey, status, page, pageSize, search, city, filters.category, filters.geographic_status, filters.sort, filters.order],
     queryFn: () => VenueService.list({
       status, product_key: productKey, page, pageSize,
       search:   search   || undefined,
       city:     city     || undefined,
       category: filters.category || undefined,
+      geographic_status: (filters.geographic_status || undefined) as GeographicStatus | undefined,
       sort:     filters.sort,
       order:    filters.order as 'asc' | 'desc',
     }),
@@ -143,6 +159,19 @@ export function VenuesPage() {
       header: 'Status',
       render: (row) => <StatusBadge status={row.proposal_status} />,
     },
+    // ADR-0022 — coluna própria, ao lado de Status (nunca dentro do
+    // mesmo badge) para deixar visível que são duas decisões
+    // independentes: uma de curadoria, outra técnica do pipeline.
+    // '—' explícito quando null, mesma convenção da coluna Cidade ao
+    // lado — célula em branco não distingue "não avaliado" de "vazio
+    // por acaso" (mesmo raciocínio aplicado à secção do detalhe).
+    {
+      key: 'geographic_status',
+      header: 'Região',
+      render: (row) => row.geographic_status
+        ? <GeographicStatusBadge status={row.geographic_status} />
+        : <span className="text-gray-400 text-xs">—</span>,
+    },
     {
       key: 'created_at',
       header: 'Colectado',
@@ -171,6 +200,7 @@ export function VenuesPage() {
     search:   filters.search,
     city:     filters.city,
     category: filters.category,
+    geographic_status: filters.geographic_status,
   };
 
   return (
@@ -180,12 +210,13 @@ export function VenuesPage() {
         title="Venues"
         subtitle={data ? `${data.totalItems} registos · ${productKey}` : productKey}
         badge={
-          <div className="flex gap-1 bg-gray-100 rounded-lg p-1 ml-2">
+          <div className="relative z-20 flex gap-1 bg-gray-100 rounded-lg p-1 ml-2 pointer-events-auto">
             {STATUS_TABS.map(opt => (
               <button
                 key={opt.value}
-                onClick={() => { setFilter('status', opt.value); setPage(1); }}
-                className={`px-3 py-1 text-xs rounded-md transition-colors ${
+                type="button"
+                onClick={() => setFilters({ status: opt.value, page: undefined } as Partial<typeof filters>)}
+                className={`relative z-20 pointer-events-auto px-3 py-1 text-xs rounded-md transition-colors ${
                   status === opt.value
                     ? 'bg-white text-vivere-dark shadow-sm font-semibold'
                     : 'text-gray-500 hover:text-gray-700'
@@ -247,7 +278,7 @@ export function VenuesPage() {
           totalItems={data.totalItems}
           totalPages={data.totalPages}
           onPage={setPage}
-          onPageSize={(s) => { setFilter('pageSize', String(s)); setPage(1); }}
+          onPageSize={(s) => setFilters({ pageSize: String(s), page: undefined } as Partial<typeof filters>)}
         />
       )}
 
