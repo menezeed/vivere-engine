@@ -11,31 +11,32 @@ import { logger } from '../../lib/logger';
  * em vez de JSONB — decisão da migration 0001 para facilitar queries
  * por texto de menção sem precisar de operadores JSONB.
  *
- * occurrences é serializado como JSONB — array de objetos com date,
- * time, end_date, end_time.
+ * occurrences é uma coluna JSONB. O Collector já fornece um array nativo
+ * de objetos com date, time, end_date e end_time, portanto o valor é enviado
+ * diretamente ao Supabase sem JSON.stringify() manual.
  */
 function toRow(item: RawActivityItem, ingestionRunId: string): Record<string, unknown> {
   return {
-    ingestion_run_id:                    ingestionRunId,
-    source_key:                          item.source_key,
-    source_item_id:                      item.source_item_id,
-    collected_at:                        item.collected_at,
-    title:                               item.title,
-    description:                         item.description,
-    raw_category_text:                   item.raw_category_text,
-    occurrences:                         JSON.stringify(item.occurrences),
-    recurrence_text_hint:                item.recurrence_text_hint,
-    venue_mention_raw_text:              item.venue_mention?.raw_text ?? null,
-    venue_mention_raw_address_text:      item.venue_mention?.raw_address_text ?? null,
-    venue_mention_confidence_hint:       item.venue_mention?.confidence_hint ?? null,
-    price_text:                          item.price_text,
-    is_free_hint:                        item.is_free_hint,
-    image_url:                           item.image_url,
-    external_url:                        item.external_url,
-    contact_phone:                       item.contact_phone,
-    contact_email:                       item.contact_email,
-    language:                            item.language,
-    raw_payload:                         item.raw_payload,
+    ingestion_run_id:               ingestionRunId,
+    source_key:                     item.source_key,
+    source_item_id:                 item.source_item_id,
+    collected_at:                   item.collected_at,
+    title:                          item.title,
+    description:                    item.description,
+    raw_category_text:              item.raw_category_text,
+    occurrences:                    item.occurrences,
+    recurrence_text_hint:           item.recurrence_text_hint,
+    venue_mention_raw_text:         item.venue_mention?.raw_text ?? null,
+    venue_mention_raw_address_text: item.venue_mention?.raw_address_text ?? null,
+    venue_mention_confidence_hint:  item.venue_mention?.confidence_hint ?? null,
+    price_text:                     item.price_text,
+    is_free_hint:                   item.is_free_hint,
+    image_url:                      item.image_url,
+    external_url:                   item.external_url,
+    contact_phone:                  item.contact_phone,
+    contact_email:                  item.contact_email,
+    language:                       item.language,
+    raw_payload:                    item.raw_payload,
   };
 }
 
