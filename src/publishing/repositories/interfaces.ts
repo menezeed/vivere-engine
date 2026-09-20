@@ -20,6 +20,8 @@ import type {
   PublicationEvent,
   EngineStatus,
   PublicVenuePublicationState,
+  PublicActivityPublicationState,
+  ActivityFunnel,
 } from '../types/domain.js';
 
 // ── IPublishableVenueRepository ───────────────────────────────────────────────
@@ -54,6 +56,16 @@ export interface IPublishableActivityRepository {
 
   /** Activities publicadas com dados alterados em staging. */
   findDirty(productKey: string): Promise<readonly PublishableActivity[]>;
+
+  /**
+   * Sprint 8.7 — método aditivo, puramente informativo. Devolve o funil
+   * completo de activities_staging para um produto: total, contagem por
+   * venue_resolution_status (incluindo estados fora do critério de
+   * publicação, ex: 'unresolved'), e quantas já foram publicadas. Usado
+   * pelo --preview do publish.ts para explicar por que só um subconjunto
+   * é elegível. Nunca usado por findUnpublished()/findDirty()/publish().
+   */
+  describeFunnel(productKey: string): Promise<ActivityFunnel>;
 }
 
 // ── IPublicVenueRepository ────────────────────────────────────────────────────
@@ -108,6 +120,15 @@ export interface IPublicActivityRepository {
 
   /** Busca por engine_activity_id. */
   findByEngineId(stagingActivityId: StagingActivityId): Promise<PublicActivityId | null>;
+
+  /**
+   * Estado de publicação da activity pública (id, last_published_at, engine_status),
+   * por engine_activity_id. Método aditivo (Sprint 8.5) — mesmo padrão de
+   * IPublicVenueRepository.findPublicationStateByEngineId (Sprint 8.4).
+   * Usado pelo ActivityPublisher para o dirty check real. Null se a activity
+   * nunca foi publicada.
+   */
+  findPublicationStateByEngineId(engineActivityId: StagingActivityId): Promise<PublicActivityPublicationState | null>;
 }
 
 // ── IPublicationRunRepository ─────────────────────────────────────────────────

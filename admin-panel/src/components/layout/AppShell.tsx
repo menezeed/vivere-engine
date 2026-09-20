@@ -1,4 +1,4 @@
-import { Outlet, NavLink, useOutletContext } from 'react-router-dom';
+import { Outlet, NavLink } from 'react-router-dom';
 import { useAuth } from '@/auth/AuthProvider';
 import { useQuery } from '@tanstack/react-query';
 import { StatsService } from '@/services/StatsService';
@@ -110,3 +110,4 @@ export function AppShell() {
     </div>
   );
 }
+

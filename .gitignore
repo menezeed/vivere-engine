@@ -4,3 +4,7 @@ dist/
 *.log
 .env
 .env.local
+
+# Variáveis de ambiente por modo (dev/prod), em qualquer subpasta
+**/.env.*
+!**/.env.example

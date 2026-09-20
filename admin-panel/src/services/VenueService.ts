@@ -1,5 +1,5 @@
 import { apiRequest } from '@/api/client';
-import type { VenueStagingItem } from '@/types/venue';
+import type { VenueStagingItem, GeographicStatus } from '@/types/venue';
 import type { ListResponse } from '@/types/api';
 import type { ProposalStatus } from '@/types/review';
 
@@ -12,6 +12,8 @@ export interface VenueListParams {
   city?: string;
   category?: string;
   source?: string;
+  /** ADR-0022 — dimensão independente de status (proposal_status). */
+  geographic_status?: GeographicStatus;
   sort?: string;
   order?: 'asc' | 'desc';
 }

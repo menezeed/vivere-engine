@@ -28,7 +28,10 @@ export class PublicationRunRepository implements IPublicationRunRepository {
     const { error } = await this.db
       .from('publication_runs')
       .update({
-        status:               'success',
+        // Bugfix (Sprint 8.6): status deriva de metrics.errors, já recebido
+        // como parâmetro. Antes gravava sempre 'success', impossibilitando
+        // distinguir runs 'partial'.
+        status:               metrics.errors > 0 ? 'partial' : 'success',
         finished_at:          new Date().toISOString(),
         duration_ms:          metrics.durationMs,
         venues_published:     metrics.venuesPublished,

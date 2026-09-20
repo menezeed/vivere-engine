@@ -29,6 +29,25 @@ export interface IIngestionRunRepository {
 
 export interface IRawVenueItemRepository {
   insertBatch(items: RawVenueItem[], ingestionRunId: string): Promise<PersistedRawVenueItem[]>;
+  /**
+   * Leitura da Camada A por source_key + source_region_label — NUNCA
+   * por product_key, que não existe em raw_venue_items (só a partir
+   * de venues_staging). Usado pelo reprocessamento
+   * (IngestionOrchestrator.reprocessVenuesFromRaw) para reaproveitar
+   * dados já coletados e pagos, sem nova chamada à fonte externa.
+   * Devolve o item reconstruído junto com o {id, source_item_id} já
+   * persistido — nunca passa por insertBatch/upsert, que devolveria
+   * lista vazia para linhas já existentes (ON CONFLICT DO NOTHING).
+   *
+   * Opcional: nem todo repositório/mock precisa desta capacidade —
+   * mesmo padrão de SourceConfigContract.regions (opcional). Testes
+   * que só exercitam runVenueIngestion continuam válidos sem
+   * implementar isto.
+   */
+  findByRegionLabel?(
+    sourceKey: string,
+    regionLabel: string,
+  ): Promise<{ item: RawVenueItem; persisted: PersistedRawVenueItem }[]>;
 }
 
 export interface IRawActivityItemRepository {

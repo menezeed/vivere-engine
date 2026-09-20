@@ -1,5 +1,3 @@
-import type { VenueFilterRuleId } from './types';
-
 /**
  * Listas de regras. Mantidas como dados simples (arrays/objetos),
  * não como funções — para serem fáceis de ler, ajustar e revisar
@@ -14,13 +12,19 @@ import type { VenueFilterRuleId } from './types';
  * positivo que a regra de word-boundary evita).
  */
 
+// VenueFilterRuleId nunca existiu como tipo exportado por ./types — o motor
+// é deliberadamente genérico por produto (TRuleId extends string = string,
+// ver types.ts). Estas duas interfaces locais (TypeRule/KeywordRule) usam
+// `string`, coerente com esse default — cada produto tipa fortemente o seu
+// próprio TRuleId ao compor VenueFilterRuleSet<TRuleId, ...>.
+
 interface TypeRule {
-  rule_id: VenueFilterRuleId;
+  rule_id: string;
   google_types: string[];
 }
 
 interface KeywordRule {
-  rule_id: VenueFilterRuleId;
+  rule_id: string;
   keywords: string[];
   matched_on: 'name' | 'website' | 'name_or_website';
 }
