@@ -135,3 +135,49 @@ Durante a validação da PR de isolamento de erro na Publishing Engine (ver Mini
 **Registo conservador, sem generalizar:** recurrence-shaped occurrences (`day_of_week` + `time`) foram observadas em registos com `sourceKey=prefeitura_iguaba_grande`. Não há, até este momento, evidência equivalente confirmada de que o mesmo padrão exista em Cabo Frio — essa afirmação não deve ser feita sem verificação directa dos dados de Cabo Frio.
 
 Este achado é relevante para a Sprint 3 (amostra maior) — Iguaba Grande já está confirmada como fonte real no sistema (ainda que a plataforma/formato editorial completo dela não tenha sido investigado como foi feito para São Pedro da Aldeia), e já apresenta o mesmo tipo de lacuna de contrato (`occurrences` sem `date`) encontrada durante a Discovery 1.1/1.2.
+
+**Correção (2026-09-20) — ver secção "Excluded Evidence" abaixo.** Investigação posterior de proveniência confirmou que os registos de `prefeitura_iguaba_grande` usados como exemplo no teste de regressão do `occurrences fix` (e citados aqui) não têm origem rastreável no Engine — não devem ser usados como evidência de "Iguaba Grande confirmada como fonte real". Essa afirmação, feita acima, não se sustenta à luz da nova investigação.
+
+---
+
+## Excluded Evidence — Provenance Incident (2026-09-20)
+
+**Classificação:** `provenance inconsistent / origin unknown / excluded from evidence`
+
+Durante a preparação do primeiro Activity Lote Zero, uma busca ampla em `activities_staging` (sem filtro de fonte) encontrou 14 registos com `source_key = 'prefeitura_iguaba_grande'`, `venue_resolution_status = 'matched'`, com títulos claramente alinhados ao produto ("Musicoterapia para Idosos", "Ginástica e Alongamento para Idosos", "Coral da Melhor Idade", etc.) e `occurrences` no formato `{ day_of_week, time }`. Investigação de proveniência revelou que **estes 14 registos não podem ter sido produzidos por nenhum caminho de código conhecido do Engine**.
+
+### `staging_id` afectados (14)
+
+```
+b6649bc6-695d-4a71-a05d-e4b8ca151589  Artesanato e Crochê para Idosos
+7f0de8e6-d9ae-4b81-9257-bbab6d561005  Coral da Melhor Idade
+fb606eb7-d6ca-49f2-ae57-ac62a88a60d1  Dança Sênior e Dança de Salão
+e670ac22-8c81-4b54-8517-9a63e287d1b2  Ginástica e Alongamento para Idosos
+4dbc3dbd-37ae-44dc-b335-b4f0eb34b158  Ioga para Idosos
+599e58a0-f763-4575-8957-b343ef2801c9  Aula de Libras para Idosos
+fb179f61-73b5-4675-9070-7c6be49d6ab4  Oficina da Memória
+9d570869-d29f-4ca7-8f76-b80d19a8d519  Oficina de Moda e Costura para Idosos
+bf30c6e1-8549-4ff8-87fa-1e122e8557cd  Musicoterapia para Idosos
+a96f0c42-c515-454b-a574-5e9f66992a30  Pilates para Idosos
+447634e3-16fb-4a42-a429-b8fa26369782  Aulas de Poesia para Idosos
+e7d69489-cb56-42df-be2c-be9618fbf8bb  Roda de Conversa para Idosos
+781aac36-51fc-4681-ad9f-766b0ef871a0  Oficina de Teatro para Idosos
+613f702b-8dd3-4553-9650-1ed872c45287  Zumba Gold para Idosos
+```
+
+### Evidência da inconsistência
+
+- Todos os 14 partilham `ingestion_run_id = '83396656-39a1-4092-8979-7ca96e36a0b7'` — comprovadamente uma execução real de `source_key = 'google_places'`, que coletou 59 *venues* de "Santo Amaro, Sao Paulo" (confirmado directamente em `raw_venue_items`), sem nenhuma relação registada com Iguaba Grande ou com *activities*
+- `raw_payload = {}` (vazio) nos 14 — nenhum `wp_post_id`, `extraction_method`, `extraction_confidence`, `review_reasons`; campos sempre presentes em qualquer saída real de `mapToRawActivityItems.ts`
+- `source_item_id` segue o padrão `iguaba-<nome-curto>-2025` (ex: `iguaba-musicoterapia-2025`) — estruturalmente incompatível com o padrão real de WordPress (`<wp_post_id>_<sub_event_index>`), usado em todas as outras linhas de Cabo Frio
+- É o **único** conjunto em toda a `raw_activity_items` com `source_key` incompatível com o `source_key` do seu próprio `ingestion_run_id` (confirmado por *query* exaustiva sobre a tabela inteira)
+- Busca exaustiva não encontrou nenhuma origem: `git grep` no código actual (`v9.0-engine-baseline`) e na `recovery/local-work-2026-09-19` não encontra nenhum `source_item_id` deste padrão; `git log --all -S` (todos os *commits*, incluindo os já substituídos) confirma que a *string* `"iguaba-artesanato"` (e variantes) **nunca existiu em nenhum *commit* deste repositório**; nenhum *script*/*seed*/*fixture* de inserção em `activities_staging`/`raw_activity_items` foi encontrado em nenhuma *branch*
+- `mapToRawActivityItems.ts` tem `source_key: 'prefeitura_cabo_frio'` fixo no código — nunca pode produzir `'prefeitura_iguaba_grande'`; não existe nenhuma *config* de `iguaba-grande` em `ingest-wordpress-content.ts`
+
+### Declaração
+
+**Estes 14 registos não podem ser usados como evidência para Discovery, recorrência, *parsing*, ou qualquer decisão arquitectural.** A causa real da sua existência é desconhecida — nenhuma hipótese específica (inserção manual, *script* externo não versionado, etc.) foi confirmada, e nenhuma é afirmada aqui como factual.
+
+### Isolamento
+
+Documental, não estrutural — decisão explícita de não criar *flag*/coluna/*schema* novo para um incidente isolado de 14 linhas. Os registos permanecem inalterados em `staging.activities_staging`; esta secção é o registo permanente que os desqualifica como evidência, para qualquer leitura futura deste documento ou da base de dados.
