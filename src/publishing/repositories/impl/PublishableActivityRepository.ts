@@ -16,15 +16,13 @@ import type {
 } from '../../types/domain.js';
 import { logger } from '../../../lib/logger.js';
 
-// Sprint 8.7 (bugfix de schema real): a SELECT original assumia body_text,
-// event_date, source_url, phone, updated_at — nenhum destes existe. Nomes
-// corrigidos: description, occurrences (jsonb), external_url, contact_phone,
-// collected_at (ver PublishableVenueRepository — mesmo raciocínio de dirty
-// signal, ADR aplicável ao venue estende-se por analogia ao activity).
+// Level 3, 2026-09-23 — source_item_id acrescentado ao SELECT: necessário
+// para deriveEngineActivityId(sourceKey, sourceItemId) — Stable Source
+// Activity Identity.
 const SELECT = `
   id, product_key, promoted_activity_id, resolved_venue_staging_id, venue_resolution_status,
   raw_activity_items!inner (
-    source_key,
+    source_key, source_item_id,
     title, description, occurrences, image_url, external_url, contact_phone,
     collected_at
   )
@@ -91,6 +89,11 @@ function mapRow(
     stagingId:             row['id'] as StagingActivityId,
     productKey:            row['product_key'] as string,
     sourceKey:             (raw['source_key'] as string | null) ?? 'prefeitura_cabo_frio',
+    // Level 3, 2026-09-23 — Stable Source Activity Identity. Fallback ''
+    // nunca deveria ocorrer na prática (source_item_id é not-null em
+    // raw_activity_items), mas evita undefined chegar a
+    // deriveEngineActivityId() se algum dado histórico surpreender.
+    sourceItemId:          (raw['source_item_id'] as string | null) ?? '',
     title:                 (raw['title'] as string | null) ?? '',
     description:           (raw['description'] as string | null) ?? null,
     occurrences:           parseOccurrences(raw['occurrences']),
@@ -179,23 +182,12 @@ export class PublishableActivityRepository implements IPublishableActivityReposi
    * Necessário porque public.activities.venue_id referencia public.venues.id,
    * mas em staging temos apenas o staging venue ID.
    *
-   * CORRECÇÃO (pós-Sprint 2): antes, o mapeamento de cada linha (via
-   * mapRow(), que chama parseOccurrences() internamente) era feito com
-   * `rows.map(...)`. Se QUALQUER linha tivesse um `occurrences` inválido
-   * (ex: formato de recorrência por dia da semana, sem `date`), a excepção
-   * lançada por parseOccurrences() propagava-se através do `.map()`,
-   * rejeitando esta função inteira — e, por consequência, findUnpublished()
-   * e findDirty() — antes de qualquer activity, válida ou não, ser devolvida.
-   * Isto contradizia directamente a responsabilidade já documentada no
-   * cabeçalho de ActivityPublisher.ts: "um erro numa activity não interrompe
-   * o processamento das restantes" — essa garantia só existia no loop de
-   * decisão/execução do Publisher, nunca nesta etapa de leitura.
-   *
-   * Agora cada linha é processada isoladamente: uma falha é registada via
-   * log estruturado (stagingId, source, título, motivo) para investigação,
-   * e a linha é excluída do resultado — nunca publicada, nunca silenciosa
-   * a ponto de ser irrecuperável para auditoria, mas também não impede as
-   * restantes linhas válidas de chegarem ao Publisher.
+   * Cada linha é processada isoladamente: uma falha (ex: occurrences
+   * malformado) é registada via log estruturado (stagingId, source, título,
+   * motivo) para investigação, e a linha é excluída do resultado — nunca
+   * publicada, nunca silenciosa a ponto de ser irrecuperável para auditoria,
+   * mas também não impede as restantes linhas válidas de chegarem ao
+   * Publisher.
    *
    * Não contabilizado em ActivityPublicationMetrics.errors — isso exigiria
    * alargar IPublishableActivityRepository para devolver também uma

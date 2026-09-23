@@ -1,6 +1,14 @@
 /**
  * src/publishing/__tests__/repositories.contract.test.ts
  * Testes de contrato com mocks — zero Supabase, zero rede.
+ *
+ * CORRECÇÃO (Level 3, 2026-09-23) — Stable Source Activity Identity.
+ * mockActivity ganhou sourceItemId (campo novo, obrigatório em
+ * PublishableActivity). findPublicationStateByEngineId (activity) passa a
+ * receber EngineActivityId, não mais StagingActivityId — novo E_ACT_ID
+ * introduzido só para essa chamada; S_ACT_ID continua a representar o
+ * staging id em todos os outros usos (stagingId, findByEngineId de venue,
+ * etc.), inalterado.
  */
 
 import { describe, it, expect, vi } from 'vitest';
@@ -12,17 +20,20 @@ import type {
   PublicActivityId,
   StagingVenueId,
   StagingActivityId,
+  EngineActivityId,
   PublishableVenue,
   PublishableActivity,
 } from '../types/domain.js';
 
-// ── Fixtures ──────────────────────────────────────────────────────────────────
+// ── Fixtures ─────────────────────────────────────────────────────────────
 
 const RUN_ID      = 'run-001'  as PublicationRunId;
 const VENUE_ID    = 'venue-001' as PublicVenueId;
 const ACTIVITY_ID = 'act-001'  as PublicActivityId;
 const S_VENUE_ID  = 'sv-001'   as StagingVenueId;
 const S_ACT_ID    = 'sa-001'   as StagingActivityId;
+// Level 3, 2026-09-23 — identidade estável, distinta do staging id bruto.
+const E_ACT_ID    = 'ea-001'   as EngineActivityId;
 
 const mockVenue: PublishableVenue = {
   stagingId:        S_VENUE_ID,
@@ -45,6 +56,7 @@ const mockActivity: PublishableActivity = {
   stagingId:             S_ACT_ID,
   productKey:            'vivere-60-mais',
   sourceKey:             'prefeitura_cabo_frio',
+  sourceItemId:          '146007_0',
   title:                 'Yoga no Forte',
   description:           'Aula de yoga na praia',
   occurrences:           [{ date: '2026-08-01', time: null, endDate: null, endTime: null }],
@@ -60,7 +72,7 @@ const mockActivity: PublishableActivity = {
   stagingUpdatedAt:      new Date('2026-07-01'),
 };
 
-// ── Mock factory ──────────────────────────────────────────────────────────────
+// ── Mock factory ─────────────────────────────────────────────────────────
 
 function makeMockRepos(): IPublishingRepositorySet {
   return PublishingRepositoryFactory.fromObject({
@@ -106,7 +118,7 @@ function makeMockRepos(): IPublishingRepositorySet {
   });
 }
 
-// ── Testes ────────────────────────────────────────────────────────────────────
+// ── Testes ───────────────────────────────────────────────────────────────
 
 describe('PublishingRepositoryFactory.fromObject', () => {
   it('retorna o mesmo objecto sem transformação', () => {
@@ -206,7 +218,8 @@ describe('IPublicActivityRepository (contrato)', () => {
 
   it('findPublicationStateByEngineId retorna null quando não publicado (método aditivo, Sprint 8.5)', async () => {
     const repos  = makeMockRepos();
-    const result = await repos.publicActivity.findPublicationStateByEngineId(S_ACT_ID);
+    // Level 3, 2026-09-23 — E_ACT_ID (EngineActivityId), não mais S_ACT_ID.
+    const result = await repos.publicActivity.findPublicationStateByEngineId(E_ACT_ID);
     expect(result).toBeNull();
   });
 });

@@ -5,7 +5,7 @@
  * Zero acoplamento a Supabase, Hono ou qualquer framework externo.
  */
 
-// ── Branded IDs ───────────────────────────────────────────────────────────────
+// ── Branded IDs ──────────────────────────────────────────────────────────
 
 export type PublicationRunId    = string & { readonly _brand: 'PublicationRunId' };
 export type PublicVenueId       = string & { readonly _brand: 'PublicVenueId' };
@@ -16,11 +16,27 @@ export type PublicationEventId  = string & { readonly _brand: 'PublicationEventI
 export type StagingVenueId      = string & { readonly _brand: 'StagingVenueId' };
 export type StagingActivityId   = string & { readonly _brand: 'StagingActivityId' };
 
-// ── Engine status ─────────────────────────────────────────────────────────────
+/**
+ * Stable Source Activity Identity (Level 3, 2026-09-23).
+ *
+ * Identidade de uma activity DENTRO da Engine, estável entre execuções de
+ * ingestão — ao contrário de StagingActivityId (activities_staging.id),
+ * que é sempre novo a cada ingestion_run (raw_activity_items é append-only,
+ * a mesma activity real recolhida de novo gera uma linha de staging nova).
+ *
+ * Derivado deterministicamente de (source_key, source_item_id) via UUIDv5
+ * — ver src/publishing/services/activityIdentity.ts. Tipo próprio,
+ * deliberadamente distinto de StagingActivityId, para o compilador nunca
+ * deixar passar um staging_id efémero onde uma identidade estável é
+ * esperada (ou vice-versa).
+ */
+export type EngineActivityId    = string & { readonly _brand: 'EngineActivityId' };
+
+// ── Engine status ────────────────────────────────────────────────────────
 
 export type EngineStatus = 'active' | 'archived' | 'draft';
 
-// ── Publishable venue — o que o engine lê de staging ─────────────────────────
+// ── Publishable venue — o que o engine lê de staging ────────────────────
 
 /**
  * Venue pronto para publicação — JOIN de venues_staging + raw_venue_items.
@@ -49,7 +65,7 @@ export interface PublishableVenue {
   readonly city:               string | null;
 }
 
-// ── Publishable activity — o que o engine lê de staging ──────────────────────
+// ── Publishable activity — o que o engine lê de staging ──────────────────
 
 /**
  * Uma ocorrência de raw_activity_items.occurrences (Sprint 8.7 / ADR-0020).
@@ -69,6 +85,15 @@ export interface PublishableActivity {
   readonly stagingId:              StagingActivityId;
   readonly productKey:             string;
   readonly sourceKey:              string;
+  /**
+   * Stable Source Activity Identity (Level 3, 2026-09-23) —
+   * raw_activity_items.source_item_id. Junto com sourceKey, forma a
+   * identidade estável de fonte usada para derivar EngineActivityId
+   * (deriveEngineActivityId). Estável entre execuções para o mesmo post/
+   * sub-evento (confirmado: posicional mas determinístico para o mesmo
+   * conteúdo HTML — ver investigação de identidade, 2026-09-21/22).
+   */
+  readonly sourceItemId:           string;
   readonly title:                  string;
   readonly description:            string | null;
   /**
@@ -116,7 +141,7 @@ export interface PublishableActivity {
   readonly stagingUpdatedAt:       Date;
 }
 
-// ── Publication run ────────────────────────────────────────────────────────────
+// ── Publication run ────────────────────────────────────────────────────
 
 export type PublicationRunStatus = 'running' | 'success' | 'partial' | 'failed';
 
@@ -143,7 +168,7 @@ export interface PublicationRunSummary {
   readonly metrics:      PublicationRunMetrics | null;
 }
 
-// ── Publication event ─────────────────────────────────────────────────────────
+// ── Publication event ──────────────────────────────────────────────────
 
 export type PublicationEventType =
   | 'VenuePublished'
@@ -246,6 +271,9 @@ export interface OperationalVenueInput {
  * `imagem_url` mantém o typo intencional documentado no ADR-0015.
  * `venue_id` pode ser null (activities com venue_resolution_status = proposed_new,
  * Architecture Book v1.1 §5.3).
+ *
+ * `engine_activity_id: EngineActivityId` (Level 3, 2026-09-23) — antes era
+ * StagingActivityId; ver activityIdentity.ts para a mudança de contrato.
  */
 export interface OperationalActivityInput {
   readonly title:               string;
@@ -256,7 +284,7 @@ export interface OperationalActivityInput {
   readonly url:                 string | null;
   readonly phone:               string | null;
   readonly venue_id:            PublicVenueId | null;
-  readonly engine_activity_id:  StagingActivityId;
+  readonly engine_activity_id:  EngineActivityId;
   readonly source_key:          string;
   readonly product_key:         string;
   readonly engine_status:       EngineStatus;

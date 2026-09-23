@@ -12,6 +12,7 @@ import type {
   PublicationEventId,
   StagingVenueId,
   StagingActivityId,
+  EngineActivityId,
   PublishableVenue,
   PublishableActivity,
   PublicationRunStatus,
@@ -24,7 +25,7 @@ import type {
   ActivityFunnel,
 } from '../types/domain.js';
 
-// ── IPublishableVenueRepository ───────────────────────────────────────────────
+// ── IPublishableVenueRepository ──────────────────────────────────────────
 
 /**
  * Lê venues de staging prontos para publicar.
@@ -48,7 +49,7 @@ export interface IPublishableVenueRepository {
   findToArchive(productKey: string): Promise<readonly PublishableVenue[]>;
 }
 
-// ── IPublishableActivityRepository ───────────────────────────────────────────
+// ── IPublishableActivityRepository ───────────────────────────────────────
 
 export interface IPublishableActivityRepository {
   /** Activities com decisão humana tomada e ainda não publicadas. */
@@ -68,7 +69,7 @@ export interface IPublishableActivityRepository {
   describeFunnel(productKey: string): Promise<ActivityFunnel>;
 }
 
-// ── IPublicVenueRepository ────────────────────────────────────────────────────
+// ── IPublicVenueRepository ────────────────────────────────────────────────
 
 /**
  * Escreve em public.venues.
@@ -103,7 +104,7 @@ export interface IPublicVenueRepository {
   findPublicationStateByEngineId(engineVenueId: StagingVenueId): Promise<PublicVenuePublicationState | null>;
 }
 
-// ── IPublicActivityRepository ─────────────────────────────────────────────────
+// ── IPublicActivityRepository ────────────────────────────────────────────
 
 export interface IPublicActivityRepository {
   /** Insere activity em public.activities. Retorna o novo id público. */
@@ -118,20 +119,31 @@ export interface IPublicActivityRepository {
   /** Actualiza promoted_activity_id em staging após INSERT. */
   linkToStaging(stagingActivityId: StagingActivityId, publicActivityId: PublicActivityId): Promise<void>;
 
-  /** Busca por engine_activity_id. */
-  findByEngineId(stagingActivityId: StagingActivityId): Promise<PublicActivityId | null>;
+  /**
+   * Busca por engine_activity_id.
+   *
+   * Level 3, 2026-09-23 — Stable Source Activity Identity. Parâmetro
+   * mudou de StagingActivityId (staging id bruto, efémero) para
+   * EngineActivityId (identidade estável, derivada de source_key +
+   * source_item_id via UUIDv5 — ver activityIdentity.ts).
+   */
+  findByEngineId(engineActivityId: EngineActivityId): Promise<PublicActivityId | null>;
 
   /**
    * Estado de publicação da activity pública (id, last_published_at, engine_status),
    * por engine_activity_id. Método aditivo (Sprint 8.5) — mesmo padrão de
    * IPublicVenueRepository.findPublicationStateByEngineId (Sprint 8.4).
-   * Usado pelo ActivityPublisher para o dirty check real. Null se a activity
-   * nunca foi publicada.
+   * Usado pelo ActivityPublisher para a reconciliação por identidade
+   * estável (Level 3, 2026-09-23) antes de decidir insert/update. Null se
+   * a activity nunca foi publicada sob esta identidade de fonte.
+   *
+   * Parâmetro EngineActivityId, não StagingActivityId — mesma mudança que
+   * findByEngineId() acima.
    */
-  findPublicationStateByEngineId(engineActivityId: StagingActivityId): Promise<PublicActivityPublicationState | null>;
+  findPublicationStateByEngineId(engineActivityId: EngineActivityId): Promise<PublicActivityPublicationState | null>;
 }
 
-// ── IPublicationRunRepository ─────────────────────────────────────────────────
+// ── IPublicationRunRepository ────────────────────────────────────────────
 
 export interface IPublicationRunRepository {
   /** Inicia uma nova run. Retorna o runId. */
@@ -150,14 +162,14 @@ export interface IPublicationRunRepository {
   findLastCompleted(productKey: string): Promise<PublicationRunSummary | null>;
 }
 
-// ── IPublicationEventRepository ───────────────────────────────────────────────
+// ── IPublicationEventRepository ──────────────────────────────────────────
 
 export interface IPublicationEventRepository {
   /** Regista um evento de publicação. Append-only. */
   record(event: PublicationEvent): Promise<PublicationEventId>;
 }
 
-// ── IPublishingRepositorySet ──────────────────────────────────────────────────
+// ── IPublishingRepositorySet ──────────────────────────────────────────────
 
 /**
  * Conjunto completo de repositórios do Publishing Engine.

@@ -19,18 +19,45 @@
  * (raw_activity_items.occurrences). PublicationTransformer.transformActivity
  * selecciona a próxima ocorrência futura (>= asOf, sempre injectado) e
  * devolve null quando nenhuma existe — a decisão sobre esse null (nunca
- * inserir vs arquivar) é tomada aqui, nos builders de decisão.
+ * inserir vs arquivar) é tomada aqui, no builder de decisão.
  *
  * Sprint 8.7 — preview(): publish() e preview() partilham exactamente a
- * mesma lógica de decisão (buildInsertDecision/buildDirtyDecision) — só a
- * execução diverge, tal como em VenuePublisher. Garante que o preview nunca
- * diverge do comportamento real.
+ * mesma lógica de decisão (buildDecision) — só a execução diverge, tal como
+ * em VenuePublisher. Garante que o preview nunca diverge do comportamento
+ * real.
  *
  * Arquivação manual (archiveActivity()): capacidade explícita, separada do
  * fluxo de decisão de publish()/preview() — ver nota completa mais abaixo.
+ *
+ * CORRECÇÃO ESTRUTURAL (Level 3, 2026-09-23) — Stable Source Activity
+ * Identity. Antes desta mudança, o código distinguia "unpublished" (via
+ * findUnpublished(), promoted_activity_id IS NULL NESTA linha de staging)
+ * de "dirty" (findDirty(), promoted_activity_id IS NOT NULL NESTA linha) —
+ * dois caminhos de decisão separados (buildInsertDecision/
+ * buildDirtyDecision). Isto estava estruturalmente errado: raw_activity_items
+ * é append-only (ver investigação de identidade, 2026-09-21/22) — a MESMA
+ * activity real, recolhida de novo numa execução posterior, gera sempre uma
+ * linha de staging NOVA, com promoted_activity_id sempre NULL, mesmo que a
+ * mesma activity já tenha sido publicada antes via uma linha de staging
+ * diferente. findUnpublished() nunca detectava isto, e buildInsertDecision()
+ * nunca verificava se já existia uma public.activities para a mesma
+ * identidade de fonte antes de decidir 'insert' — resultado: segunda linha
+ * pública duplicada a cada recolecta.
+ *
+ * Os dois caminhos foram fundidos num único buildDecision(), que agora
+ * reconcilia SEMPRE pela identidade estável (deriveEngineActivityId,
+ * source_key+source_item_id) antes de decidir insert vs update — não mais
+ * pela distinção (agora comprovadamente não-fiável) entre findUnpublished()/
+ * findDirty(). Ambas as listas continuam a ser lidas e processadas (nenhuma
+ * removida), mas através do mesmo builder.
+ *
+ * Backfill Safety Audit (2026-09-23): 0 de 48 public.activities têm
+ * engine_activity_id não-nulo hoje — nenhuma publicação real da Engine
+ * ainda aconteceu. Mudança limpa, sem dados a reconciliar.
  */
 
 import { PublicationTransformer } from './PublicationTransformer.js';
+import { deriveEngineActivityId } from './activityIdentity.js';
 import type {
   IPublishableActivityRepository,
   IPublicActivityRepository,
@@ -40,11 +67,11 @@ import type {
   PublishableActivity,
   OperationalActivityInput,
   PublicActivityId,
-  StagingActivityId,
+  EngineActivityId,
   PublicationRunId,
 } from '../types/domain.js';
 
-// ── Métricas parciais de activities ───────────────────────────────────────────
+// ── Métricas parciais de activities ─────────────────────────────────────
 
 export interface ActivityPublicationMetrics {
   readonly activitiesPublished: number;
@@ -55,7 +82,7 @@ export interface ActivityPublicationMetrics {
   readonly durationMs:          number;
 }
 
-// ── Decisão por activity (Sprint 8.7) ─────────────────────────────────────────
+// ── Decisão por activity (Sprint 8.7) ───────────────────────────────────
 
 export type ActivityDecision =
   | { readonly action: 'insert';          readonly activity: PublishableActivity; readonly operational: OperationalActivityInput }
@@ -79,7 +106,9 @@ export class ActivityPublisher {
    * Cada activity é processada isoladamente — um erro numa activity não
    * interrompe o processamento das restantes; é contabilizado em `errors`.
    * Não descobre nem arquiva activities por outros motivos automaticamente
-   * — ver archiveActivity().
+   * — ver archiveActivity(). Stale detection por ausência de fonte
+   * continua fora de escopo (Level 3, 2026-09-23) — dívida arquitectural
+   * separada.
    */
   async publish(productKey: string, runId: PublicationRunId): Promise<ActivityPublicationMetrics> {
     const startedAt = this.clock();
@@ -96,25 +125,15 @@ export class ActivityPublisher {
       this.publishableActivityRepo.findDirty(productKey),
     ]);
 
-    for (const activity of unpublished) {
+    for (const activity of [...unpublished, ...dirtyCandidates]) {
       try {
-        const decision = this.buildInsertDecision(activity, now);
-        await this.executeDecision(decision, runId, productKey);
-        if (decision.action === 'insert') activitiesPublished++;
-        else activitiesSkipped++; // skip_expired
-      } catch {
-        errors++;
-      }
-    }
-
-    for (const activity of dirtyCandidates) {
-      try {
-        const decision = await this.buildDirtyDecision(activity, now);
+        const decision = await this.buildDecision(activity, now);
         if (decision.action === 'error') throw new Error(decision.reason);
         await this.executeDecision(decision, runId, productKey);
-        if (decision.action === 'update') activitiesUpdated++;
+        if (decision.action === 'insert') activitiesPublished++;
+        else if (decision.action === 'update') activitiesUpdated++;
         else if (decision.action === 'archive_expired') activitiesArchived++;
-        else activitiesSkipped++; // skip_not_dirty
+        else activitiesSkipped++; // skip_not_dirty, skip_expired
       } catch {
         errors++;
       }
@@ -127,8 +146,8 @@ export class ActivityPublisher {
 
   /**
    * Sprint 8.7 — calcula as decisões para todas as activities pendentes de
-   * um produto, SEM executar nenhuma escrita. Usa exactamente os mesmos
-   * builders que publish().
+   * um produto, SEM executar nenhuma escrita. Usa exactamente o mesmo
+   * builder que publish().
    */
   async preview(productKey: string): Promise<readonly ActivityDecision[]> {
     const now = this.clock();
@@ -139,13 +158,9 @@ export class ActivityPublisher {
       this.publishableActivityRepo.findDirty(productKey),
     ]);
 
-    for (const activity of unpublished) {
-      decisions.push(this.buildInsertDecision(activity, now));
-    }
-
-    for (const activity of dirtyCandidates) {
+    for (const activity of [...unpublished, ...dirtyCandidates]) {
       try {
-        decisions.push(await this.buildDirtyDecision(activity, now));
+        decisions.push(await this.buildDecision(activity, now));
       } catch (err) {
         decisions.push({ action: 'error', activity, reason: err instanceof Error ? err.message : String(err) });
       }
@@ -155,20 +170,21 @@ export class ActivityPublisher {
   }
 
   /**
-   * Arquiva uma activity publicada, por engine_activity_id (staging id).
-   * Capacidade explícita — ver nota de arquivação no cabeçalho do módulo.
-   * Fora do fluxo de decisão de publish()/preview(); não descoberta
-   * automaticamente por nenhum dos dois.
+   * Arquiva uma activity publicada, por engine_activity_id (identidade
+   * estável de fonte — Level 3, 2026-09-23; antes desta correcção, era o
+   * staging id bruto). Capacidade explícita — ver nota de arquivação no
+   * cabeçalho do módulo. Fora do fluxo de decisão de publish()/preview();
+   * não descoberta automaticamente por nenhum dos dois.
    */
   async archiveActivity(
-    engineActivityId: StagingActivityId,
+    engineActivityId: EngineActivityId,
     runId: PublicationRunId,
     productKey: string,
   ): Promise<void> {
     const state = await this.publicActivityRepo.findPublicationStateByEngineId(engineActivityId);
     if (state === null) {
       throw new Error(
-        `ActivityPublisher.archiveActivity: staging activity ${engineActivityId} sem registo correspondente em public.activities`,
+        `ActivityPublisher.archiveActivity: engine activity ${engineActivityId} sem registo correspondente em public.activities`,
       );
     }
 
@@ -184,27 +200,49 @@ export class ActivityPublisher {
     });
   }
 
-  // ── Builders de decisão — puros/só-leitura, partilhados por publish() e preview() ──
+  // ── Builder de decisão — puro/só-leitura, partilhado por publish() e preview() ──
 
-  private buildInsertDecision(activity: PublishableActivity, now: Date): ActivityDecision {
-    const operational = PublicationTransformer.transformActivity(activity, now, now);
-    if (operational === null) {
-      // ADR-0020, regra 5: nunca publicada e sem ocorrência futura → não inserir.
-      return { action: 'skip_expired', activity };
-    }
-    return { action: 'insert', activity, operational };
-  }
+  /**
+   * Reconciliação por identidade estável (Level 3, 2026-09-23). Substitui
+   * os antigos buildInsertDecision()/buildDirtyDecision() — a distinção
+   * entre "nunca publicada" e "já publicada" já não pode ser decidida pela
+   * própria linha de staging (promoted_activity_id), porque uma recolecta
+   * sempre gera uma linha de staging nova, com promoted_activity_id NULL,
+   * independentemente de a mesma activity real já estar publicada via
+   * outra linha. A verificação correcta é sempre: "já existe
+   * public.activities para esta identidade de fonte (source_key +
+   * source_item_id)?" — respondida aqui, uma vez, antes de qualquer
+   * decisão de insert/update/skip/archive.
+   */
+  private async buildDecision(activity: PublishableActivity, now: Date): Promise<ActivityDecision> {
+    const engineActivityId = deriveEngineActivityId(activity.sourceKey, activity.sourceItemId) as EngineActivityId;
+    const state = await this.publicActivityRepo.findPublicationStateByEngineId(engineActivityId);
 
-  private async buildDirtyDecision(activity: PublishableActivity, now: Date): Promise<ActivityDecision> {
-    const state = await this.publicActivityRepo.findPublicationStateByEngineId(activity.stagingId);
     if (state === null) {
-      return {
-        action: 'error',
-        activity,
-        reason: `staging activity ${activity.stagingId} sem registo correspondente em public.activities`,
-      };
+      // CORRECÇÃO (Level 2 review, 2026-09-23) — regression restaurada.
+      // Se esta linha de staging já alega estar ligada a um
+      // public.activities específico (promotedActivityId preenchido),
+      // mas a identidade estável de fonte não tem nenhum registo público
+      // correspondente, isto é uma inconsistência de integridade
+      // referencial — não uma candidata legítima a nova publicação.
+      // Reportada como erro, nunca silenciosamente tratada como insert.
+      if (activity.promotedActivityId !== null) {
+        return {
+          action: 'error',
+          activity,
+          reason: `activity ${activity.stagingId} tem promotedActivityId=${activity.promotedActivityId} mas nenhum public.activities encontrado para a identidade estável ${engineActivityId}`,
+        };
+      }
+      // Nunca publicada, promotedActivityId null — candidata legítima a insert.
+      const operational = PublicationTransformer.transformActivity(activity, now, now);
+      if (operational === null) {
+        // ADR-0020, regra 5: nunca publicada e sem ocorrência futura → não inserir.
+        return { action: 'skip_expired', activity };
+      }
+      return { action: 'insert', activity, operational };
     }
 
+    // Já existe public.activities para esta identidade — candidata a update/skip/archive.
     if (activity.stagingUpdatedAt <= state.lastPublishedAt) {
       return { action: 'skip_not_dirty', activity, publicActivityId: state.publicActivityId };
     }
@@ -219,7 +257,7 @@ export class ActivityPublisher {
     return { action: 'update', activity, operational, publicActivityId: state.publicActivityId };
   }
 
-  // ── Execução — só chamada por publish(), nunca por preview() ─────────────────
+  // ── Execução — só chamada por publish(), nunca por preview() ────────────
 
   private async executeDecision(decision: ActivityDecision, runId: PublicationRunId, productKey: string): Promise<void> {
     switch (decision.action) {
@@ -240,6 +278,13 @@ export class ActivityPublisher {
       case 'update': {
         const adapted = ActivityPublisher.adaptToPublishableActivity(decision.operational, decision.activity);
         await this.publicActivityRepo.update(decision.publicActivityId, adapted);
+        // Level 3, 2026-09-23 — linkToStaging também no caminho de update:
+        // a NOVA linha de staging (a que gerou esta reconciliação) ainda
+        // não tinha promoted_activity_id preenchido (era isso que a fazia
+        // parecer "nunca publicada" antes desta correcção) — sem isto, a
+        // mesma linha voltaria a ser candidata a reconciliação na próxima
+        // run, indefinidamente.
+        await this.publicActivityRepo.linkToStaging(decision.activity.stagingId, decision.publicActivityId);
         await this.eventRepo.record({
           eventType:  'ActivityUpdated',
           entityType: 'activity',
@@ -258,7 +303,7 @@ export class ActivityPublisher {
           entityId:   decision.publicActivityId,
           productKey,
           runId,
-          payload: { reason: 'expired', engineActivityId: decision.activity.stagingId },
+          payload: { reason: 'expired' },
         });
         return;
       }
@@ -276,9 +321,17 @@ export class ActivityPublisher {
     original: PublishableActivity,
   ): PublishableActivity {
     return {
-      stagingId:             operational.engine_activity_id,
+      // Level 3, 2026-09-23 — stagingId aqui carrega deliberadamente o
+      // engine_activity_id derivado (identidade estável), não o staging id
+      // bruto da linha actual — mesmo padrão de reaproveitamento de campo
+      // já existente antes desta correcção (o valor mudou de sentido, a
+      // reutilização do campo em si não é nova). PublicActivityRepository
+      // lê este campo como a identidade a escrever em
+      // public.activities.engine_activity_id.
+      stagingId:             operational.engine_activity_id as unknown as PublishableActivity['stagingId'],
       productKey:            operational.product_key,
       sourceKey:             operational.source_key,
+      sourceItemId:          original.sourceItemId, // pass-through, não usado na escrita
       title:                 operational.title,
       description:           operational.description,
       occurrences:           original.occurrences, // pass-through, não usado na escrita

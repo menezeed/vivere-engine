@@ -1,6 +1,16 @@
 /**
  * src/publishing/__tests__/PublicationTransformer.test.ts
  * Sprint 8.3/8.7 — testes do componente puro. Zero Supabase, zero rede, zero relógio real.
+ *
+ * CORRECÇÃO (Level 3, 2026-09-23) — Stable Source Activity Identity.
+ * makeActivity() ganhou sourceItemId (campo novo, obrigatório em
+ * PublishableActivity). engine_activity_id deixou de ser igual a
+ * activity.stagingId — passa a ser deriveEngineActivityId(sourceKey,
+ * sourceItemId), determinístico. O valor esperado abaixo
+ * ('7235d91b-a8d5-52fe-8645-4b6b41e09f43') é o mesmo golden vector de
+ * activityIdentity.test.ts, para sourceKey='prefeitura_cabo_frio' +
+ * sourceItemId='146007_0' — mantido consistente entre os dois arquivos de
+ * teste deliberadamente.
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
@@ -14,11 +24,17 @@ import type {
   PublicVenueId,
 } from '../types/domain.js';
 
-// ── Fixtures ──────────────────────────────────────────────────────────────────
+// ── Fixtures ─────────────────────────────────────────────────────────────
 
 const S_VENUE_ID = 'sv-001' as StagingVenueId;
 const S_ACT_ID    = 'sa-001' as StagingActivityId;
 const VENUE_ID    = 'venue-001' as PublicVenueId;
+
+// Level 3, 2026-09-23 — identidade estável desta fixture, usada para
+// calcular o engine_activity_id esperado nos testes abaixo. Mesmo par
+// (sourceKey, sourceItemId) do golden vector em activityIdentity.test.ts.
+const SOURCE_ITEM_ID = '146007_0';
+const EXPECTED_ENGINE_ACTIVITY_ID = '7235d91b-a8d5-52fe-8645-4b6b41e09f43';
 
 const PUBLISHED_AT = new Date('2026-07-09T12:00:00.000Z');
 // asOf usado nos testes de activity — "agora", para efeitos de selecção de
@@ -53,6 +69,7 @@ function makeActivity(overrides: Partial<PublishableActivity> = {}): Publishable
     stagingId:             S_ACT_ID,
     productKey:            'vivere-60-mais',
     sourceKey:             'prefeitura_cabo_frio',
+    sourceItemId:          SOURCE_ITEM_ID,
     title:                 'Yoga no Forte',
     description:           'Aula de yoga na praia',
     occurrences:           [futureOccurrence],
@@ -72,7 +89,7 @@ function makeActivity(overrides: Partial<PublishableActivity> = {}): Publishable
 
 const fullActivity = makeActivity();
 
-// ── transformVenue ───────────────────────────────────────────────────────────
+// ── transformVenue ──────────────────────────────────────────────────────
 
 describe('PublicationTransformer.transformVenue', () => {
   it('mapeia todos os campos da whitelist ADR-0018 (COPY)', () => {
@@ -139,7 +156,7 @@ describe('PublicationTransformer.transformVenue', () => {
   });
 });
 
-// ── transformActivity ─────────────────────────────────────────────────────────
+// ── transformActivity ────────────────────────────────────────────────────
 
 describe('PublicationTransformer.transformActivity', () => {
   it('mapeia todos os campos da whitelist ADR-0018 (COPY), com start_date/end_date da próxima ocorrência', () => {
@@ -153,7 +170,9 @@ describe('PublicationTransformer.transformActivity', () => {
     expect(result!.url).toBe('https://cabofrio.rj.gov.br/yoga');
     expect(result!.phone).toBe('+55 22 98888-0000');
     expect(result!.venue_id).toBe(VENUE_ID);
-    expect(result!.engine_activity_id).toBe(S_ACT_ID);
+    // Level 3, 2026-09-23 — já não é S_ACT_ID (stagingId bruto); é a
+    // identidade estável derivada de (sourceKey, sourceItemId).
+    expect(result!.engine_activity_id).toBe(EXPECTED_ENGINE_ACTIVITY_ID);
     expect(result!.source_key).toBe('prefeitura_cabo_frio');
     expect(result!.product_key).toBe('vivere-60-mais');
   });
@@ -204,7 +223,7 @@ describe('PublicationTransformer.transformActivity', () => {
   });
 });
 
-// ── transformActivity — múltiplas ocorrências e expiração (ADR-0020) ─────────
+// ── transformActivity — múltiplas ocorrências e expiração (ADR-0020) ────────
 
 describe('PublicationTransformer.transformActivity — ADR-0020', () => {
   it('selecciona a primeira ocorrência futura entre várias, ordenadas ou não', () => {
@@ -259,7 +278,7 @@ describe('PublicationTransformer.transformActivity — ADR-0020', () => {
   });
 });
 
-// ── Pureza e determinismo ────────────────────────────────────────────────────
+// ── Pureza e determinismo ────────────────────────────────────────────────
 
 describe('PublicationTransformer — pureza e determinismo', () => {
   beforeEach(() => {

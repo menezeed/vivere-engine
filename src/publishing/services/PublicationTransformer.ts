@@ -25,6 +25,16 @@
  * (Sprint 8.4) actuam como Anti-Corruption Layer entre este componente e
  * IPublicVenueRepository/IPublicActivityRepository, que continuam a aceitar
  * PublishableVenue/PublishableActivity (contratos congelados da Sprint 8.2).
+ *
+ * CORRECÇÃO (Level 3, 2026-09-23) — Stable Source Activity Identity.
+ * engine_activity_id deixou de ser activity.stagingId (efémero — novo a
+ * cada ingestion_run, ver ADR sobre raw_activity_items append-only) e
+ * passou a ser deriveEngineActivityId(activity.sourceKey,
+ * activity.sourceItemId) — determinístico, estável entre execuções para a
+ * mesma activity real. Backfill Safety Audit (2026-09-23) confirmou 0 de
+ * 48 public.activities com engine_activity_id não-nulo — sem dados
+ * existentes a reconciliar, mudança limpa antes da primeira publicação
+ * real da Engine.
  */
 
 import type {
@@ -34,6 +44,7 @@ import type {
   OperationalActivityInput,
 } from '../types/domain.js';
 import { selectNextOccurrence, occurrenceToDateRange } from './occurrenceSelection.js';
+import { deriveEngineActivityId } from './activityIdentity.js';
 
 export class PublicationTransformer {
   /**
@@ -110,7 +121,8 @@ export class PublicationTransformer {
       phone:              activity.phone,
       // null permitido — activity com venue_resolution_status = proposed_new.
       venue_id:           activity.resolvedPublicVenueId,
-      engine_activity_id: activity.stagingId,
+      // Level 3, 2026-09-23 — identidade estável, não mais activity.stagingId.
+      engine_activity_id: deriveEngineActivityId(activity.sourceKey, activity.sourceItemId) as OperationalActivityInput['engine_activity_id'],
       source_key:         activity.sourceKey,
       product_key:        activity.productKey,
       engine_status:      'active',
