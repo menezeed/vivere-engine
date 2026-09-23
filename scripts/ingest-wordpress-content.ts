@@ -16,6 +16,7 @@
  * fonte continua não confirmado — fora do âmbito desta mudança.
  */
 
+import { fileURLToPath } from 'node:url';
 import { WordPressApiClient } from '../src/collectors/wordpress-content/WordPressApiClient';
 import { WordPressContentCollector } from '../src/collectors/wordpress-content/WordPressContentCollector';
 import { CABO_FRIO_CONFIG } from '../src/collectors/wordpress-content/config/cabo-frio';
@@ -73,7 +74,18 @@ async function main() {
 // directamente (CLI), nunca quando importado por um teste. Sem isto, o
 // simples `import { AVAILABLE_INSTANCES }` de um teste dispararia a CLI
 // real (Supabase incluído).
-if (import.meta.url === `file://${process.argv[1]}`) {
+//
+// Level 1 bugfix, 2026-09-23 — regressão confirmada em produção real
+// (Windows). A comparação directa de strings
+// `import.meta.url === \`file://${process.argv[1]}\`` falha
+// silenciosamente: import.meta.url usa barras normais e URL encoding
+// (`file:///C:/app/...`), enquanto process.argv[1] usa barras invertidas
+// nativas do SO (`C:\app\...`) — as duas strings nunca batem, main()
+// nunca corria, exit code 0, nenhum erro visível, nenhuma ingestão
+// acontecia. fileURLToPath() normaliza import.meta.url para o formato de
+// caminho nativo do SO antes de comparar — portátil, sem lógica
+// condicional por plataforma.
+if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
   main().catch((err) => {
     logger.error({ error: String(err) }, 'ingestão falhou');
     process.exit(1);
