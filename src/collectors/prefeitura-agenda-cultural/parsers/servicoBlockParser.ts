@@ -4,6 +4,9 @@ import {
   combineDayWithReference,
   extractParentheticalDayNumber,
   stripHtmlToText,
+  resolveYearForDayMonth,
+  parseDayMonthTextPt,
+  extractParentheticalDayMonth,
 } from './sharedTextUtils';
 
 /**
@@ -314,6 +317,36 @@ export function parseServicoBlock(
       const dayNumber = extractParentheticalDayNumber(ev.rawBlockText) ?? extractParentheticalDayNumber(ev.title);
       if (dayNumber !== null) {
         ev.date = combineDayWithReference(dayNumber, postPublishedAt.year, postPublishedAt.month);
+      }
+    }
+
+    // Fallback 2 (NOVO, Level 2, 2026-09-24) — day+month sem ano,
+    // textual ("17 de setembro") ou numérico ("(17/06)"). Só tentado
+    // se o Fallback 1 acima não resolveu — prioridade mais baixa,
+    // menos específico. Título primeiro (mais específico — é onde o
+    // padrão real da FLIC aparece), depois rawBlockText (cobre "Data:
+    // Quarta-feira (17/06)", onde o padrão numérico aparece dentro de
+    // uma linha rotulada, não no título do sub-evento).
+    //
+    // referenceDate usa o dia 1 do mês de publicação como âncora —
+    // aproximação conhecida: postPublishedAt só carrega {year, month},
+    // sem o dia exacto de publicação (contrato pré-existente, fora do
+    // escopo desta correcção). Para a decisão de virada de ano entre
+    // Y-1/Y/Y+1, os três candidatos ficam tipicamente a ~365 dias uns
+    // dos outros — a imprecisão de até ~30 dias introduzida pela
+    // aproximação do dia não muda qual candidato é o mais próximo,
+    // excepto em casos já muito próximos da fronteira do ano (ex:
+    // post publicado no primeiro dia de Janeiro) — risco residual
+    // pequeno, documentado, não eliminado por esta correcção.
+    if (!ev.date) {
+      const referenceDate = new Date(Date.UTC(postPublishedAt.year, postPublishedAt.month - 1, 1));
+      const dayMonth =
+        parseDayMonthTextPt(ev.title) ??
+        parseDayMonthTextPt(ev.rawBlockText) ??
+        extractParentheticalDayMonth(ev.title) ??
+        extractParentheticalDayMonth(ev.rawBlockText);
+      if (dayMonth) {
+        ev.date = resolveYearForDayMonth(dayMonth.day, dayMonth.month, referenceDate);
       }
     }
   }

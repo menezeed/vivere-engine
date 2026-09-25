@@ -50,6 +50,14 @@ export function parseExplicitDatePt(text: string): string | null {
  * IMPORTANTE: isto não infere o mês — exige que referenceMonth seja
  * fornecido explicitamente por quem chama (tipicamente a partir de
  * post.date), nunca adivinhado a partir do dia isolado.
+ *
+ * NOTA (Level 2, 2026-09-24): esta função permanece INTOCADA e fora do
+ * escopo da correcção de day+month abaixo — o risco de virada de
+ * ano/mês já identificado para o padrão (dd) isolado (sem mês
+ * acompanhante) continua sem correcção, deliberadamente. Sem mês, não
+ * há como formar os três candidatos (Y-1, Y, Y+1) que
+ * resolveYearForDayMonth() compara — a correcção abaixo só se aplica
+ * a padrões que fornecem dia E mês.
  */
 export function combineDayWithReference(
   dayNumber: number,
@@ -59,6 +67,118 @@ export function combineDayWithReference(
   const day = String(dayNumber).padStart(2, '0');
   const month = String(referenceMonth).padStart(2, '0');
   return `${referenceYear}-${month}-${day}`;
+}
+
+/**
+ * Resolução temporal partilhada (Level 2, 2026-09-24) — day + month
+ * (sem ano) + referenceDate → YYYY-MM-DD.
+ *
+ * Usada por dois formatos de reconhecimento sintacticamente distintos
+ * (parseDayMonthTextPt, "17 de setembro"; extractParentheticalDayMonth,
+ * "(17/06)") — ambos fornecem (day, month) sem ano; esta função é a
+ * única responsável por decidir QUAL ano, partilhada pelos dois.
+ *
+ * Regra, determinística, sem heurística vaga: constrói três candidatos
+ * (referenceYear-1, referenceYear, referenceYear+1) com o mesmo
+ * (day, month); descarta qualquer candidato que não seja uma data de
+ * calendário real (nunca normaliza "31 de fevereiro" para Março);
+ * escolhe o candidato com menor distância ABSOLUTA em dias face a
+ * referenceDate. Em empate exacto (caso extremo teórico), prefere o
+ * futuro.
+ *
+ * Determinística e independente do relógio do sistema — nunca chama
+ * new Date() sem argumento, nunca Date.now(); referenceDate é sempre
+ * injectado por quem chama.
+ *
+ * Deliberadamente NÃO reaproveitada por combineDayWithReference() nem
+ * pelos seus dois chamadores actuais (o padrão (dd) isolado, sem mês,
+ * nunca tem informação suficiente para formar os três candidatos) —
+ * ver nota em combineDayWithReference() acima.
+ */
+export function resolveYearForDayMonth(
+  day: number,
+  month: number,
+  referenceDate: Date,
+): string | null {
+  const referenceYear = referenceDate.getUTCFullYear();
+  const candidateYears = [referenceYear - 1, referenceYear, referenceYear + 1];
+
+  let best: { dateStr: string; time: number } | null = null;
+
+  for (const year of candidateYears) {
+    const dateStr = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+    const candidate = new Date(`${dateStr}T00:00:00.000Z`);
+
+    // Validação de calendário real: new Date() do JS "normaliza"
+    // datas inválidas silenciosamente (ex: 2026-02-31 vira
+    // 2026-03-03) — confirmamos explicitamente que ano/mês/dia
+    // devolvidos batem exactamente com o pedido, rejeitando qualquer
+    // normalização silenciosa. "31 de fevereiro" é assim rejeitado em
+    // TODOS os três candidatos (Fevereiro nunca tem 31 dias, em
+    // nenhum ano) — devolve null, nunca "corrige" para Março.
+    if (
+      candidate.getUTCFullYear() !== year ||
+      candidate.getUTCMonth() !== month - 1 ||
+      candidate.getUTCDate() !== day
+    ) {
+      continue;
+    }
+
+    const time = candidate.getTime();
+    const distance = Math.abs(time - referenceDate.getTime());
+
+    if (
+      best === null ||
+      distance < Math.abs(new Date(`${best.dateStr}T00:00:00.000Z`).getTime() - referenceDate.getTime()) ||
+      (distance === Math.abs(new Date(`${best.dateStr}T00:00:00.000Z`).getTime() - referenceDate.getTime()) && time > best.time)
+    ) {
+      best = { dateStr, time };
+    }
+  }
+
+  return best ? best.dateStr : null;
+}
+
+/**
+ * Reconhece "<dia> de <mês por extenso>", SEM exigir "de <ano>" —
+ * distinto de parseExplicitDatePt (que exige o ano explícito e
+ * continua intocada). Devolve {day, month} brutos, sem resolver ano —
+ * a resolução é responsabilidade de resolveYearForDayMonth(), chamada
+ * separadamente por quem integra.
+ *
+ * O negative lookahead evita casar quando o texto tem "de <ano>" logo
+ * a seguir — nesse caso, parseExplicitDatePt() já resolve com o ano
+ * explícito do próprio texto, que deve ter sempre precedência sobre
+ * qualquer inferência por proximidade de data.
+ */
+export function parseDayMonthTextPt(text: string): { day: number; month: number } | null {
+  const match = text.match(/(\d{1,2})\s+de\s+([a-zçãâéê]+)(?!\s+de\s+\d{4})/i);
+  if (!match) return null;
+
+  const day = Number(match[1]);
+  const monthName = match[2].toLowerCase();
+  const monthStr = MONTH_NAMES_PT[monthName];
+  if (!monthStr) return null;
+
+  return { day, month: Number(monthStr) };
+}
+
+/**
+ * Reconhece "(dd/mm)" — dia e mês numéricos entre parênteses, sem ano.
+ * Diferente de extractParentheticalDayNumber (só dia, sem mês, usado
+ * para o padrão "sexta-feira (19)") — reconhecimento sintáctico
+ * deliberadamente separado, mesmo os dois padrões partilhando depois
+ * resolveYearForDayMonth() para a parte de resolução de ano.
+ */
+export function extractParentheticalDayMonth(text: string): { day: number; month: number } | null {
+  const match = text.match(/\((\d{1,2})\/(\d{1,2})\)/);
+  if (!match) return null;
+
+  const day = Number(match[1]);
+  const month = Number(match[2]);
+  if (month < 1 || month > 12) return null;
+
+  return { day, month };
 }
 
 /**
