@@ -3,6 +3,17 @@
  *
  * Testes do CandidateGenerator, CandidatePreFilter e pipeline completo em memória.
  * Zero dependências externas — todos os providers são mocks.
+ *
+ * Level 2, 2026-09-26 — três testes actualizados ("filtro por cidade",
+ * "filtro por raio", "top N ordena por proximidade") para usar
+ * trustedCityContext explícito, em vez de depender da derivação por
+ * maioria do candidate pool — removida por decisão explícita (ver
+ * CandidatePreFilter.ts, cabeçalho). Estes três testes, tal como
+ * estavam, testavam exactamente o comportamento antigo que a decisão
+ * mandou remover — não é regressão da implementação, é actualização
+ * do teste para o contrato novo. Adicionados três testes irmãos
+ * confirmando o comportamento sem trustedCityContext. Todos os
+ * outros testes deste arquivo ficam inalterados.
  */
 
 import { describe, it, expect, vi } from 'vitest';
@@ -20,10 +31,11 @@ import type {
   VenueStagingId,
   ICandidateProvider,
   ResolutionContext,
+  TrustedCityContext,
 } from '../index.js';
 import type { VenueMention } from '../../types/RawActivityItem.js';
 
-// ── Fixtures ──────────────────────────────────────────────────────────────────
+// ── Fixtures ──────────────────────────────────────────────────────────
 
 const ACT_ID = 'activity-gen-001' as ActivityStagingId;
 const PRODUCT_KEY = 'vivere-60-mais';
@@ -79,7 +91,9 @@ const VENUE_IGUABA = makeCandidate('academia-nitro', 'Academia nitro gym', {
   lat: -22.847, lng: -42.229, city: 'Iguaba Grande RJ',
 });
 
-// ── 1. CandidateGenerator ────────────────────────────────────────────────────
+const TRUSTED_CABO_FRIO: TrustedCityContext = { city: 'Cabo Frio', state: 'RJ' };
+
+// ── 1. CandidateGenerator ──────────────────────────────────────────────
 
 describe('CandidateGenerator', () => {
   it('retorna CandidatePool com todos os candidatos do provider', async () => {
@@ -140,18 +154,23 @@ describe('CandidateGenerator', () => {
   });
 });
 
-// ── 2. CandidatePreFilter ────────────────────────────────────────────────────
+// ── 2. CandidatePreFilter ──────────────────────────────────────────────
 
 describe('CandidatePreFilter', () => {
   const filter = new CandidatePreFilter();
 
-  function makePool(candidates: VenueCandidate[], men: VenueMention | null = null) {
+  function makePool(
+    candidates: VenueCandidate[],
+    men: VenueMention | null = null,
+    trustedCityContext: TrustedCityContext | null = null,
+  ) {
     return {
       activityId:   ACT_ID,
       venueMention: men,
       productKey:   PRODUCT_KEY,
       candidates,
       generatedAt:  Date.now(),
+      trustedCityContext,
     };
   }
 
@@ -168,20 +187,36 @@ describe('CandidatePreFilter', () => {
     expect(result.filteredCount).toBe(0);
   });
 
-  it('filtro por cidade — elimina candidatos de outra cidade', () => {
+  it('filtro por cidade — elimina candidatos de outra cidade, com trustedCityContext (Level 2, 2026-09-26)', () => {
+    // Antes desta correcção, a cidade de referência era derivada pela
+    // maioria do próprio candidate pool — heurística removida (root
+    // cause do caso real "Canto do Forte"/Iguaba Grande). Agora o
+    // filtro de cidade só actua com trustedCityContext explícito,
+    // vindo da Activity, nunca da composição do pool.
     const mixed = [...VENUES_CABO_FRIO, VENUE_SAO_PEDRO, VENUE_IGUABA];
-    const result = filter.filter(makePool(mixed), {
+    const result = filter.filter(makePool(mixed, null, TRUSTED_CABO_FRIO), {
       ...DEFAULT_CANDIDATE_SELECTION,
       allowCrossCity: false,
     });
-    // A cidade mais frequente é 'Cabo Frio RJ' (3 venues vs 1 cada das outras)
     expect(result.candidates.every(c => c.city === 'Cabo Frio RJ')).toBe(true);
     expect(result.candidates).toHaveLength(3);
   });
 
+  it('sem trustedCityContext: filtro de cidade não é aplicado — candidatos de todas as cidades passam (Level 2, 2026-09-26)', () => {
+    // Caso irmão do teste acima: mesma entrada, sem trustedCityContext.
+    // Comportamento aprovado: ausência de contexto confiável reduz a
+    // precisão do PreFilter, nunca inventa uma cidade.
+    const mixed = [...VENUES_CABO_FRIO, VENUE_SAO_PEDRO, VENUE_IGUABA];
+    const result = filter.filter(makePool(mixed, null, null), {
+      ...DEFAULT_CANDIDATE_SELECTION,
+      allowCrossCity: false,
+    });
+    expect(result.candidates).toHaveLength(5);
+  });
+
   it('allowCrossCity=true mantém candidatos de todas as cidades', () => {
     const mixed = [...VENUES_CABO_FRIO, VENUE_SAO_PEDRO, VENUE_IGUABA];
-    const result = filter.filter(makePool(mixed), {
+    const result = filter.filter(makePool(mixed, null, TRUSTED_CABO_FRIO), {
       ...DEFAULT_CANDIDATE_SELECTION,
       allowCrossCity:  true,
       maxRadiusMeters: 100_000, // raio grande para não eliminar por distância
@@ -191,18 +226,19 @@ describe('CandidatePreFilter', () => {
 
   it('candidato sem city não é eliminado pelo filtro de cidade', () => {
     const semCity = makeCandidate('sem-city', 'Venue sem cidade', { city: null });
-    const pool    = makePool([...VENUES_CABO_FRIO, semCity]);
+    const pool    = makePool([...VENUES_CABO_FRIO, semCity], null, TRUSTED_CABO_FRIO);
     const result  = filter.filter(pool, { ...DEFAULT_CANDIDATE_SELECTION, allowCrossCity: false });
     // Venue sem city passa — não temos informação para eliminar
     const ids = result.candidates.map(c => c.id);
     expect(ids).toContain('sem-city');
   });
 
-  it('filtro por raio — elimina candidatos além do maxRadiusMeters', () => {
+  it('filtro por raio — elimina candidatos além do maxRadiusMeters, com trustedCityContext (Level 2, 2026-09-26)', () => {
     // Centro de Cabo Frio: -22.88, -42.02
     // São Pedro (~9km) e Iguaba (~18km) — ambos além de 5km
+    // referencePoint agora vem de trustedCityContext, não da maioria do pool
     const all = [...VENUES_CABO_FRIO, VENUE_SAO_PEDRO, VENUE_IGUABA];
-    const result = filter.filter(makePool(all), {
+    const result = filter.filter(makePool(all, null, TRUSTED_CABO_FRIO), {
       ...DEFAULT_CANDIDATE_SELECTION,
       allowCrossCity:  true,   // não filtrar por cidade, só por raio
       maxRadiusMeters: 5000,
@@ -214,7 +250,7 @@ describe('CandidatePreFilter', () => {
 
   it('candidato sem coordenadas não é eliminado pelo filtro de raio', () => {
     const semCoords = makeCandidate('sem-coords', 'Venue sem coords', { lat: null, lng: null, city: 'Cabo Frio RJ' });
-    const pool = makePool([...VENUES_CABO_FRIO, semCoords]);
+    const pool = makePool([...VENUES_CABO_FRIO, semCoords], null, TRUSTED_CABO_FRIO);
     const result = filter.filter(pool, { ...DEFAULT_CANDIDATE_SELECTION, maxRadiusMeters: 100 });
     // Venue sem coords não pode ser eliminado por raio — passa sempre
     const ids = result.candidates.map(c => c.id as string);
@@ -264,12 +300,14 @@ describe('CandidatePreFilter', () => {
     expect(result.candidates.length).toBe(VENUES_CABO_FRIO.length);
   });
 
-  it('top N ordena por proximidade geográfica quando corta', () => {
-    // Criar venues a distâncias crescentes do centro de Cabo Frio
+  it('top N ordena por proximidade geográfica quando corta, com trustedCityContext (Level 2, 2026-09-26)', () => {
+    // Criar venues a distâncias crescentes do centro de Cabo Frio.
+    // referencePoint agora vem de trustedCityContext — sem ele, não há
+    // ordenação por proximidade (ver teste irmão logo abaixo).
     const perto  = makeCandidate('perto',  'Venue Perto',  { lat: -22.880, lng: -42.019, city: 'Cabo Frio RJ' });
     const medio  = makeCandidate('medio',  'Venue Medio',  { lat: -22.883, lng: -42.022, city: 'Cabo Frio RJ' });
     const longe  = makeCandidate('longe',  'Venue Longe',  { lat: -22.890, lng: -42.030, city: 'Cabo Frio RJ' });
-    const result = filter.filter(makePool([longe, medio, perto]), {
+    const result = filter.filter(makePool([longe, medio, perto], null, TRUSTED_CABO_FRIO), {
       ...DEFAULT_CANDIDATE_SELECTION,
       maxCandidates: 2,
     });
@@ -279,9 +317,25 @@ describe('CandidatePreFilter', () => {
     expect(ids).toContain('medio');
     expect(ids).not.toContain('longe');
   });
+
+  it('sem trustedCityContext: top N corta sem ordenar por proximidade — mantém ordem de chegada (Level 2, 2026-09-26)', () => {
+    // Caso irmão do teste acima: mesma entrada, sem trustedCityContext.
+    // Sem referencePoint confiável, nenhuma ordenação por proximidade
+    // acontece — maxCandidates continua obrigatório, mas o corte
+    // preserva a ordem em que os candidatos chegaram.
+    const perto  = makeCandidate('perto',  'Venue Perto',  { lat: -22.880, lng: -42.019, city: 'Cabo Frio RJ' });
+    const medio  = makeCandidate('medio',  'Venue Medio',  { lat: -22.883, lng: -42.022, city: 'Cabo Frio RJ' });
+    const longe  = makeCandidate('longe',  'Venue Longe',  { lat: -22.890, lng: -42.030, city: 'Cabo Frio RJ' });
+    const result = filter.filter(makePool([longe, medio, perto], null, null), {
+      ...DEFAULT_CANDIDATE_SELECTION,
+      maxCandidates: 2,
+    });
+    const ids = result.candidates.map(c => c.id as string);
+    expect(ids).toEqual(['longe', 'medio']); // ordem de chegada, sem reordenar
+  });
 });
 
-// ── 3. Pipeline completo em memória ──────────────────────────────────────────
+// ── 3. Pipeline completo em memória ──────────────────────────────────
 
 describe('Pipeline em memória: Generator → PreFilter → Matchers → Hybrid → Threshold', () => {
   it('pipeline completo com NameMatcher — Praia do Forte', async () => {

@@ -2,12 +2,20 @@
  * entity-resolution/EntityResolutionEngine.ts
  *
  * Implementação do IEntityResolutionEngine — orquestrador do pipeline completo.
+ *
+ * Level 2, 2026-09-26 — territorialContextProvider injectado (último
+ * parâmetro do construtor, com default NULL_TERRITORIAL_CONTEXT_PROVIDER
+ * — preserva compatibilidade posicional com chamadores existentes que
+ * não o passam explicitamente). Resolve trustedCityContext a partir de
+ * activity.source_key antes de runPipeline() — nunca importa nenhuma
+ * config concreta de collector (CABO_FRIO_CONFIG, etc.) directamente.
  */
 
 import type { IEntityResolutionEngine, IMatcher } from './interfaces/index.js';
 import type { IEntityResolutionRepositorySet } from './repositories/interfaces.js';
 import type { ActivityResolutionRepository } from './repositories/impl/ActivityResolutionRepository.js';
 import type { IERLogger } from './utils/logging.js';
+import type { ISourceTerritorialContextProvider } from './interfaces/providers.js';
 import type {
   ActivityStagingId,
   VenueStagingId,
@@ -16,6 +24,7 @@ import type {
   ScoredCandidates,
   AutoClassification,
   RankedCandidate,
+  TrustedCityContext,
 } from './types/domain.js';
 import type { ERResult, BatchERResult } from './types/result.js';
 import type { EntityResolutionConfig } from './config/index.js';
@@ -26,6 +35,7 @@ import { HybridScoreCalculator } from './pipeline/HybridScoreCalculator.js';
 import { ThresholdClassifier, buildCandidateMap } from './pipeline/ThresholdClassifier.js';
 import { VenueCandidateProvider } from './pipeline/VenueCandidateProvider.js';
 import { DEFAULT_ER_CONFIG }     from './config/index.js';
+import { NULL_TERRITORIAL_CONTEXT_PROVIDER } from './interfaces/providers.js';
 import { success, partial, unresolved, failed } from './types/result.js';
 import { ERSilentLogger, startTimer } from './utils/logging.js';
 import type { PipelineMetrics, OperationalMetrics, BusinessMetrics } from './utils/logging.js';
@@ -41,9 +51,10 @@ export class EntityResolutionEngine implements IEntityResolutionEngine {
     private readonly matchers:     readonly IMatcher[],
     private readonly logger:       IERLogger = ERSilentLogger,
     private readonly defaultConfig: EntityResolutionConfig = DEFAULT_ER_CONFIG,
+    private readonly territorialContextProvider: ISourceTerritorialContextProvider = NULL_TERRITORIAL_CONTEXT_PROVIDER,
   ) {}
 
-  // ── resolve() — cria a sua própria run ───────────────────────────────────
+  // ── resolve() — cria a sua própria run ──────────────────────────────────
 
   async resolve(
     activityId:      ActivityStagingId,
@@ -80,12 +91,15 @@ export class EntityResolutionEngine implements IEntityResolutionEngine {
       // 5. Limpar candidatos anteriores sem decisão (ADR-0013)
       await this.repos.candidate.deleteByActivity(activityId);
 
-      // 6. Executar pipeline
+      // 6. Resolver contexto territorial confiável (Level 2, 2026-09-26)
+      const trustedCityContext = this.territorialContextProvider.getCityContext(activity.source_key ?? '');
+
+      // 7. Executar pipeline
       const result = await this.runPipeline(
-        activityId, activity.venue_mention, activity.product_key, runId, config,
+        activityId, activity.venue_mention, activity.product_key, runId, config, trustedCityContext,
       );
 
-      // 7. Finalizar run
+      // 8. Finalizar run
       await this.repos.run.finish(runId, {
         activitiesProcessed: 1,
         candidatesGenerated: result.resolutionResult.allCandidates.length,
@@ -104,7 +118,7 @@ export class EntityResolutionEngine implements IEntityResolutionEngine {
     }
   }
 
-  // ── resolveAll() ─────────────────────────────────────────────────────────
+  // ── resolveAll() ─────────────────────────────────────────────────────
 
   async resolveAll(
     productKey:      string,
@@ -153,7 +167,7 @@ export class EntityResolutionEngine implements IEntityResolutionEngine {
     }
   }
 
-  // ── resolveMany() ────────────────────────────────────────────────────────
+  // ── resolveMany() ─────────────────────────────────────────────────────
 
   async resolveMany(
     activityIds:     readonly ActivityStagingId[],
@@ -168,14 +182,15 @@ export class EntityResolutionEngine implements IEntityResolutionEngine {
     return { runId: '', results, summary: { ...summary, durationMs: totalTimer.stop() } };
   }
 
-  // ── Pipeline reutilizável ─────────────────────────────────────────────────
+  // ── Pipeline reutilizável ────────────────────────────────────────────
 
   private async runPipeline(
-    activityId: ActivityStagingId,
-    mention:    NonNullable<Awaited<ReturnType<ActivityResolutionRepository['findById']>>>['venue_mention'] & {},
-    productKey: string,
-    runId:      ResolutionRunId,
-    config:     EntityResolutionConfig,
+    activityId:         ActivityStagingId,
+    mention:            NonNullable<Awaited<ReturnType<ActivityResolutionRepository['findById']>>>['venue_mention'] & {},
+    productKey:         string,
+    runId:               ResolutionRunId,
+    config:              EntityResolutionConfig,
+    trustedCityContext:  TrustedCityContext | null,
   ) {
     const timer = startTimer();
 
@@ -183,7 +198,7 @@ export class EntityResolutionEngine implements IEntityResolutionEngine {
     const generator = new CandidateGenerator(provider);
 
     const genTimer = startTimer();
-    const pool = await generator.generate(activityId, mention, productKey, config.selection);
+    const pool = await generator.generate(activityId, mention, productKey, config.selection, trustedCityContext);
     const generatorMs = genTimer.stop();
 
     const preFilterTimer = startTimer();
@@ -255,7 +270,8 @@ export class EntityResolutionEngine implements IEntityResolutionEngine {
       }
 
       await this.repos.candidate.deleteByActivity(activityId);
-      const result = await this.runPipeline(activityId, activity.venue_mention, productKey, runId, config);
+      const trustedCityContext = this.territorialContextProvider.getCityContext(activity.source_key ?? '');
+      const result = await this.runPipeline(activityId, activity.venue_mention, productKey, runId, config, trustedCityContext);
       this.logger.activityResolved(result.metrics);
       return result.erResult;
 
@@ -265,7 +281,7 @@ export class EntityResolutionEngine implements IEntityResolutionEngine {
     }
   }
 
-  // ── Utilitários ───────────────────────────────────────────────────────────
+  // ── Utilitários ─────────────────────────────────────────────────────
 
   private mergeConfig(override?: Partial<EntityResolutionConfig>): EntityResolutionConfig {
     if (!override) return this.defaultConfig;

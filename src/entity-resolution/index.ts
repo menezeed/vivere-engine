@@ -10,7 +10,7 @@
  *   import { IMatcher, DEFAULT_ER_CONFIG, ERResult } from '../entity-resolution/index.js';
  */
 
-// ── Tipos de domínio ──────────────────────────────────────────────────────────
+// ── Tipos de domínio ──────────────────────────────────────────────────
 export type {
   VenueMention,
   ActivityStagingId,
@@ -33,9 +33,10 @@ export type {
   DecisionAction,
   CandidateOutcome,
   ResolutionDecision,
+  TrustedCityContext,
 } from './types/domain.js';
 
-// ── Result Pattern ────────────────────────────────────────────────────────────
+// ── Result Pattern ──────────────────────────────────────────────────
 export type {
   ERResult,
   BatchERResult,
@@ -58,7 +59,7 @@ export {
   hasResult,
 } from './types/result.js';
 
-// ── Configuração ──────────────────────────────────────────────────────────────
+// ── Configuração ──────────────────────────────────────────────────
 export type {
   CandidateSelectionConfig,
   ScoringConfig,
@@ -76,7 +77,7 @@ export {
   validateERConfig,
 } from './config/index.js';
 
-// ── Interfaces dos componentes ────────────────────────────────────────────────
+// ── Interfaces dos componentes ──────────────────────────────────────────
 export type {
   IMatcher,
   INameMatcher,
@@ -90,14 +91,17 @@ export type {
   IResolutionReviewer,
 } from './interfaces/index.js';
 
-// ── Providers (ajuste #3 — CandidateGenerator genérico) ──────────────────────
+// ── Providers (ajuste #3 — CandidateGenerator genérico) ──────────────────
 export type {
   ICandidateProvider,
   ResolutionContext,
   IVenueCandidateProvider,
+  ISourceTerritorialContextProvider,
 } from './interfaces/providers.js';
 
-// ── Interfaces dos repositórios ───────────────────────────────────────────────
+export { NULL_TERRITORIAL_CONTEXT_PROVIDER } from './interfaces/providers.js';
+
+// ── Interfaces dos repositórios ──────────────────────────────────────────
 export type {
   IVenueResolutionRunRepository,
   IVenueResolutionCandidateRepository,
@@ -107,7 +111,7 @@ export type {
 
 export { EntityResolutionRepositoryFactory } from './repositories/factory.js';
 
-// ── Pipeline contracts ────────────────────────────────────────────────────────
+// ── Pipeline contracts ──────────────────────────────────────────────────
 export {
   assertFilteredCandidates,
   assertScoredCandidates,
@@ -117,12 +121,13 @@ export {
   wasProcessed,
 } from './pipeline/contracts.js';
 
-// ── Matchers ──────────────────────────────────────────────────────────────────
+// ── Matchers ──────────────────────────────────────────────────────────
 export { HybridScoreCalculator } from './pipeline/HybridScoreCalculator.js';
 export { ThresholdClassifier, buildCandidateMap } from './pipeline/ThresholdClassifier.js';
 export { CandidateGenerator } from './pipeline/CandidateGenerator.js';
 export { CandidatePreFilter } from './pipeline/CandidatePreFilter.js';
 export { VenueCandidateProvider } from './pipeline/VenueCandidateProvider.js';
+export { WordPressSourceTerritorialContextProvider } from './pipeline/WordPressSourceTerritorialContextProvider.js';
 
 export { NameMatcher, createNameMatcher, createNameMatcherEnGB } from './matchers/NameMatcher.js';
 export type { NameMatcherConfig } from './matchers/NameMatcher.js';
@@ -133,7 +138,7 @@ export type { GeoMatcherConfig } from './matchers/GeoMatcher.js';
 export { AddressMatcher, createAddressMatcher } from './matchers/AddressMatcher.js';
 export type { AddressMatcherConfig } from './matchers/AddressMatcher.js';
 
-// ── Utilitários de geo ────────────────────────────────────────────────────────
+// ── Utilitários de geo ──────────────────────────────────────────────────
 export {
   haversineDistance,
   distanceToScore,
@@ -144,7 +149,7 @@ export {
 } from './utils/geo.js';
 export type { GeoPoint, GeoDistance } from './utils/geo.js';
 
-// ── Utilitários de texto ──────────────────────────────────────────────────────
+// ── Utilitários de texto ──────────────────────────────────────────────────
 export {
   normalize,
   normalizeAndTokenize,
@@ -160,7 +165,7 @@ export {
 } from './utils/text.js';
 export type { NormalizeOptions } from './utils/text.js';
 
-// ── Logging e métricas (ajustes #2, #3, #4, #5) ──────────────────────────────
+// ── Logging e métricas (ajustes #2, #3, #4, #5) ──────────────────────────
 export { ERLogger, ERSilentLogger, startTimer } from './utils/logging.js';
 export type {
   IERLogger,
@@ -170,7 +175,7 @@ export type {
   RunSummaryLog,
 } from './utils/logging.js';
 
-// ── Erros ─────────────────────────────────────────────────────────────────────
+// ── Erros ──────────────────────────────────────────────────────────────
 export {
   ERError,
   CandidateGenerationError,
@@ -188,5 +193,5 @@ export {
 
 export type { ERErrorCode } from './errors/index.js';
 
-// ── Engine ────────────────────────────────────────────────────────────────────
+// ── Engine ──────────────────────────────────────────────────────────────
 export { EntityResolutionEngine } from './EntityResolutionEngine.js';

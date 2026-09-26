@@ -13,6 +13,11 @@
  * directamente. O provider concreto (VenueCandidateProvider) é montado
  * pelo EntityResolutionEngine e injectado aqui.
  * Em testes, qualquer provider mock funciona.
+ *
+ * Level 2, 2026-09-26 — trustedCityContext acrescentado: repassado
+ * directamente para ResolutionContext e para o CandidatePool
+ * devolvido. Este componente NÃO usa o valor para filtrar nada —
+ * só o transporta, tal como já fazia com venueMention/productKey.
  */
 
 import type { ICandidateGenerator } from '../interfaces/index.js';
@@ -21,6 +26,7 @@ import type {
   CandidatePool,
   ActivityStagingId,
   VenueCandidate,
+  TrustedCityContext,
 } from '../types/domain.js';
 import type { VenueMention } from '../../types/RawActivityItem.js';
 import type { CandidateSelectionConfig } from '../config/index.js';
@@ -32,12 +38,13 @@ export class CandidateGenerator implements ICandidateGenerator {
   ) {}
 
   async generate(
-    activityId:  ActivityStagingId,
-    mention:     VenueMention | null,
-    productKey:  string,
-    config:      CandidateSelectionConfig,
+    activityId:         ActivityStagingId,
+    mention:            VenueMention | null,
+    productKey:         string,
+    config:             CandidateSelectionConfig,
+    trustedCityContext: TrustedCityContext | null = null,
   ): Promise<CandidatePool> {
-    const context: ResolutionContext = { activityId, productKey, config };
+    const context: ResolutionContext = { activityId, productKey, config, trustedCityContext };
 
     try {
       const candidates = await this.provider.provide(context);
@@ -48,6 +55,7 @@ export class CandidateGenerator implements ICandidateGenerator {
         productKey,
         candidates,
         generatedAt:   Date.now(),
+        trustedCityContext,
       };
 
     } catch (err) {

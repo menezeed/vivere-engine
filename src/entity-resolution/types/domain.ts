@@ -14,12 +14,12 @@
 
 import type { VenueMention } from '../../types/RawActivityItem.js';
 
-// ── Re-export de VenueMention — centralizar a importação ─────────────────────
+// ── Re-export de VenueMention — centralizar a importação ──────────────────
 // VenueMention é definida em RawActivityItem (autoridade epistémica do Collector).
 // O ER consome, nunca redefine.
 export type { VenueMention };
 
-// ── Tipos de identificação ────────────────────────────────────────────────────
+// ── Tipos de identificação ─────────────────────────────────────────────
 
 /** UUID de uma actividade em staging.activities_staging. */
 export type ActivityStagingId = string & { readonly _brand: 'ActivityStagingId' };
@@ -36,7 +36,25 @@ export type CandidateId = string & { readonly _brand: 'CandidateId' };
 /** UUID de uma decisão em staging.venue_resolution_decisions. */
 export type DecisionId = string & { readonly _brand: 'DecisionId' };
 
-// ── Venue candidato ───────────────────────────────────────────────────────────
+// ── Contexto territorial confiável ────────────────────────────────────────
+
+/**
+ * Contexto territorial confiável de uma Activity, derivado da
+ * configuração da fonte (ex: WordPressContentSourceConfig.region_metadata)
+ * — NUNCA inferido do texto da venue_mention, nem da composição do
+ * candidate pool (Level 2, 2026-09-26 — corrige resolveReferenceCity()
+ * por maioria de pool, root cause do caso "Canto do Forte").
+ *
+ * null explícito significa ausência de contexto territorial confiável
+ * — nesse caso, CandidatePreFilter não aplica nenhuma heurística
+ * geográfica de cidade (nunca inventa uma).
+ */
+export interface TrustedCityContext {
+  readonly city:  string;
+  readonly state: string;
+}
+
+// ── Venue candidato ─────────────────────────────────────────────────────
 
 /**
  * Um venue elegível para ser candidato de resolução.
@@ -58,7 +76,7 @@ export interface VenueCandidate {
   readonly proposal_status:      'approved' | 'promoted';
 }
 
-// ── Scores ────────────────────────────────────────────────────────────────────
+// ── Scores ────────────────────────────────────────────────────────────
 
 /**
  * Score parcial produzido por um único matcher.
@@ -87,7 +105,7 @@ export interface CandidateScore {
   readonly boostApplied: number;             // valor do boost de confidence_hint
 }
 
-// ── Resultados do pipeline ────────────────────────────────────────────────────
+// ── Resultados do pipeline ────────────────────────────────────────────
 
 /**
  * Classificação automática produzida pelo ThresholdClassifier.
@@ -126,18 +144,24 @@ export interface ResolutionResult {
   readonly runId:             ResolutionRunId;
 }
 
-// ── Objectos de pipeline ─────────────────────────────────────────────────────
+// ── Objectos de pipeline ────────────────────────────────────────────
 
 /**
  * Pool bruto de candidatos gerado pelo CandidateGenerator.
  * Entrada do CandidatePreFilter.
+ *
+ * Level 2, 2026-09-26 — trustedCityContext acrescentado: contexto
+ * territorial confiável da Activity (não do candidate pool), usado
+ * pelo CandidatePreFilter em vez de resolveReferenceCity() por
+ * maioria. null quando a fonte não declara este contexto.
  */
 export interface CandidatePool {
-  readonly activityId:    ActivityStagingId;
-  readonly venueMention:  VenueMention | null;
-  readonly productKey:    string;
-  readonly candidates:    readonly VenueCandidate[];
-  readonly generatedAt:   number;  // Date.now() — para medir latência
+  readonly activityId:         ActivityStagingId;
+  readonly venueMention:       VenueMention | null;
+  readonly productKey:         string;
+  readonly candidates:         readonly VenueCandidate[];
+  readonly generatedAt:        number;  // Date.now() — para medir latência
+  readonly trustedCityContext?: TrustedCityContext | null;
 }
 
 /**
@@ -174,7 +198,7 @@ export interface RankedCandidates {
   readonly classification: AutoClassification;
 }
 
-// ── Sumário de execução ───────────────────────────────────────────────────────
+// ── Sumário de execução ────────────────────────────────────────────
 
 /** Sumário de uma run do motor — para observabilidade e auditoria. */
 export interface ResolutionRunSummary {
@@ -195,7 +219,7 @@ export interface ResolutionRunSummary {
   readonly triggeredBy:         string;  // 'manual' | 'scheduler' | 'post_ingestion'
 }
 
-// ── Decisão humana ────────────────────────────────────────────────────────────
+// ── Decisão humana ────────────────────────────────────────────────
 
 /** Acção tomada pelo revisor humano. */
 export type DecisionAction = 'matched' | 'proposed_new' | 'skipped';

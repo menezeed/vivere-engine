@@ -7,11 +7,19 @@
  *   npx tsx --env-file=.env src/entity-resolution/run.ts --product-key=vivere-60-mais
  *   npx tsx --env-file=.env src/entity-resolution/run.ts --product-key=vivere-60-mais --dry-run
  *   npx tsx --env-file=.env src/entity-resolution/run.ts --activity-id=<uuid>
+ *
+ * Level 2, 2026-09-26 — WordPressSourceTerritorialContextProvider
+ * injectado explicitamente, ligando o contexto territorial confiável
+ * (region_metadata das fontes WordPress) ao pipeline real. Sem esta
+ * ligação, o Engine usaria o provider nulo por omissão (mesmo
+ * comportamento de antes desta correcção — nenhum contexto
+ * territorial, nenhum filtro de cidade).
  */
 
 import { EntityResolutionEngine }      from './EntityResolutionEngine.js';
 import { EntityResolutionRepositoryFactory } from './repositories/factory.js';
 import { ActivityResolutionRepository } from './repositories/impl/ActivityResolutionRepository.js';
+import { WordPressSourceTerritorialContextProvider } from './pipeline/WordPressSourceTerritorialContextProvider.js';
 import { NameMatcher }                 from './matchers/NameMatcher.js';
 import { GeoMatcher }                  from './matchers/GeoMatcher.js';
 import { AddressMatcher }              from './matchers/AddressMatcher.js';
@@ -43,8 +51,8 @@ async function main(): Promise<void> {
 
   if (DRY_RUN) {
     log('Verificando configuração...');
-    log('SUPABASE_URL',         process.env['SUPABASE_URL']         ? '✓' : '✗ ausente');
-    log('SUPABASE_SERVICE_KEY', process.env['SUPABASE_SERVICE_KEY'] ? '✓' : '✗ ausente');
+    log('SUPABASE_URL',         process.env['SUPABASE_URL']         ? 'OK' : 'ausente');
+    log('SUPABASE_SERVICE_KEY', process.env['SUPABASE_SERVICE_KEY'] ? 'OK' : 'ausente');
     log('');
     log('Dry-run concluído. Execute sem --dry-run para resolver venues.');
     return;
@@ -63,12 +71,17 @@ async function main(): Promise<void> {
     new AddressMatcher(),
   ];
 
+  // Level 2, 2026-09-26 — provider territorial real, ligando
+  // region_metadata das fontes WordPress ao CandidatePreFilter.
+  const territorialContextProvider = new WordPressSourceTerritorialContextProvider();
+
   const engine = new EntityResolutionEngine(
     repos,
     activityRepo,
     matchers,
     ERLogger,
     DEFAULT_ER_CONFIG,
+    territorialContextProvider,
   );
 
   // Resolver actividade específica
@@ -104,11 +117,11 @@ async function main(): Promise<void> {
     console.log(`  Duration:   ${batchResult.summary.durationMs}ms`);
 
     if (batchResult.summary.failed > 0) {
-      console.warn('\n⚠ Algumas actividades falharam. Verificar logs.');
+      console.warn('\nAlgumas actividades falharam. Verificar logs.');
       process.exit(1);
     }
 
-    console.log('\n✔ Entity Resolution concluído com sucesso.');
+    console.log('\nEntity Resolution concluído com sucesso.');
   }
 }
 

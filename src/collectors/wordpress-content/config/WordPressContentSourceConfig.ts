@@ -8,7 +8,8 @@
  *
  * O que é configurável por instância (decisão explícita do usuário):
  *   - URL base, categoria WordPress, janela de coleta
- *   - cidade/região (metadado, não usado para lógica — só para log/auditoria)
+ *   - cidade/região (region_metadata — metadado territorial confiável,
+ *     consumido pelo Entity Resolution; ver nota completa junto ao campo)
  *   - source_key e source priority (qual prioridade esta fonte tem no dedupe)
  *   - product_key (para qual produto Vivere esta instância alimenta)
  *   - marcador de bloco estruturado (SERVIÇO:/PROGRAMAÇÃO:/AGENDA:/INFORMAÇÕES:)
@@ -50,7 +51,22 @@ export interface WordPressContentSourceConfig {
    */
   structured_block_marker: RegExp;
 
-  /** Metadado livre, só para log/auditoria — NUNCA usado em lógica de extração */
+  /**
+   * Metadado territorial da fonte — cidade/estado onde esta instância
+   * opera. Confirmado explicitamente por quem configura a instância
+   * (nunca inferido, nunca geocodificado).
+   *
+   * Level 2, 2026-09-26 — CONTRACT DOCUMENTATION UPDATE. Até esta
+   * mudança, este campo era documentado como "somente log/auditoria,
+   * NUNCA usado em lógica". Deixou de ser verdade: é agora a fonte de
+   * verdade do contexto territorial confiável consumido pelo Entity
+   * Resolution (via ISourceTerritorialContextProvider /
+   * WordPressSourceTerritorialContextProvider), usado pelo
+   * CandidatePreFilter para decidir filtro de cidade/raio — nunca
+   * infere cidade do candidate pool nem do texto da venue_mention.
+   * Continua também a ser usado em log/auditoria, sem alteração
+   * nesse uso.
+   */
   region_metadata?: {
     city?: string;
     state?: string;

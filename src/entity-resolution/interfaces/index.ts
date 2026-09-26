@@ -26,6 +26,7 @@ import type {
   ResolutionResult,
   ActivityStagingId,
   ResolutionRunSummary,
+  TrustedCityContext,
 } from '../types/domain.js';
 
 import type { ERResult, BatchERResult } from '../types/result.js';
@@ -39,7 +40,7 @@ import type {
 
 import type { VenueMention } from '../../types/RawActivityItem.js';
 
-// ── IMatcher — contrato base de todos os matchers ────────────────────────────
+// ── IMatcher — contrato base de todos os matchers ─────────────────────────
 
 /**
  * Contrato base que todos os matchers implementam.
@@ -64,7 +65,7 @@ export interface IMatcher {
   score(mention: VenueMention, candidate: VenueCandidate): MatchScore | null;
 }
 
-// ── Interfaces específicas por método ────────────────────────────────────────
+// ── Interfaces específicas por método ─────────────────────────────────────
 // Servem como marcadores de tipo e documentação de contrato.
 // Um INameMatcher IS-A IMatcher — a distinção é semântica, não estrutural.
 
@@ -83,12 +84,16 @@ export interface IAddressMatcher extends IMatcher {
   readonly id: 'address';
 }
 
-// ── ICandidateGenerator ───────────────────────────────────────────────────────
+// ── ICandidateGenerator ─────────────────────────────────────────────────
 
 /**
  * Gera o pool bruto de candidatos para uma actividade.
  * Consulta venues_staging com proposal_status IN ('approved', 'promoted').
  * Não filtra. Não calcula scores. Apenas consulta e retorna.
+ *
+ * Level 2, 2026-09-26 — trustedCityContext acrescentado como parâmetro:
+ * repassado directamente para o CandidatePool devolvido, para uso pelo
+ * CandidatePreFilter — o Generator em si não o usa para filtrar nada.
  */
 export interface ICandidateGenerator {
   generate(
@@ -96,10 +101,11 @@ export interface ICandidateGenerator {
     mention: VenueMention | null,
     productKey: string,
     config: CandidateSelectionConfig,
+    trustedCityContext?: TrustedCityContext | null,
   ): Promise<CandidatePool>;
 }
 
-// ── ICandidatePreFilter ───────────────────────────────────────────────────────
+// ── ICandidatePreFilter ─────────────────────────────────────────────────
 
 /**
  * Reduz o pool de candidatos usando heurísticas baratas e configuráveis.
@@ -109,18 +115,25 @@ export interface ICandidateGenerator {
  * O CandidatePreFilter NUNCA contém inteligência semântica.
  *
  * Critérios PERMITIDOS (heurísticas estruturais/geográficas):
- *   ✅ raio máximo em metros (Haversine simples)
- *   ✅ cidade igual (comparação de string)
- *   ✅ categoria compatível (sobreposição de listas)
- *   ✅ product_key correcto
- *   ✅ proposal_status no conjunto permitido
- *   ✅ limite máximo de candidatos (top N por proximidade)
+ *   raio máximo em metros (Haversine simples)
+ *   cidade igual (identidade geográfica via contexto territorial confiável)
+ *   categoria compatível (sobreposição de listas)
+ *   product_key correcto
+ *   proposal_status no conjunto permitido
+ *   limite máximo de candidatos (top N por proximidade)
  *
  * Critérios PROIBIDOS (responsabilidade exclusiva dos Matchers):
- *   ❌ similaridade de nome (tokens, trigrama, fuzzy)
- *   ❌ score de qualquer tipo
- *   ❌ overlap semântico de texto
- *   ❌ qualquer algoritmo de matching
+ *   similaridade de nome (tokens, trigrama, fuzzy)
+ *   score de qualquer tipo
+ *   overlap semântico de texto
+ *   qualquer algoritmo de matching
+ *
+ * Level 2, 2026-09-26: o filtro de cidade usa exclusivamente
+ * CandidatePool.trustedCityContext — nunca deriva cidade da
+ * distribuição/maioria do próprio candidate pool (comportamento
+ * anterior, removido — era heurística de implementação, não
+ * requisito de contrato, e causava exclusão incorrecta de candidatos
+ * correctos quando o pool tinha mais candidatos de outra cidade).
  *
  * Se um critério requer comparar o texto da menção com o conteúdo
  * do candidato, pertence ao Matcher — não ao PreFilter.
@@ -134,7 +147,7 @@ export interface ICandidatePreFilter {
   ): FilteredCandidates;
 }
 
-// ── IHybridScoreCalculator ────────────────────────────────────────────────────
+// ── IHybridScoreCalculator ─────────────────────────────────────────────
 
 /**
  * Agrega os scores parciais dos matchers com pesos configuráveis.
@@ -149,7 +162,7 @@ export interface IHybridScoreCalculator {
   ): ScoredCandidates;
 }
 
-// ── IThresholdClassifier ──────────────────────────────────────────────────────
+// ── IThresholdClassifier ─────────────────────────────────────────────────
 
 /**
  * Classifica os candidatos por score e determina o AutoClassification.
@@ -162,7 +175,7 @@ export interface IThresholdClassifier {
   ): RankedCandidates;
 }
 
-// ── IEntityResolutionEngine ───────────────────────────────────────────────────
+// ── IEntityResolutionEngine ─────────────────────────────────────────────
 
 /**
  * Orquestrador do pipeline completo de Entity Resolution.
@@ -203,7 +216,7 @@ export interface IEntityResolutionEngine {
   ): Promise<BatchERResult>;
 }
 
-// ── IResolutionReviewer ───────────────────────────────────────────────────────
+// ── IResolutionReviewer ─────────────────────────────────────────────────
 
 /**
  * Regista a decisão humana sobre os candidatos de uma actividade.

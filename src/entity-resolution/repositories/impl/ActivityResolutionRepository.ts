@@ -4,6 +4,12 @@
  * Acesso mínimo a activities_staging para o Entity Resolution Engine.
  * Constrói VenueMention a partir das 3 colunas separadas em raw_activity_items:
  *   venue_mention_raw_text, venue_mention_raw_address_text, venue_mention_confidence_hint
+ *
+ * Level 2, 2026-09-26 — source_key acrescentado ao SELECT/tipo, dentro
+ * do JOIN com raw_activity_items já existente (nenhum JOIN novo).
+ * Necessário para o EntityResolutionEngine resolver o contexto
+ * territorial confiável da fonte (ver
+ * ISourceTerritorialContextProvider).
  */
 
 import type { SupabaseClient } from '@supabase/supabase-js';
@@ -16,12 +22,21 @@ export interface ActivityForResolution {
   product_key:             string;
   venue_resolution_status: string;
   venue_mention:           VenueMention | null;
+  /**
+   * Level 2, 2026-09-26 — raw_activity_items.source_key, ex:
+   * 'prefeitura_cabo_frio'. Opcional para preservar compatibilidade
+   * com testes existentes que constroem ActivityForResolution sem
+   * este campo — ausente é tratado como '' (mesmo fallback que
+   * mapRow() já aplica quando o JOIN não devolve source_key).
+   */
+  source_key?:             string;
 }
 
 // SELECT mínimo — apenas campos necessários para o motor ER
 const SELECT = `
   id, product_key, venue_resolution_status,
   raw_activity_items!inner (
+    source_key,
     venue_mention_raw_text,
     venue_mention_raw_address_text,
     venue_mention_confidence_hint
@@ -45,6 +60,7 @@ function mapRow(row: Record<string, unknown>): ActivityForResolution {
     product_key:             row['product_key'] as string,
     venue_resolution_status: row['venue_resolution_status'] as string,
     venue_mention:           buildMention(raw ?? {}),
+    source_key:              (raw?.['source_key'] as string | null) ?? '',
   };
 }
 

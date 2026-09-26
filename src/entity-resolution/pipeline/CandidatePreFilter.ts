@@ -10,24 +10,58 @@
  * REGRA ARQUITECTURAL INVIOLÁVEL (ADR-0012, ajuste #4 do roadmap):
  *
  * Critérios PERMITIDOS:
- *   ✅ raio máximo em metros (Haversine simples)
- *   ✅ mesma cidade (comparação de string)
- *   ✅ proposal_status no conjunto permitido (já filtrado pelo Generator)
- *   ✅ limite máximo de candidatos (top N por proximidade geográfica)
+ *   raio máximo em metros (Haversine simples)
+ *   mesma cidade (identidade geográfica, ver Level 2 abaixo)
+ *   proposal_status no conjunto permitido (já filtrado pelo Generator)
+ *   limite máximo de candidatos (top N por proximidade geográfica)
  *
  * Critérios PROIBIDOS:
- *   ❌ similaridade de nome (tokens, trigrama, fuzzy)
- *   ❌ score de qualquer tipo
- *   ❌ overlap semântico de texto
- *   ❌ qualquer algoritmo de matching
+ *   similaridade de nome (tokens, trigrama, fuzzy)
+ *   score de qualquer tipo
+ *   overlap semântico de texto
+ *   qualquer algoritmo de matching
  *
  * Se um critério requer comparar o texto da menção com o conteúdo do
  * candidato, pertence ao Matcher — não ao PreFilter.
  *
  * ORDEM DOS FILTROS (crescente de custo):
- *   1. Cidade (string compare — O(n), muito barato)
+ *   1. Cidade (identidade via centróide — O(n), barato)
  *   2. Raio (Haversine — O(n), mais caro mas ainda simples)
  *   3. Top N por proximidade (sort — O(n log n), apenas sobre o que sobrou)
+ *
+ * CORRECÇÃO ESTRUTURAL (Level 2, 2026-09-26) — root cause do caso
+ * real "Canto do Forte" (Activity Lote Zero, staging_id
+ * 984da332-9f15-456e-a35f-2aa6f29abefe). Antes desta correcção, a
+ * "cidade de referência" era derivada pela CIDADE MAIS FREQUENTE
+ * ENTRE OS PRÓPRIOS CANDIDATOS DO POOL — sem nenhuma ligação à
+ * activity real. Num pool multi-cidade (Iguaba Grande: 28 candidatos
+ * promoted, Cabo Frio: 21), isto elegeu "Iguaba Grande RJ" como
+ * referência para uma activity de Cabo Frio, eliminando o venue
+ * correcto ("Canto do Forte", city=Cabo Frio RJ) antes de qualquer
+ * scoring de nome/geografia acontecer. Era heurística de
+ * implementação, sem nenhum ADR a exigi-la (confirmado por
+ * investigação: git grep vazio em docs/adr/).
+ *
+ * Correcção: a cidade de referência vem exclusivamente de
+ * CandidatePool.trustedCityContext — contexto territorial confiável
+ * da própria Activity (derivado da configuração da fonte, nunca do
+ * candidate pool, nunca do texto da menção). Quando ausente
+ * (trustedCityContext === null), NENHUM filtro geográfico é aplicado
+ * — nem cidade, nem raio, nem ordenação por proximidade — apenas
+ * maxCandidates continua obrigatório. A ausência de contexto
+ * geográfico confiável reduz a precisão do PreFilter; nunca inventa
+ * contexto artificial.
+ *
+ * Identidade de cidade (não substring, não lista de variantes
+ * hardcoded): reaproveita getCityCentroid() — já usado pelo
+ * GeoMatcher — como função de canonicalização. "Cabo Frio" e
+ * "Cabo Frio RJ" resolvem ao MESMO GeoPoint em CITY_CENTROIDS
+ * (entradas duplicadas e equivalentes já existentes); duas cidades
+ * com o mesmo ponto são consideradas a mesma identidade. Cidades
+ * ainda não presentes em CITY_CENTROIDS (ex: fontes futuras de São
+ * Paulo) resolvem a null em ambos os lados — nesse caso, nunca
+ * corresponde (comportamento conservador, nunca "quase-match" por
+ * substring).
  */
 
 import type { ICandidatePreFilter } from '../interfaces/index.js';
@@ -35,9 +69,10 @@ import type {
   CandidatePool,
   FilteredCandidates,
   VenueCandidate,
+  TrustedCityContext,
 } from '../types/domain.js';
 import type { CandidateSelectionConfig } from '../config/index.js';
-import { haversineDistance, getCityCentroid } from '../utils/geo.js';
+import { haversineDistance, getCityCentroid, type GeoPoint } from '../utils/geo.js';
 import { assertFilteredCandidates } from './contracts.js';
 
 export class CandidatePreFilter implements ICandidatePreFilter {
@@ -47,23 +82,26 @@ export class CandidatePreFilter implements ICandidatePreFilter {
     let filtered = [...original];
     const steps: string[] = [];
 
-    // ── Passo 1: Filtro por cidade ──────────────────────────────────────────
-    // Heurística barata — comparação de string normalizada.
-    // Só aplicado quando allowCrossCity = false E existe uma cidade de referência.
-    const referenceCity = this.resolveReferenceCity(pool);
-    if (!config.allowCrossCity && referenceCity) {
+    const trustedCityContext = pool.trustedCityContext;
+
+    // ── Passo 1: Filtro por cidade ──────────────────────────────────────
+    // Level 2, 2026-09-26 — só aplicado com trustedCityContext presente.
+    // Nunca deriva cidade do candidate pool (ver nota no cabeçalho).
+    if (!config.allowCrossCity && trustedCityContext) {
       const before = filtered.length;
       filtered = filtered.filter(c =>
-        !c.city || this.cityMatches(c.city, referenceCity),
+        !c.city || this.citiesMatch(c.city, trustedCityContext),
       );
       const removed = before - filtered.length;
-      if (removed > 0) steps.push(`${removed} removidos por cidade (ref: "${referenceCity}")`);
+      if (removed > 0) {
+        steps.push(`${removed} removidos por cidade (trusted: "${trustedCityContext.city}, ${trustedCityContext.state}")`);
+      }
     }
 
-    // ── Passo 2: Filtro por raio ────────────────────────────────────────────
-    // Haversine simples — sem trigonometria complexa.
-    // Só aplicado quando existe um ponto de referência geográfico.
-    const referencePoint = this.resolveReferencePoint(pool);
+    // ── Passo 2: Filtro por raio ─────────────────────────────────────────
+    // Só aplicado quando há um ponto de referência confiável, derivado
+    // exclusivamente de trustedCityContext — nunca da maioria do pool.
+    const referencePoint = this.resolveTrustedReferencePoint(trustedCityContext);
     if (referencePoint && config.maxRadiusMeters > 0) {
       const before = filtered.length;
       filtered = filtered.filter(c => {
@@ -75,9 +113,12 @@ export class CandidatePreFilter implements ICandidatePreFilter {
       if (removed > 0) steps.push(`${removed} removidos por raio (${config.maxRadiusMeters}m)`);
     }
 
-    // ── Passo 3: Top N por proximidade ──────────────────────────────────────
-    // Se ainda excede maxCandidates, ordena por proximidade e corta.
-    // A ordenação usa distância ao ponto de referência — puramente geográfica.
+    // ── Passo 3: Top N por proximidade ──────────────────────────────────
+    // Se ainda excede maxCandidates, ordena por proximidade e corta —
+    // só quando há referencePoint confiável. Sem contexto territorial,
+    // maxCandidates continua obrigatório, mas sem ordenação por uma
+    // cidade inventada — apenas corta na ordem em que os candidatos
+    // chegaram.
     if (filtered.length > config.maxCandidates) {
       if (referencePoint) {
         filtered.sort((a, b) => {
@@ -115,49 +156,38 @@ export class CandidatePreFilter implements ICandidatePreFilter {
     return result;
   }
 
-  // ── Privados ──────────────────────────────────────────────────────────────
+  // ── Privados ──────────────────────────────────────────────────────────
 
   /**
-   * Resolve a cidade de referência para o filtro de cidade.
-   * Usa a cidade da maioria dos candidatos (mais frequente) como referência.
-   * Se não houver consenso claro, não filtra por cidade.
+   * Level 2, 2026-09-26 — ponto de referência confiável, derivado
+   * exclusivamente de trustedCityContext.city via getCityCentroid().
+   * null quando não há contexto territorial confiável, ou quando a
+   * cidade declarada não está (ainda) em CITY_CENTROIDS — em ambos os
+   * casos, nenhum filtro de raio/ordenação por proximidade é aplicado
+   * (comportamento conservador, nunca inventa).
    */
-  private resolveReferenceCity(pool: CandidatePool): string | null {
-    // Pegar a cidade mais frequente entre os candidatos
-    const cityCounts = new Map<string, number>();
-    for (const c of pool.candidates) {
-      if (c.city) {
-        cityCounts.set(c.city, (cityCounts.get(c.city) ?? 0) + 1);
-      }
-    }
-    if (cityCounts.size === 0) return null;
-
-    // Usar a cidade mais frequente como referência
-    let maxCity = '';
-    let maxCount = 0;
-    for (const [city, count] of cityCounts) {
-      if (count > maxCount) { maxCount = count; maxCity = city; }
-    }
-    return maxCity || null;
+  private resolveTrustedReferencePoint(
+    trustedCityContext: TrustedCityContext | null | undefined,
+  ): GeoPoint | null {
+    if (!trustedCityContext) return null;
+    return getCityCentroid(trustedCityContext.city);
   }
 
   /**
-   * Resolve o ponto de referência geográfico.
-   * Tenta o centroide da cidade de referência.
+   * Level 2, 2026-09-26 — identidade de cidade via canonicalização por
+   * centróide, não substring/includes(). "Cabo Frio" (trustedCityContext,
+   * sem sufixo de estado) e "Cabo Frio RJ" (candidate.city) resolvem ao
+   * MESMO GeoPoint em CITY_CENTROIDS (entradas duplicadas já existentes
+   * para as cidades RJ suportadas) — considerados a mesma cidade.
+   *
+   * Se qualquer um dos dois lados não estiver em CITY_CENTROIDS,
+   * devolve false (nunca corresponde por acaso) — nunca usa
+   * comparação textual como fallback.
    */
-  private resolveReferencePoint(
-    pool: CandidatePool,
-  ): { lat: number; lng: number } | null {
-    const city = this.resolveReferenceCity(pool);
-    if (!city) return null;
-    return getCityCentroid(city);
-  }
-
-  /**
-   * Compara duas cidades de forma normalizada.
-   * "Cabo Frio RJ" === "cabo frio rj" → true
-   */
-  private cityMatches(candidateCity: string, referenceCity: string): boolean {
-    return candidateCity.toLowerCase().trim() === referenceCity.toLowerCase().trim();
+  private citiesMatch(candidateCity: string, trustedCityContext: TrustedCityContext): boolean {
+    const trustedPoint   = getCityCentroid(trustedCityContext.city);
+    const candidatePoint = getCityCentroid(candidateCity);
+    if (!trustedPoint || !candidatePoint) return false;
+    return trustedPoint.lat === candidatePoint.lat && trustedPoint.lng === candidatePoint.lng;
   }
 }

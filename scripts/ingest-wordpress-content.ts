@@ -8,31 +8,22 @@
  *   npx tsx scripts/ingest-wordpress-content.ts --instance=cabo-frio --since-days=7
  *   npx tsx scripts/ingest-wordpress-content.ts --instance=sao-pedro-da-aldeia
  *
- * Level 2, 2026-09-23 — São Pedro da Aldeia Simple Enablement. Nenhuma
- * lógica de parsing/collector alterada — só o registo da instância já
- * existente (config/sao-pedro-da-aldeia.ts, WordPressContentCollector já
- * genérico, IngestionOrchestrator.runActivityIngestion já genérico — ver
- * Real Ingestion Enablement Assessment). structured_block_marker desta
- * fonte continua não confirmado — fora do âmbito desta mudança.
+ * Level 2, 2026-09-26 — AVAILABLE_INSTANCES extraído para
+ * src/collectors/wordpress-content/config/registry.ts — única fonte
+ * de verdade, também reutilizada pelo Entity Resolution
+ * (WordPressSourceTerritorialContextProvider). Este script agora só
+ * importa o registry, não o define — comportamento da CLI inalterado.
  */
 
 import { fileURLToPath } from 'node:url';
 import { WordPressApiClient } from '../src/collectors/wordpress-content/WordPressApiClient';
 import { WordPressContentCollector } from '../src/collectors/wordpress-content/WordPressContentCollector';
-import { CABO_FRIO_CONFIG } from '../src/collectors/wordpress-content/config/cabo-frio';
-import { SAO_PEDRO_DA_ALDEIA_CONFIG } from '../src/collectors/wordpress-content/config/sao-pedro-da-aldeia';
-import type { WordPressContentSourceConfig } from '../src/collectors/wordpress-content/config/WordPressContentSourceConfig';
+import { AVAILABLE_INSTANCES } from '../src/collectors/wordpress-content/config/registry';
 import { IngestionOrchestrator } from '../src/persistence/orchestration/IngestionOrchestrator';
 import { RepositoryFactory } from '../src/persistence/orchestration/RepositoryFactory';
 import { logger } from '../src/lib/logger';
 
-// Level 2, 2026-09-23 — exportado (era const local) para permitir teste
-// automatizado da resolução de instância, sem precisar de mock de rede/
-// Supabase. Menor alteração necessária para testabilidade, sem refactor.
-export const AVAILABLE_INSTANCES: Record<string, WordPressContentSourceConfig> = {
-  'cabo-frio': CABO_FRIO_CONFIG,
-  'sao-pedro-da-aldeia': SAO_PEDRO_DA_ALDEIA_CONFIG,
-};
+export { AVAILABLE_INSTANCES };
 
 async function main() {
   const instanceArg = process.argv.find((a) => a.startsWith('--instance='));
@@ -70,12 +61,12 @@ async function main() {
   console.log(`Staged (Camada B):     ${summary.stagedItems}`);
 }
 
-// Level 2, 2026-09-23 — main() só corre quando o arquivo é executado
+// Level 2, 2026-09-24 — main() só corre quando o arquivo é executado
 // directamente (CLI), nunca quando importado por um teste. Sem isto, o
 // simples `import { AVAILABLE_INSTANCES }` de um teste dispararia a CLI
 // real (Supabase incluído).
 //
-// Level 1 bugfix, 2026-09-23 — regressão confirmada em produção real
+// Level 1 bugfix, 2026-09-24 — regressão confirmada em produção real
 // (Windows). A comparação directa de strings
 // `import.meta.url === \`file://${process.argv[1]}\`` falha
 // silenciosamente: import.meta.url usa barras normais e URL encoding
