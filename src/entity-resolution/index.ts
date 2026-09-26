@@ -188,6 +188,7 @@ export {
   RepositoryError,
   ActivityNotFoundError,
   VenueNotFoundError,
+  CandidateNotInPoolError,
   isERError,
 } from './errors/index.js';
 
@@ -195,3 +196,6 @@ export type { ERErrorCode } from './errors/index.js';
 
 // ── Engine ──────────────────────────────────────────────────────────────
 export { EntityResolutionEngine } from './EntityResolutionEngine.js';
+
+// ── Human Resolution (Level 2, 2026-09-26) ────────────────────────────
+export { HumanResolutionService } from './services/HumanResolutionService.js';

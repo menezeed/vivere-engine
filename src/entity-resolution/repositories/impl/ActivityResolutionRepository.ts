@@ -30,11 +30,18 @@ export interface ActivityForResolution {
    * mapRow() já aplica quando o JOIN não devolve source_key).
    */
   source_key?:             string;
+  /**
+   * Level 2, 2026-09-26 — Human Resolution. activities_staging.proposal_status
+   * (coluna directa, fora do JOIN com raw_activity_items). Necessário
+   * para HumanResolutionService validar que a actividade está em
+   * pending_review antes de aceitar uma confirmação humana de venue.
+   */
+  proposal_status?:        string;
 }
 
 // SELECT mínimo — apenas campos necessários para o motor ER
 const SELECT = `
-  id, product_key, venue_resolution_status,
+  id, product_key, venue_resolution_status, proposal_status,
   raw_activity_items!inner (
     source_key,
     venue_mention_raw_text,
@@ -61,6 +68,7 @@ function mapRow(row: Record<string, unknown>): ActivityForResolution {
     venue_resolution_status: row['venue_resolution_status'] as string,
     venue_mention:           buildMention(raw ?? {}),
     source_key:              (raw?.['source_key'] as string | null) ?? '',
+    proposal_status:         row['proposal_status'] as string,
   };
 }
 

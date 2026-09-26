@@ -11,7 +11,7 @@
  * Isso permite catch genérico quando necessário, mas com acesso ao código.
  */
 
-// ── Base ─────────────────────────────────────────────────────────────────────
+// ── Base ──────────────────────────────────────────────────────────────
 
 export type ERErrorCode =
   | 'CANDIDATE_GENERATION_ERROR'
@@ -24,7 +24,8 @@ export type ERErrorCode =
   | 'VENUE_NOT_FOUND'
   | 'INVALID_CANDIDATE_OUTCOME'
   | 'DECISION_CONFLICT'
-  | 'CONFIGURATION_ERROR';
+  | 'CONFIGURATION_ERROR'
+  | 'CANDIDATE_NOT_IN_POOL';
 
 export abstract class ERError extends Error {
   abstract readonly code: ERErrorCode;
@@ -37,7 +38,7 @@ export abstract class ERError extends Error {
   }
 }
 
-// ── Erros de geração de candidatos ───────────────────────────────────────────
+// ── Erros de geração de candidatos ──────────────────────────────────────
 
 /**
  * Falha ao consultar o pool de candidatos no banco.
@@ -70,7 +71,26 @@ export class NoCandidateFoundError extends ERError {
   }
 }
 
-// ── Erros de configuração ─────────────────────────────────────────────────────
+/**
+ * Level 2, 2026-09-26 — Human Resolution. Um candidateVenueId fornecido
+ * pelo revisor não corresponde a nenhum candidato do pool gerado para
+ * esta actividade (VenueResolutionCandidateRepository.findByActivity()).
+ * Distinto de VenueNotFoundError (venue não existe globalmente) — aqui o
+ * venue pode existir perfeitamente, só nunca foi candidato desta
+ * actividade específica.
+ */
+export class CandidateNotInPoolError extends ERError {
+  readonly code = 'CANDIDATE_NOT_IN_POOL' as const;
+
+  constructor(activityId: string, candidateVenueId: string) {
+    super(
+      `Venue ${candidateVenueId} não pertence ao pool de candidatos da actividade ${activityId}`,
+      { activityId, candidateVenueId },
+    );
+  }
+}
+
+// ── Erros de configuração ──────────────────────────────────────────────
 
 /**
  * Configuração inválida de um matcher ou da engine.
@@ -95,7 +115,7 @@ export class ConfigurationError extends ERError {
   }
 }
 
-// ── Erros de estado ───────────────────────────────────────────────────────────
+// ── Erros de estado ──────────────────────────────────────────────────
 
 /**
  * Tentativa de transição inválida de venue_resolution_status.
@@ -142,7 +162,7 @@ export class DecisionConflictError extends ERError {
   }
 }
 
-// ── Erros de repositório ──────────────────────────────────────────────────────
+// ── Erros de repositório ──────────────────────────────────────────────
 
 /** Falha genérica de operação no repositório. */
 export class RepositoryError extends ERError {
@@ -172,7 +192,7 @@ export class VenueNotFoundError extends ERError {
   }
 }
 
-// ── Type guard ────────────────────────────────────────────────────────────────
+// ── Type guard ──────────────────────────────────────────────────────────
 
 export function isERError(e: unknown): e is ERError {
   return e instanceof ERError;
