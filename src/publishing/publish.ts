@@ -24,6 +24,11 @@
  * Sem flags: publicação real.
  *
  * Fase 8: execução exclusivamente via CLI (Architecture Book v1.1 §15, Q3).
+ *
+ * GATE DE DECISÃO HUMANA PARA MATCHED (Level 2, 2026-09-26) — ActivityPublisher
+ * recebe agora um 5º parâmetro opcional (decisionRepo), fornecido aqui via
+ * EntityResolutionRepositoryFactory.forSupabase().decision. Ver nota completa
+ * no cabeçalho de ActivityPublisher.ts.
  */
 
 import { PublishingRepositoryFactory } from './repositories/factory.js';
@@ -33,6 +38,8 @@ import { PublishingEngine }            from './services/PublishingEngine.js';
 import { detectVenueDuplicates }       from './services/duplicateDetection.js';
 import type { VenueDecision }          from './services/VenuePublisher.js';
 import type { ActivityDecision }       from './services/ActivityPublisher.js';
+// Level 2, 2026-09-26 — gate de decisão humana para matched.
+import { EntityResolutionRepositoryFactory } from '../entity-resolution/repositories/factory.js';
 
 const DRY_RUN     = process.argv.includes('--dry-run');
 const PREVIEW     = process.argv.includes('--preview');
@@ -45,7 +52,7 @@ function log(msg: string, data?: unknown): void {
   console.log(`${prefix}${msg}`, data ? JSON.stringify(data, null, 2) : '');
 }
 
-// ── Formatação de amostra ──────────────────────────────────────────────────────
+// ── Formatação de amostra ──────────────────────────────────────────────
 
 function formatVenueRow(d: VenueDecision): string {
   const publicId = 'publicVenueId' in d ? d.publicVenueId : '(ainda não existe)';
@@ -81,6 +88,9 @@ function formatActivityRow(d: ActivityDecision, venueStagingIdsBeingInserted: Re
   } else if (d.action === 'skip_expired' || d.action === 'archive_expired') {
     const dates = d.activity.occurrences.map(o => o.date).join(', ') || '(nenhuma)';
     occurrenceInfo = `sem ocorrência futura (datas em staging: ${dates})`;
+  } else if (d.action === 'skip_missing_human_decision') {
+    // Level 2, 2026-09-26.
+    occurrenceInfo = 'matched sem decisão humana registada em venue_resolution_decisions';
   } else {
     occurrenceInfo = 'n/a';
   }
@@ -103,7 +113,7 @@ function printSample<T extends { action: string }>(decisions: readonly T[], acti
   }
 }
 
-// ── Modos ──────────────────────────────────────────────────────────────────────
+// ── Modos ──────────────────────────────────────────────────────────────
 
 async function runDryRun(): Promise<void> {
   log('Verificando configuração...');
@@ -117,8 +127,10 @@ async function runPreview(productKey: string): Promise<void> {
   log(`Lendo dados reais para produto: ${productKey} (zero escrita)`);
 
   const repos = await PublishingRepositoryFactory.forSupabase();
+  // Level 2, 2026-09-26 — gate de decisão humana para matched.
+  const erRepos = await EntityResolutionRepositoryFactory.forSupabase();
   const venuePublisher    = new VenuePublisher(repos.publishableVenue, repos.publicVenue, repos.event);
-  const activityPublisher = new ActivityPublisher(repos.publishableActivity, repos.publicActivity, repos.event);
+  const activityPublisher = new ActivityPublisher(repos.publishableActivity, repos.publicActivity, repos.event, () => new Date(), erRepos.decision);
   const engine             = new PublishingEngine(venuePublisher, activityPublisher, repos.run, repos.event);
 
   const { venues, activities } = await engine.preview(productKey);
@@ -132,12 +144,14 @@ async function runPreview(productKey: string): Promise<void> {
   };
 
   const activityCounts = {
-    insert:          activities.filter(d => d.action === 'insert').length,
-    update:          activities.filter(d => d.action === 'update').length,
-    skip_not_dirty:  activities.filter(d => d.action === 'skip_not_dirty').length,
-    skip_expired:    activities.filter(d => d.action === 'skip_expired').length,
-    archive_expired: activities.filter(d => d.action === 'archive_expired').length,
-    error:           activities.filter(d => d.action === 'error').length,
+    insert:                      activities.filter(d => d.action === 'insert').length,
+    update:                      activities.filter(d => d.action === 'update').length,
+    skip_not_dirty:              activities.filter(d => d.action === 'skip_not_dirty').length,
+    skip_expired:                activities.filter(d => d.action === 'skip_expired').length,
+    archive_expired:             activities.filter(d => d.action === 'archive_expired').length,
+    // Level 2, 2026-09-26.
+    skip_missing_human_decision: activities.filter(d => d.action === 'skip_missing_human_decision').length,
+    error:                       activities.filter(d => d.action === 'error').length,
   };
 
   // Sprint 8.7 (ponto 1 da revisão): três estados, não dois — resolvido,
@@ -170,6 +184,7 @@ async function runPreview(productKey: string): Promise<void> {
   console.log(`  não-dirty:                   ${activityCounts.skip_not_dirty}`);
   console.log(`  expiradas para skip:         ${activityCounts.skip_expired}`);
   console.log(`  expiradas para archive:      ${activityCounts.archive_expired}`);
+  console.log(`  sem decisão humana (matched, bloqueadas): ${activityCounts.skip_missing_human_decision}`);
   console.log(`  com venue já resolvido:      ${withVenueResolved}`);
   console.log(`  com venue pendente (matched, resolve nesta run): ${withVenuePending}`);
   console.log(`  proposed_new (venue_id sempre NULL, por desenho): ${withVenueProposedNew}`);
@@ -199,6 +214,8 @@ async function runPreview(productKey: string): Promise<void> {
   console.log('  Decisão oficial (confirmada): proposal_status de activities NÃO participa deste');
   console.log('  gate na Fase 8 — o gate é venue_resolution_status + decisão humana já registada');
   console.log('  em venue_resolution_decisions. Ver pendência de documentação para Architecture Book v1.2.');
+  console.log('  Level 2, 2026-09-26 — a segunda metade deste gate (decisão humana) passou a ser');
+  console.log('  verificada de facto por ActivityPublisher, não só documentada — ver contagem acima.');
 
   // Sprint 8.7 (ponto 2 da revisão): relatório de possíveis venues
   // duplicados entre os candidatos a insert — nunca dedupe automático.
@@ -243,6 +260,7 @@ async function runPreview(productKey: string): Promise<void> {
   printSample(activities, 'skip_not_dirty', formatActivity);
   printSample(activities, 'skip_expired', formatActivity);
   printSample(activities, 'archive_expired', formatActivity);
+  printSample(activities, 'skip_missing_human_decision', formatActivity);
   printSample(activities, 'error', formatActivity);
 
   console.log('\nPreview concluído. Nenhuma escrita foi feita. Execute sem flags para publicar de facto.');
@@ -250,9 +268,11 @@ async function runPreview(productKey: string): Promise<void> {
 
 async function runReal(productKey: string): Promise<void> {
   const repos = await PublishingRepositoryFactory.forSupabase();
+  // Level 2, 2026-09-26 — gate de decisão humana para matched.
+  const erRepos = await EntityResolutionRepositoryFactory.forSupabase();
 
   const venuePublisher    = new VenuePublisher(repos.publishableVenue, repos.publicVenue, repos.event);
-  const activityPublisher = new ActivityPublisher(repos.publishableActivity, repos.publicActivity, repos.event);
+  const activityPublisher = new ActivityPublisher(repos.publishableActivity, repos.publicActivity, repos.event, () => new Date(), erRepos.decision);
   const engine             = new PublishingEngine(venuePublisher, activityPublisher, repos.run, repos.event);
 
   log(`Iniciando publicação para produto: ${productKey}`);

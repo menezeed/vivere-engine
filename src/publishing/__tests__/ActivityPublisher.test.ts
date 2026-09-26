@@ -1,15 +1,15 @@
 /**
  * src/publishing/__tests__/ActivityPublisher.test.ts
- * Sprint 8.5/8.7 — testes com mocks. Zero Supabase, zero rede.
+ * Sprint 8.5/8.7 ÔÇö testes com mocks. Zero Supabase, zero rede.
  *
- * CORRECÇÃO (Level 3, 2026-09-23) — Stable Source Activity Identity.
- * makeActivity() ganhou sourceItemId (campo novo, obrigatório). Todo o
+ * CORREC├ç├âO (Level 3, 2026-09-23) ÔÇö Stable Source Activity Identity.
+ * makeActivity() ganhou sourceItemId (campo novo, obrigat├│rio). Todo o
  * teste que antes distinguia activities pelo stagingId para decidir
  * insert/update via o mock de findPublicationStateByEngineId passa a
- * distingui-las por sourceItemId + deriveEngineActivityId — é essa
- * identidade, não o stagingId, que agora decide o caminho de reconciliação
+ * distingui-las por sourceItemId + deriveEngineActivityId ÔÇö ├® essa
+ * identidade, n├úo o stagingId, que agora decide o caminho de reconcilia├º├úo
  * (ver ActivityPublisher.buildDecision()). archiveActivity() passa a
- * receber EngineActivityId, não StagingActivityId.
+ * receber EngineActivityId, n├úo StagingActivityId.
  */
 
 import { describe, it, expect, vi } from 'vitest';
@@ -32,8 +32,11 @@ import type {
   PublicationEventId,
   PublicActivityPublicationState,
 } from '../types/domain.js';
+// Level 2, 2026-09-26 — gate de decisão humana para matched.
+import type { IVenueResolutionDecisionRepository } from '../../entity-resolution/repositories/interfaces.js';
+import type { ActivityStagingId as ERActivityStagingId, CandidateId, ResolutionDecision } from '../../entity-resolution/types/domain.js';
 
-// ── Fixtures ─────────────────────────────────────────────────────────────
+// ÔöÇÔöÇ Fixtures ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
 
 const RUN_ID       = 'run-001'   as PublicationRunId;
 const PRODUCT_KEY  = 'vivere-60-mais';
@@ -51,9 +54,9 @@ function makeActivity(overrides: Partial<PublishableActivity> = {}): Publishable
     stagingId:             'sa-001' as StagingActivityId,
     productKey:            PRODUCT_KEY,
     sourceKey:             'prefeitura_cabo_frio',
-    // Level 3, 2026-09-23 — identidade estável por omissão; testes que
-    // precisam de identidades DISTINTAS (ex: "métricas") sobrepõem isto
-    // explicitamente, e não apenas stagingId, já que é sourceItemId (não
+    // Level 3, 2026-09-23 ÔÇö identidade est├ível por omiss├úo; testes que
+    // precisam de identidades DISTINTAS (ex: "m├®tricas") sobrep├Áem isto
+    // explicitamente, e n├úo apenas stagingId, j├í que ├® sourceItemId (n├úo
     // stagingId) que agora decide insert vs update.
     sourceItemId:          '146007_0',
     title:                 'Yoga no Forte',
@@ -93,7 +96,7 @@ function makeRepos(overrides: {
     archive:                        (overrides.archiveImpl      ?? vi.fn().mockResolvedValue(undefined)) as IPublicActivityRepository['archive'],
     linkToStaging:                  vi.fn().mockResolvedValue(undefined),
     findByEngineId:                 vi.fn().mockResolvedValue(null),
-    // Por omissão: null — qualquer activity é tratada como "nunca
+    // Por omiss├úo: null ÔÇö qualquer activity ├® tratada como "nunca
     // publicada sob esta identidade" (caminho insert), salvo override.
     findPublicationStateByEngineId: (overrides.publicationState ?? vi.fn().mockResolvedValue(null)) as IPublicActivityRepository['findPublicationStateByEngineId'],
   };
@@ -109,10 +112,10 @@ function makeState(publicActivityId: PublicActivityId, lastPublishedAt: Date): P
   return { publicActivityId, lastPublishedAt, engineStatus: 'active' };
 }
 
-// ── Publica activity nova ────────────────────────────────────────────────
+// ÔöÇÔöÇ Publica activity nova ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
 
-describe('ActivityPublisher — activity nova', () => {
-  it('publica activity nova: insert + linkToStaging + evento ActivityPublished + métricas', async () => {
+describe('ActivityPublisher ÔÇö activity nova', () => {
+  it('publica activity nova: insert + linkToStaging + evento ActivityPublished + m├®tricas', async () => {
     const activity = makeActivity();
     const { publishableActivity, publicActivity, eventRepo } = makeRepos({ findUnpublished: [activity] });
 
@@ -130,7 +133,7 @@ describe('ActivityPublisher — activity nova', () => {
     expect(metrics.errors).toBe(0);
   });
 
-  it('resolve venue_id a partir de resolvedPublicVenueId (já calculado por PublishableActivityRepository)', async () => {
+  it('resolve venue_id a partir de resolvedPublicVenueId (j├í calculado por PublishableActivityRepository)', async () => {
     const activity = makeActivity({ resolvedPublicVenueId: 'venue-xyz' as PublicVenueId });
     const { publishableActivity, publicActivity, eventRepo } = makeRepos({ findUnpublished: [activity] });
 
@@ -150,7 +153,7 @@ describe('ActivityPublisher — activity nova', () => {
 
     const [adapted] = (publicActivity.insert as ReturnType<typeof vi.fn>).mock.calls[0]!;
     expect(adapted.resolvedPublicVenueId).toBeNull();
-    expect(publicActivity.insert).toHaveBeenCalledTimes(1); // não bloqueia a publicação
+    expect(publicActivity.insert).toHaveBeenCalledTimes(1); // n├úo bloqueia a publica├º├úo
   });
 
   it('o payload de insert usa imagem_url (typo ADR-0015) via PublicationTransformer', async () => {
@@ -161,14 +164,14 @@ describe('ActivityPublisher — activity nova', () => {
     await publisher.publish(PRODUCT_KEY, RUN_ID);
 
     const [adapted] = (publicActivity.insert as ReturnType<typeof vi.fn>).mock.calls[0]!;
-    expect(adapted.imageUrl).toBe('https://x.com/yoga.jpg'); // forma de domínio — typo só na escrita ao banco
+    expect(adapted.imageUrl).toBe('https://x.com/yoga.jpg'); // forma de dom├¡nio ÔÇö typo s├│ na escrita ao banco
   });
 });
 
-// ── ADR-0020 — múltiplas ocorrências e expiração ─────────────────────────
+// ÔöÇÔöÇ ADR-0020 ÔÇö m├║ltiplas ocorr├¬ncias e expira├º├úo ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
 
-describe('ActivityPublisher — ADR-0020 (ocorrências e expiração)', () => {
-  it('selecciona a próxima ocorrência futura ao publicar pela primeira vez', async () => {
+describe('ActivityPublisher ÔÇö ADR-0020 (ocorr├¬ncias e expira├º├úo)', () => {
+  it('selecciona a pr├│xima ocorr├¬ncia futura ao publicar pela primeira vez', async () => {
     const activity = makeActivity({
       occurrences: [PAST_OCCURRENCE, FUTURE_OCCURRENCE],
     });
@@ -181,7 +184,7 @@ describe('ActivityPublisher — ADR-0020 (ocorrências e expiração)', () => {
     expect(adapted.startDate).toEqual(new Date('2026-08-01T09:00:00.000Z'));
   });
 
-  it('activity nova sem nenhuma ocorrência futura NÃO é inserida — skip silencioso', async () => {
+  it('activity nova sem nenhuma ocorr├¬ncia futura N├âO ├® inserida ÔÇö skip silencioso', async () => {
     const activity = makeActivity({ occurrences: [PAST_OCCURRENCE] });
     const { publishableActivity, publicActivity, eventRepo } = makeRepos({ findUnpublished: [activity] });
 
@@ -189,18 +192,18 @@ describe('ActivityPublisher — ADR-0020 (ocorrências e expiração)', () => {
     const metrics = await publisher.publish(PRODUCT_KEY, RUN_ID);
 
     expect(publicActivity.insert).not.toHaveBeenCalled();
-    expect(eventRepo.record).not.toHaveBeenCalled(); // zero writes → zero eventos
+    expect(eventRepo.record).not.toHaveBeenCalled(); // zero writes ÔåÆ zero eventos
     expect(metrics.activitiesSkipped).toBe(1);
     expect(metrics.activitiesPublished).toBe(0);
   });
 
-  it('activity dirty e já publicada, agora sem ocorrência futura, é arquivada (não actualizada)', async () => {
+  it('activity dirty e j├í publicada, agora sem ocorr├¬ncia futura, ├® arquivada (n├úo actualizada)', async () => {
     const publicId = 'activity-expiring-001' as PublicActivityId;
     const activity = makeActivity({
       stagingId:           'sa-expiring' as StagingActivityId,
       sourceItemId:        'expiring-001',
       promotedActivityId:  publicId,
-      occurrences:         [PAST_OCCURRENCE], // já não tem ocorrência futura
+      occurrences:         [PAST_OCCURRENCE], // j├í n├úo tem ocorr├¬ncia futura
       stagingUpdatedAt:    new Date('2026-07-08T00:00:00.000Z'), // dirty (mais recente que last_published_at)
     });
     const publicationState = vi.fn().mockResolvedValue(makeState(publicId, new Date('2026-07-01T00:00:00.000Z')));
@@ -222,7 +225,7 @@ describe('ActivityPublisher — ADR-0020 (ocorrências e expiração)', () => {
     expect(metrics.activitiesUpdated).toBe(0);
   });
 
-  it('activity dirty, já publicada, ainda com ocorrência futura, actualiza normalmente (não confunde com expirada)', async () => {
+  it('activity dirty, j├í publicada, ainda com ocorr├¬ncia futura, actualiza normalmente (n├úo confunde com expirada)', async () => {
     const publicId = 'activity-still-valid-001' as PublicActivityId;
     const activity = makeActivity({
       stagingId:           'sa-still-valid' as StagingActivityId,
@@ -244,9 +247,9 @@ describe('ActivityPublisher — ADR-0020 (ocorrências e expiração)', () => {
   });
 });
 
-// ── Dirty check real ──────────────────────────────────────────────────────
+// ÔöÇÔöÇ Dirty check real ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
 
-describe('ActivityPublisher — dirty check', () => {
+describe('ActivityPublisher ÔÇö dirty check', () => {
   it('actualiza activity existente quando dirty (staging.updated_at > public.last_published_at)', async () => {
     const publicId = 'activity-existing-001' as PublicActivityId;
     const activity = makeActivity({
@@ -261,8 +264,8 @@ describe('ActivityPublisher — dirty check', () => {
     const publisher = new ActivityPublisher(publishableActivity, publicActivity, eventRepo, () => NOW);
     const metrics = await publisher.publish(PRODUCT_KEY, RUN_ID);
 
-    // Level 3, 2026-09-23 — o lookup é feito pela identidade estável
-    // derivada (source_key + source_item_id), não mais por activity.stagingId.
+    // Level 3, 2026-09-23 ÔÇö o lookup ├® feito pela identidade est├ível
+    // derivada (source_key + source_item_id), n├úo mais por activity.stagingId.
     const expectedEngineId = deriveEngineActivityId(activity.sourceKey, activity.sourceItemId);
     expect(publicActivity.findPublicationStateByEngineId).toHaveBeenCalledWith(expectedEngineId);
     expect(publicActivity.update).toHaveBeenCalledWith(publicId, expect.anything());
@@ -273,7 +276,7 @@ describe('ActivityPublisher — dirty check', () => {
     expect(metrics.activitiesSkipped).toBe(0);
   });
 
-  it('ignora activity não dirty (staging.updated_at <= public.last_published_at) — zero writes, zero eventos', async () => {
+  it('ignora activity n├úo dirty (staging.updated_at <= public.last_published_at) ÔÇö zero writes, zero eventos', async () => {
     const publicId = 'activity-existing-002' as PublicActivityId;
     const activity = makeActivity({
       stagingId:          'sa-dirty-002' as StagingActivityId,
@@ -293,15 +296,15 @@ describe('ActivityPublisher — dirty check', () => {
     expect(metrics.activitiesUpdated).toBe(0);
   });
 
-  it('promotedActivityId preenchido mas sem registo público correspondente (identidade estável) é erro — não insert (Level 2 review, 2026-09-23, restaura garantia de integridade)', async () => {
+  it('promotedActivityId preenchido mas sem registo p├║blico correspondente (identidade est├ível) ├® erro ÔÇö n├úo insert (Level 2 review, 2026-09-23, restaura garantia de integridade)', async () => {
     const activity = makeActivity({
       sourceItemId:       'orphan-promoted-001',
-      promotedActivityId: 'activity-ghost-001' as PublicActivityId, // alega já promovida
+      promotedActivityId: 'activity-ghost-001' as PublicActivityId, // alega j├í promovida
       stagingUpdatedAt:   new Date(),
     });
     const { publishableActivity, publicActivity, eventRepo } = makeRepos({
       findDirty: [activity],
-      publicationState: vi.fn().mockResolvedValue(null), // mas nenhum registo público real
+      publicationState: vi.fn().mockResolvedValue(null), // mas nenhum registo p├║blico real
     });
 
     const publisher = new ActivityPublisher(publishableActivity, publicActivity, eventRepo, () => NOW);
@@ -314,19 +317,19 @@ describe('ActivityPublisher — dirty check', () => {
     expect(publicActivity.update).not.toHaveBeenCalled();
   });
 
-  it('nova observação de staging (promotedActivityId null) reconcilia com public.activities já existente sob a mesma identidade de fonte — UPDATE, não INSERT duplicado (Level 2 review, 2026-09-23, caso central da Stable Source Activity Identity)', async () => {
+  it('nova observa├º├úo de staging (promotedActivityId null) reconcilia com public.activities j├í existente sob a mesma identidade de fonte ÔÇö UPDATE, n├úo INSERT duplicado (Level 2 review, 2026-09-23, caso central da Stable Source Activity Identity)', async () => {
     const publicId = 'activity-reconciled-001' as PublicActivityId;
-    // Modela uma NOVA linha de staging (esta linha específica nunca foi
-    // promovida — promotedActivityId null), mas cuja identidade de fonte
-    // (sourceKey+sourceItemId) já tem uma public.activities publicada via
-    // uma linha de staging anterior e diferente — exactamente o cenário
-    // "Run 1 → staging A → publicado; Run 2 → staging B → mesma fonte"
-    // que motivou toda esta correcção.
+    // Modela uma NOVA linha de staging (esta linha espec├¡fica nunca foi
+    // promovida ÔÇö promotedActivityId null), mas cuja identidade de fonte
+    // (sourceKey+sourceItemId) j├í tem uma public.activities publicada via
+    // uma linha de staging anterior e diferente ÔÇö exactamente o cen├írio
+    // "Run 1 ÔåÆ staging A ÔåÆ publicado; Run 2 ÔåÆ staging B ÔåÆ mesma fonte"
+    // que motivou toda esta correc├º├úo.
     const activity = makeActivity({
       stagingId:           'sa-recollected' as StagingActivityId,
       sourceItemId:        'reconcile-001',
-      promotedActivityId:  null, // esta linha nunca foi promovida ela própria
-      stagingUpdatedAt:    new Date('2026-07-08T00:00:00.000Z'), // mais recente que o último publish
+      promotedActivityId:  null, // esta linha nunca foi promovida ela pr├│pria
+      stagingUpdatedAt:    new Date('2026-07-08T00:00:00.000Z'), // mais recente que o ├║ltimo publish
     });
     const publicationState = vi.fn().mockResolvedValue(makeState(publicId, new Date('2026-07-01T00:00:00.000Z')));
     const { publishableActivity, publicActivity, eventRepo } = makeRepos({ findUnpublished: [activity], publicationState });
@@ -334,7 +337,7 @@ describe('ActivityPublisher — dirty check', () => {
     const publisher = new ActivityPublisher(publishableActivity, publicActivity, eventRepo, () => NOW);
     const metrics = await publisher.publish(PRODUCT_KEY, RUN_ID);
 
-    expect(publicActivity.insert).not.toHaveBeenCalled(); // NÃO duplica
+    expect(publicActivity.insert).not.toHaveBeenCalled(); // N├âO duplica
     expect(publicActivity.update).toHaveBeenCalledWith(publicId, expect.anything());
     expect(publicActivity.linkToStaging).toHaveBeenCalledWith(activity.stagingId, publicId);
     expect(metrics.activitiesUpdated).toBe(1);
@@ -343,7 +346,7 @@ describe('ActivityPublisher — dirty check', () => {
   });
 });
 
-// ── Arquivação (capacidade explícita) ────────────────────────────────────
+// ÔöÇÔöÇ Arquiva├º├úo (capacidade expl├¡cita) ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
 
 describe('ActivityPublisher.archiveActivity', () => {
   it('arquiva activity + evento ActivityArchived com reason=manual', async () => {
@@ -365,7 +368,7 @@ describe('ActivityPublisher.archiveActivity', () => {
     );
   });
 
-  it('lança erro quando a activity não tem registo correspondente em public.activities', async () => {
+  it('lan├ºa erro quando a activity n├úo tem registo correspondente em public.activities', async () => {
     const { publishableActivity, publicActivity, eventRepo } = makeRepos({
       publicationState: vi.fn().mockResolvedValue(null),
     });
@@ -376,7 +379,7 @@ describe('ActivityPublisher.archiveActivity', () => {
     expect(publicActivity.archive).not.toHaveBeenCalled();
   });
 
-  it('publish() não descobre activities a arquivar por outros motivos automaticamente', async () => {
+  it('publish() n├úo descobre activities a arquivar por outros motivos automaticamente', async () => {
     const activity = makeActivity();
     const { publishableActivity, publicActivity, eventRepo } = makeRepos({ findUnpublished: [activity] });
 
@@ -388,9 +391,9 @@ describe('ActivityPublisher.archiveActivity', () => {
   });
 });
 
-// ── Campos preservados (ADR-0018) ────────────────────────────────────────
+// ÔöÇÔöÇ Campos preservados (ADR-0018) ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
 
-describe('ActivityPublisher — campos preservados', () => {
+describe('ActivityPublisher ÔÇö campos preservados', () => {
   it('nunca inclui schedule, price, is_free, is_sponsored, interested_count no payload adaptado', async () => {
     const activity = makeActivity();
     const { publishableActivity, publicActivity, eventRepo } = makeRepos({ findUnpublished: [activity] });
@@ -407,13 +410,13 @@ describe('ActivityPublisher — campos preservados', () => {
   });
 });
 
-// ── Métricas ──────────────────────────────────────────────────────────────
+// ÔöÇÔöÇ M├®tricas ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
 
-describe('ActivityPublisher — métricas', () => {
-  it('agrega correctamente publicadas, actualizadas e ignoradas numa única run', async () => {
-    // Level 3, 2026-09-23 — três identidades de fonte DISTINTAS
-    // (sourceItemId diferente cada), porque é isso, não stagingId, que
-    // agora decide insert/update via a identidade estável derivada.
+describe('ActivityPublisher ÔÇö m├®tricas', () => {
+  it('agrega correctamente publicadas, actualizadas e ignoradas numa ├║nica run', async () => {
+    // Level 3, 2026-09-23 ÔÇö tr├¬s identidades de fonte DISTINTAS
+    // (sourceItemId diferente cada), porque ├® isso, n├úo stagingId, que
+    // agora decide insert/update via a identidade est├ível derivada.
     const newActivity = makeActivity({
       stagingId:    'sa-new' as StagingActivityId,
       sourceItemId: 'new-001',
@@ -464,7 +467,7 @@ describe('ActivityPublisher — métricas', () => {
     });
   });
 
-  it('um erro numa activity não interrompe o processamento das restantes', async () => {
+  it('um erro numa activity n├úo interrompe o processamento das restantes', async () => {
     const activityOk   = makeActivity({ stagingId: 'sa-ok' as StagingActivityId, sourceItemId: 'ok-001' });
     const activityFail = makeActivity({ stagingId: 'sa-fail' as StagingActivityId, sourceItemId: 'fail-001' });
 
@@ -485,23 +488,23 @@ describe('ActivityPublisher — métricas', () => {
   });
 });
 
-// ── Anti-Corruption Layer (adaptador) ────────────────────────────────────
+// ÔöÇÔöÇ Anti-Corruption Layer (adaptador) ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
 
 describe('ActivityPublisher.adaptToPublishableActivity', () => {
-  it('função pura: reconstrói PublishableActivity a partir do OperationalActivityInput + original', () => {
+  it('fun├º├úo pura: reconstr├│i PublishableActivity a partir do OperationalActivityInput + original', () => {
     const original = makeActivity({ promotedActivityId: 'activity-x' as PublicActivityId });
     const operational = {
-      title:              'Título Transformado',
-      description:        'Descrição',
+      title:              'T├¡tulo Transformado',
+      description:        'Descri├º├úo',
       start_date:         new Date('2026-08-01T09:00:00.000Z'),
       end_date:            null,
       imagem_url:          'https://x.com/img.jpg',
       url:                 'https://x.com',
       phone:               '123',
       venue_id:            'venue-y' as PublicVenueId,
-      // Level 3, 2026-09-23 — engine_activity_id é EngineActivityId, não
-      // StagingActivityId; cast explícito aqui só para construir a
-      // fixture de teste (mesmo padrão usado em ActivityPublisher.ts,
+      // Level 3, 2026-09-23 ÔÇö engine_activity_id ├® EngineActivityId, n├úo
+      // StagingActivityId; cast expl├¡cito aqui s├│ para construir a
+      // fixture de teste (mesmo padr├úo usado em ActivityPublisher.ts,
       // adaptToPublishableActivity).
       engine_activity_id:  original.stagingId as unknown as EngineActivityId,
       source_key:          original.sourceKey,
@@ -512,7 +515,7 @@ describe('ActivityPublisher.adaptToPublishableActivity', () => {
 
     const adapted = ActivityPublisher.adaptToPublishableActivity(operational, original);
 
-    expect(adapted.title).toBe('Título Transformado');
+    expect(adapted.title).toBe('T├¡tulo Transformado');
     expect(adapted.imageUrl).toBe('https://x.com/img.jpg');
     expect(adapted.resolvedPublicVenueId).toBe('venue-y');
     expect(adapted.stagingId).toBe(original.stagingId);
@@ -523,7 +526,7 @@ describe('ActivityPublisher.adaptToPublishableActivity', () => {
   });
 });
 
-// ── preview() — Sprint 8.7 ────────────────────────────────────────────────
+// ÔöÇÔöÇ preview() ÔÇö Sprint 8.7 ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
 
 describe('ActivityPublisher.preview', () => {
   it('nunca escreve: zero insert/update/archive/linkToStaging/eventos', async () => {
@@ -551,7 +554,7 @@ describe('ActivityPublisher.preview', () => {
     expect(eventRepo.record).not.toHaveBeenCalled();
   });
 
-  it('classifica activity nova com ocorrência futura como insert', async () => {
+  it('classifica activity nova com ocorr├¬ncia futura como insert', async () => {
     const activity = makeActivity({ occurrences: [FUTURE_OCCURRENCE] });
     const { publishableActivity, publicActivity, eventRepo } = makeRepos({ findUnpublished: [activity] });
 
@@ -564,7 +567,7 @@ describe('ActivityPublisher.preview', () => {
     }
   });
 
-  it('classifica activity nova sem ocorrência futura como skip_expired', async () => {
+  it('classifica activity nova sem ocorr├¬ncia futura como skip_expired', async () => {
     const activity = makeActivity({ occurrences: [PAST_OCCURRENCE] });
     const { publishableActivity, publicActivity, eventRepo } = makeRepos({ findUnpublished: [activity] });
 
@@ -574,7 +577,7 @@ describe('ActivityPublisher.preview', () => {
     expect(decisions[0]!.action).toBe('skip_expired');
   });
 
-  it('classifica activity dirty ainda válida como update', async () => {
+  it('classifica activity dirty ainda v├ílida como update', async () => {
     const publicId = 'activity-x' as PublicActivityId;
     const activity = makeActivity({
       sourceItemId:        'preview-valid-001',
@@ -608,7 +611,7 @@ describe('ActivityPublisher.preview', () => {
     expect(decisions[0]).toMatchObject({ action: 'archive_expired', publicActivityId: publicId });
   });
 
-  it('classifica activity não-dirty como skip_not_dirty', async () => {
+  it('classifica activity n├úo-dirty como skip_not_dirty', async () => {
     const publicId = 'activity-z' as PublicActivityId;
     const activity = makeActivity({ sourceItemId: 'preview-clean-001', promotedActivityId: publicId, stagingUpdatedAt: new Date('2026-07-01T00:00:00.000Z') });
     const publicationState = vi.fn().mockResolvedValue(makeState(publicId, new Date('2026-07-01T00:00:00.000Z')));
@@ -620,7 +623,7 @@ describe('ActivityPublisher.preview', () => {
     expect(decisions[0]).toMatchObject({ action: 'skip_not_dirty', publicActivityId: publicId });
   });
 
-  it('resolvedPublicVenueId (venue resolvido ou NULL) está sempre disponível via decision.activity, mesmo em skip_expired', async () => {
+  it('resolvedPublicVenueId (venue resolvido ou NULL) est├í sempre dispon├¡vel via decision.activity, mesmo em skip_expired', async () => {
     const withVenue    = makeActivity({ stagingId: 'sa-v1' as StagingActivityId, sourceItemId: 'preview-v1', resolvedPublicVenueId: 'venue-1' as PublicVenueId, occurrences: [PAST_OCCURRENCE] });
     const withoutVenue = makeActivity({ stagingId: 'sa-v2' as StagingActivityId, sourceItemId: 'preview-v2', resolvedPublicVenueId: null, venueResolutionStatus: 'proposed_new', resolvedVenueStagingId: null, occurrences: [PAST_OCCURRENCE] });
     const { publishableActivity, publicActivity, eventRepo } = makeRepos({ findUnpublished: [withVenue, withoutVenue] });
@@ -632,7 +635,7 @@ describe('ActivityPublisher.preview', () => {
     expect(decisions[1]!.activity.resolvedPublicVenueId).toBeNull();
   });
 
-  it('classifica promotedActivityId órfão como error, sem nenhuma escrita (Level 2 review, 2026-09-23)', async () => {
+  it('classifica promotedActivityId ├│rf├úo como error, sem nenhuma escrita (Level 2 review, 2026-09-23)', async () => {
     const activity = makeActivity({
       sourceItemId:       'preview-orphan-001',
       promotedActivityId: 'activity-ghost-002' as PublicActivityId,
@@ -654,7 +657,7 @@ describe('ActivityPublisher.preview', () => {
     expect(eventRepo.record).not.toHaveBeenCalled();
   });
 
-  it('publish() e preview() produzem a mesma classificação para o mesmo estado (sem divergência)', async () => {
+  it('publish() e preview() produzem a mesma classifica├º├úo para o mesmo estado (sem diverg├¬ncia)', async () => {
     const dirtyActivity = makeActivity({
       stagingId:           'sa-consistency' as StagingActivityId,
       sourceItemId:        'consistency-001',
@@ -675,5 +678,96 @@ describe('ActivityPublisher.preview', () => {
 
     expect(decisions[0]!.action).toBe('archive_expired');
     expect(publishRepos.publicActivity.archive).toHaveBeenCalledTimes(1);
+  });
+});
+
+// ── Gate de decisão humana para matched (Level 2, 2026-09-26) ─────────────
+
+describe('ActivityPublisher — gate de decisão humana para matched', () => {
+  function makeDecisionRepo(overrides: { findLatestImpl?: ReturnType<typeof vi.fn> } = {}): IVenueResolutionDecisionRepository {
+    return {
+      record:     vi.fn().mockResolvedValue('decision-mock-001'),
+      findLatest: overrides.findLatestImpl ?? vi.fn().mockResolvedValue(null),
+    } as unknown as IVenueResolutionDecisionRepository;
+  }
+
+  function makeValidDecision(): ResolutionDecision {
+    return {
+      action:             'matched',
+      acceptedCandidateId: 'candidate-row-001' as CandidateId,
+    } as unknown as ResolutionDecision;
+  }
+
+  it('A. decisionRepo fornecido + matched + decisão humana válida existente → insert prossegue normalmente', async () => {
+    const activity = makeActivity({ venueResolutionStatus: 'matched' });
+    const { publishableActivity, publicActivity, eventRepo } = makeRepos({ findUnpublished: [activity] });
+    const decisionRepo = makeDecisionRepo({ findLatestImpl: vi.fn().mockResolvedValue(makeValidDecision()) });
+
+    const publisher = new ActivityPublisher(publishableActivity, publicActivity, eventRepo, () => NOW, decisionRepo);
+    const metrics = await publisher.publish(PRODUCT_KEY, RUN_ID);
+
+    expect(publicActivity.insert).toHaveBeenCalledTimes(1);
+    expect(metrics.activitiesPublished).toBe(1);
+    expect(metrics.activitiesSkipped).toBe(0);
+  });
+
+  it('B. decisionRepo fornecido + matched + SEM decisão humana → skip_missing_human_decision, zero writes', async () => {
+    const activity = makeActivity({ venueResolutionStatus: 'matched' });
+    const { publishableActivity, publicActivity, eventRepo } = makeRepos({ findUnpublished: [activity] });
+    const decisionRepo = makeDecisionRepo({ findLatestImpl: vi.fn().mockResolvedValue(null) });
+
+    const publisher = new ActivityPublisher(publishableActivity, publicActivity, eventRepo, () => NOW, decisionRepo);
+    const decisions = await publisher.preview(PRODUCT_KEY);
+    const metrics = await publisher.publish(PRODUCT_KEY, RUN_ID);
+
+    expect(decisions[0]!.action).toBe('skip_missing_human_decision');
+    expect(publicActivity.insert).not.toHaveBeenCalled();
+    expect(publicActivity.update).not.toHaveBeenCalled();
+    expect(publicActivity.archive).not.toHaveBeenCalled();
+    expect(publicActivity.linkToStaging).not.toHaveBeenCalled();
+    expect(eventRepo.record).not.toHaveBeenCalled();
+    expect(metrics.activitiesSkipped).toBe(1);
+    expect(metrics.activitiesPublished).toBe(0);
+  });
+
+  it('C. decisionRepo fornecido + matched + decisão válida + ocorrência expirada → skip_expired (lógica existente prossegue normalmente após o gate passar)', async () => {
+    const activity = makeActivity({ venueResolutionStatus: 'matched', occurrences: [PAST_OCCURRENCE] });
+    const { publishableActivity, publicActivity, eventRepo } = makeRepos({ findUnpublished: [activity] });
+    const decisionRepo = makeDecisionRepo({ findLatestImpl: vi.fn().mockResolvedValue(makeValidDecision()) });
+
+    const publisher = new ActivityPublisher(publishableActivity, publicActivity, eventRepo, () => NOW, decisionRepo);
+    const decisions = await publisher.preview(PRODUCT_KEY);
+
+    expect(decisions[0]!.action).toBe('skip_expired'); // não skip_missing_human_decision
+  });
+
+  it('D. decisionRepo AUSENTE (undefined) → gate nunca aplicado, comportamento idêntico ao anterior a esta mudança', async () => {
+    const activity = makeActivity({ venueResolutionStatus: 'matched' });
+    const { publishableActivity, publicActivity, eventRepo } = makeRepos({ findUnpublished: [activity] });
+
+    // Construtor com só 4 argumentos — exactamente como todos os outros
+    // ~20 testes deste arquivo já fazem, sem nenhuma alteração a eles.
+    const publisher = new ActivityPublisher(publishableActivity, publicActivity, eventRepo, () => NOW);
+    const metrics = await publisher.publish(PRODUCT_KEY, RUN_ID);
+
+    expect(publicActivity.insert).toHaveBeenCalledTimes(1);
+    expect(metrics.activitiesPublished).toBe(1);
+  });
+
+  it('proposed_new nunca é bloqueada pelo gate, mesmo com decisionRepo fornecido e sem nenhuma decisão humana', async () => {
+    const activity = makeActivity({
+      venueResolutionStatus: 'proposed_new',
+      resolvedPublicVenueId: null,
+      resolvedVenueStagingId: null,
+    });
+    const { publishableActivity, publicActivity, eventRepo } = makeRepos({ findUnpublished: [activity] });
+    const decisionRepo = makeDecisionRepo({ findLatestImpl: vi.fn().mockResolvedValue(null) });
+
+    const publisher = new ActivityPublisher(publishableActivity, publicActivity, eventRepo, () => NOW, decisionRepo);
+    const metrics = await publisher.publish(PRODUCT_KEY, RUN_ID);
+
+    expect(decisionRepo.findLatest).not.toHaveBeenCalled(); // gate nem é consultado para proposed_new
+    expect(publicActivity.insert).toHaveBeenCalledTimes(1);
+    expect(metrics.activitiesPublished).toBe(1);
   });
 });

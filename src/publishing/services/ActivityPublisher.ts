@@ -54,6 +54,29 @@
  * Backfill Safety Audit (2026-09-23): 0 de 48 public.activities têm
  * engine_activity_id não-nulo hoje — nenhuma publicação real da Engine
  * ainda aconteceu. Mudança limpa, sem dados a reconciliar.
+ *
+ * GATE DE DECISÃO HUMANA PARA MATCHED (Level 2, 2026-09-26) — achado real:
+ * findUnpublished()/findDirty() (PublishableActivityRepository) filtram por
+ * venue_resolution_status IN ('matched','proposed_new') + promoted_activity_id,
+ * mas NUNCA verificam se existe uma decisão humana registada em
+ * venue_resolution_decisions — apesar de publish.ts documentar essa
+ * verificação como parte do "gate oficial" ("venue_resolution_status +
+ * decisão humana já registada"). Nunca implementada até agora.
+ *
+ * Correcção: decisionRepo é um 5º parâmetro OPCIONAL do construtor —
+ * ausente, o comportamento é idêntico ao anterior (preserva todos os testes
+ * existentes, nenhum dos quais o fornece). Quando fornecido (publish.ts,
+ * produção real), buildDecision() exige, para venue_resolution_status =
+ * 'matched', uma decisão humana real (action='matched',
+ * acceptedCandidateId != null) antes de prosseguir — caso contrário, nova
+ * acção 'skip_missing_human_decision', nunca insert/update.
+ *
+ * proposed_new DELIBERADAMENTE fora deste gate — investigação confirmou que
+ * proposed_new é produzido automaticamente pelo ThresholdClassifier (Entity
+ * Resolution), sem decisão humana associada na generalidade dos casos
+ * actuais, e a Architecture Book v1.1 §5.3 já documenta venue_id=NULL como
+ * comportamento esperado e válido para este estado — exigir decisão humana
+ * aqui bloquearia esse fluxo inteiro por inferência, não por evidência.
  */
 
 import { PublicationTransformer } from './PublicationTransformer.js';
@@ -70,8 +93,10 @@ import type {
   EngineActivityId,
   PublicationRunId,
 } from '../types/domain.js';
+import type { IVenueResolutionDecisionRepository } from '../../entity-resolution/repositories/interfaces.js';
+import type { ActivityStagingId as ERActivityStagingId } from '../../entity-resolution/types/domain.js';
 
-// ── Métricas parciais de activities ─────────────────────────────────────
+// ── Métricas parciais de activities ──────────────────────────────────────
 
 export interface ActivityPublicationMetrics {
   readonly activitiesPublished: number;
@@ -82,7 +107,7 @@ export interface ActivityPublicationMetrics {
   readonly durationMs:          number;
 }
 
-// ── Decisão por activity (Sprint 8.7) ───────────────────────────────────
+// ── Decisão por activity (Sprint 8.7) ──────────────────────────────────────
 
 export type ActivityDecision =
   | { readonly action: 'insert';          readonly activity: PublishableActivity; readonly operational: OperationalActivityInput }
@@ -90,6 +115,10 @@ export type ActivityDecision =
   | { readonly action: 'skip_not_dirty';  readonly activity: PublishableActivity; readonly publicActivityId: PublicActivityId }
   | { readonly action: 'skip_expired';    readonly activity: PublishableActivity }
   | { readonly action: 'archive_expired'; readonly activity: PublishableActivity; readonly publicActivityId: PublicActivityId }
+  // Level 2, 2026-09-26 — matched sem decisão humana registada em
+  // venue_resolution_decisions. Nunca insert/update. Ver nota completa no
+  // cabeçalho do módulo.
+  | { readonly action: 'skip_missing_human_decision'; readonly activity: PublishableActivity }
   | { readonly action: 'error';           readonly activity: PublishableActivity; readonly reason: string };
 
 export class ActivityPublisher {
@@ -99,6 +128,14 @@ export class ActivityPublisher {
     private readonly eventRepo: IPublicationEventRepository,
     /** Injectável para testes. Por omissão, relógio real. */
     private readonly clock: () => Date = () => new Date(),
+    /**
+     * Level 2, 2026-09-26 — opcional. Ausente: gate de decisão humana
+     * NUNCA aplicado (comportamento idêntico ao existente antes desta
+     * mudança — preserva todos os testes que não o fornecem). Presente
+     * (publish.ts, produção real): gate activo para venue_resolution_status
+     * = 'matched'.
+     */
+    private readonly decisionRepo?: IVenueResolutionDecisionRepository,
   ) {}
 
   /**
@@ -133,7 +170,7 @@ export class ActivityPublisher {
         if (decision.action === 'insert') activitiesPublished++;
         else if (decision.action === 'update') activitiesUpdated++;
         else if (decision.action === 'archive_expired') activitiesArchived++;
-        else activitiesSkipped++; // skip_not_dirty, skip_expired
+        else activitiesSkipped++; // skip_not_dirty, skip_expired, skip_missing_human_decision
       } catch {
         errors++;
       }
@@ -215,6 +252,16 @@ export class ActivityPublisher {
    * decisão de insert/update/skip/archive.
    */
   private async buildDecision(activity: PublishableActivity, now: Date): Promise<ActivityDecision> {
+    // Level 2, 2026-09-26 — gate de decisão humana para matched. Ver nota
+    // completa no cabeçalho do módulo. Aplicado ANTES de qualquer outra
+    // lógica de decisão — se falhar, nunca chega a insert/update/archive.
+    if (this.decisionRepo && activity.venueResolutionStatus === 'matched') {
+      const hasDecision = await this.hasValidHumanDecision(activity.stagingId);
+      if (!hasDecision) {
+        return { action: 'skip_missing_human_decision', activity };
+      }
+    }
+
     const engineActivityId = deriveEngineActivityId(activity.sourceKey, activity.sourceItemId) as EngineActivityId;
     const state = await this.publicActivityRepo.findPublicationStateByEngineId(engineActivityId);
 
@@ -257,7 +304,26 @@ export class ActivityPublisher {
     return { action: 'update', activity, operational, publicActivityId: state.publicActivityId };
   }
 
-  // ── Execução — só chamada por publish(), nunca por preview() ────────────
+  /**
+   * Level 2, 2026-09-26 — verifica se existe uma decisão humana real e
+   * válida (action='matched', acceptedCandidateId preenchido) para esta
+   * activity, via VenueResolutionDecisionRepository.findLatest() — o
+   * mesmo método já usado por EntityResolutionEngine/HumanResolutionService,
+   * sem duplicar nenhuma lógica nem criar tabela nova.
+   *
+   * Cast de StagingActivityId (publishing) para ActivityStagingId
+   * (entity-resolution) — dois tipos "branded" distintos que representam o
+   * mesmo UUID real (activities_staging.id); fronteira explícita entre os
+   * dois módulos, mesmo padrão já usado noutras integrações cross-module
+   * desta base de código.
+   */
+  private async hasValidHumanDecision(stagingId: PublishableActivity['stagingId']): Promise<boolean> {
+    if (!this.decisionRepo) return true; // defensivo — buildDecision() já não chama neste caso
+    const decision = await this.decisionRepo.findLatest(stagingId as unknown as ERActivityStagingId);
+    return decision !== null && decision.action === 'matched' && decision.acceptedCandidateId !== null;
+  }
+
+  // ── Execução — só chamada por publish(), nunca por preview() ──────────────
 
   private async executeDecision(decision: ActivityDecision, runId: PublicationRunId, productKey: string): Promise<void> {
     switch (decision.action) {
@@ -309,6 +375,7 @@ export class ActivityPublisher {
       }
       case 'skip_not_dirty':
       case 'skip_expired':
+      case 'skip_missing_human_decision':
       case 'error':
         return; // zero writes, zero eventos
     }
