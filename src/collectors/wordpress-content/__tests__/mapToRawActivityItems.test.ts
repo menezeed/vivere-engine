@@ -93,6 +93,38 @@ describe('mapToRawActivityItems — bloco estruturado com múltiplos eventos (ca
     expect(result.items).toHaveLength(2);
     expect(result.items.every((i) => i.source_key === 'prefeitura_cabo_frio')).toBe(true);
   });
+
+  // Activity 10B, 2026-09-27 — invariante de segurança dura, exigida
+  // para aprovação (Part 5). Mesmo padrão real usado no colector
+  // prefeitura-agenda-cultural, confirmando o mesmo mecanismo aqui.
+  it('Activity 10B — INVARIANTE DE SEGURANÇA: >1 sub-evento → article_context_text NUNCA é populado em NENHUM dos itens', () => {
+    const result = mapToRawActivityItems(post, {
+      source_key: 'prefeitura_cabo_frio',
+      structured_block_marker: SERVICO_MARKER,
+    });
+    for (const item of result.items) {
+      expect(item.raw_payload.article_context_text).toBeUndefined();
+    }
+  });
+});
+
+describe('mapToRawActivityItems — Activity 10B Part 3, evento único', () => {
+  const post = makePost({
+    id: 116634,
+    contentHtml:
+      '<p>As aulas acontecem todo último domingo de cada mês.</p><p><strong>SERVIÇO:</strong></p>' +
+      '<p><strong>Yoga no Forte</strong><br>Dia: 27 de setembro de 2026<br>Horário: 7h às 8h<br>Local: Canto do Forte</p>',
+  });
+
+  it('1 único sub-evento: article_context_text É populado com o artigo completo, incluindo texto fora do bloco SERVIÇO', () => {
+    const result = mapToRawActivityItems(post, {
+      source_key: 'prefeitura_cabo_frio',
+      structured_block_marker: SERVICO_MARKER,
+    });
+    expect(result.items).toHaveLength(1);
+    expect(result.items[0].raw_payload.article_context_text).toBeDefined();
+    expect(result.items[0].raw_payload.article_context_text).toContain('todo último domingo de cada mês');
+  });
 });
 
 describe('mapToRawActivityItems — garantia de que a camada 2 nunca roda quando a camada 1 funciona', () => {
@@ -176,8 +208,6 @@ describe('mapToRawActivityItems — contrato venue_mention (ajuste de Fase 3, ve
     const result = mapToRawActivityItems(post, { source_key: 'fonte_teste', structured_block_marker: SERVICO_MARKER });
     const item = result.items[0] as unknown as Record<string, unknown>;
 
-    // Nenhum dos seis campos antigos deveria existir no objeto — a fonte
-    // de atividade nunca tem autoridade para afirmar venue completo
     expect(item).not.toHaveProperty('venue_name');
     expect(item).not.toHaveProperty('venue_address');
     expect(item).not.toHaveProperty('venue_lat');

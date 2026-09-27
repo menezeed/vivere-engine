@@ -57,6 +57,15 @@ describe('mapToRawActivityItems — bloco SERVIÇO simples (caso real "Yoga no F
   it('não gera nenhum item em skipped quando a extração é completa', () => {
     expect(mapToRawActivityItems(post).skipped).toHaveLength(0);
   });
+
+  // Activity 10B, 2026-09-27 — Recurrence Discovery Hardening, Part 3.
+  it('Activity 10B — 1 único sub-evento: article_context_text É populado com o artigo completo (mecanicamente extraído do HTML)', () => {
+    const [item] = mapToRawActivityItems(post).items;
+    expect(item.raw_payload.article_context_text).toBeDefined();
+    expect(item.raw_payload.article_context_text).toContain('Canto do Forte');
+    // Confirma que é o ARTIGO INTEIRO (inclui o parágrafo fora do bloco SERVIÇO:), não só o bloco:
+    expect(item.raw_payload.article_context_text).toContain('Neste domingo (28) o Canto do Forte');
+  });
 });
 
 describe('mapToRawActivityItems — bloco SERVIÇO com múltiplos eventos (caso real "Arraiás")', () => {
@@ -98,6 +107,16 @@ describe('mapToRawActivityItems — bloco SERVIÇO com múltiplos eventos (caso 
     });
     expect(second.occurrences[0].time).toBe('17:00');
   });
+
+  // Activity 10B, 2026-09-27 — invariante de segurança dura, exigida
+  // para aprovação (Part 5). Este é o mesmo formato real (multi-evento,
+  // "Arraiás") já usado como evidência nesta Activity.
+  it('Activity 10B — INVARIANTE DE SEGURANÇA: >1 sub-evento → article_context_text NUNCA é populado em NENHUM dos itens', () => {
+    const result = mapToRawActivityItems(post);
+    for (const item of result.items) {
+      expect(item.raw_payload.article_context_text).toBeUndefined();
+    }
+  });
 });
 
 describe('mapToRawActivityItems — narrativa sem bloco SERVIÇO (caminho de sucesso)', () => {
@@ -125,6 +144,14 @@ describe('mapToRawActivityItems — narrativa sem bloco SERVIÇO (caminho de suc
     const [item] = mapToRawActivityItems(post).items;
     expect(item.raw_payload.extraction_confidence).toBeLessThan(0.7);
     expect(item.raw_payload.extraction_method).toBe('narrative_fallback');
+  });
+
+  // Activity 10B — não se aplica article_context_text a narrative_fallback
+  // (esse caminho já preserva o artigo completo em raw_text, desde a
+  // Activity 8 — sem necessidade de duplicar em campo novo).
+  it('Activity 10B — narrative_fallback nunca ganha article_context_text (evita duplicação com raw_text)', () => {
+    const [item] = mapToRawActivityItems(post).items;
+    expect(item.raw_payload.article_context_text).toBeUndefined();
   });
 });
 

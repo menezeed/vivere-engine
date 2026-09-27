@@ -1,33 +1,46 @@
 /**
  * src/pipeline/stages/02-recurrence-detection/detectRecurrence.ts
  *
- * Activity 8/26, 2026-09-26.
+ * Activity 8/26, 2026-09-26 — versão original.
+ * Activity 10B, 2026-09-27 — Recurrence Discovery Hardening:
+ *   Part 1: extracção de horário único ("às 17h"), sem intervalo.
+ *   Part 2: guarda de segurança para semântica mensal-ordinal.
+ *   Part 4 (input): candidateText passa a incluir, quando disponível
+ *     e seguro, o contexto adicional que os Collectors preservam em
+ *     raw_payload (raw_text de narrative_fallback; article_context_text
+ *     de structured_block de evento único) — nunca dados já
+ *     interpretados, só texto de fonte.
  *
  * Função pura: RawActivityItem → RecurrenceDetectionResult. Zero
  * acesso a banco, zero efeitos colaterais. Reutiliza parseTimeRangePt
  * (sharedTextUtils.ts, prefeitura-agenda-cultural) — não duplica
  * parsing de horário já existente.
  *
- * Só implementa detecção de recorrência SEMANAL (weekly) — os 4
- * padrões reais confirmados nesta Activity (staging.raw_activity_items,
- * prefeitura_iguaba_grande) são todos semanais. daily/biweekly/monthly
- * já são valores válidos no contrato (Activity 7), mas NENHUMA fonte
- * real observada até agora exige a sua detecção — implementá-los sem
- * evidência seria "inventar suporte para gramática que nenhuma fonte
- * real exige" (instrução explícita desta Activity). Ficam para quando
- * houver evidência real.
+ * Só implementa detecção de recorrência SEMANAL (weekly) — os padrões
+ * reais confirmados até agora (Activity 8/26, Activity 10) são todos
+ * semanais. daily/biweekly/monthly já são valores válidos no
+ * contrato, mas nenhuma fonte real observada exige a sua detecção —
+ * implementá-los sem evidência seria "inventar suporte para gramática
+ * que nenhuma fonte real exige". Ficam para quando houver evidência.
  *
- * Estratégia de distinção B/C vs D (Level 2, 2026-09-26, confirmada
- * por execução real contra os 4 casos-teste antes desta entrega):
- * conta quantos intervalos de horário distintos ("Xh às Yh") aparecem
- * no texto. Um único intervalo aplica-se a todos os dias detectados
- * (Casos B/C — "Quartas e sextas das 9h às 11h", um horário
- * partilhado). Dois ou mais intervalos significa horários DIFERENTES
- * por dia (Caso D — "Terças ... e sextas ..."), que o contrato actual
- * (um recurrence_time único) não consegue representar fielmente — daí
- * NUNCA escolher um dos dois arbitrariamente, recurrence_time fica
- * NULL, sinalizado via review_reasons, evidência completa preservada
- * em recurrence_text_hint.
+ * Estratégia de distinção B/C vs D (Activity 8, confirmada por
+ * execução real): conta quantas MENÇÕES DE HORÁRIO distintas existem
+ * no texto — um intervalo completo ("Xh às Yh") ou um horário único
+ * com preposição ("às Xh", "a partir das Xh") contam cada um como
+ * UMA menção. Uma única menção aplica-se a todos os dias detectados.
+ * Duas ou mais menções significa horários DIFERENTES por dia, que o
+ * contrato actual (um recurrence_time único) não consegue representar
+ * fielmente — recurrence_time fica NULL, sinalizado, nunca escolhido
+ * arbitrariamente.
+ *
+ * Activity 10B — correcção Part 1: até aqui, só intervalos completos
+ * eram contados como "menção de horário"; um horário único sem
+ * intervalo ("às 17h") não disparava nenhum ramo de extracção, e
+ * recurrence_time ficava NULL silenciosamente, SEM review_reason —
+ * pior do que os casos já tratados, que pelo menos sinalizam a perda.
+ * Corrigido: menções de horário agora incluem intervalos E horários
+ * únicos, cada um contado uma vez (nunca duas, mascarando os
+ * intervalos já capturados antes de procurar únicos).
  */
 
 import { parseTimeRangePt } from '../../../collectors/prefeitura-agenda-cultural/parsers/sharedTextUtils.js';
@@ -50,26 +63,32 @@ const WEEKDAY_TO_NUMBER: Record<string, number> = {
 // Ex: "sexta", "sextas", "sexta-feira", "sextas-feiras" — todos casam.
 const DAY_PATTERN = /(domingo|segunda|ter[çc]a|quarta|quinta|sexta|s[áa]bado)s?(?:-?feiras?)?/gi;
 
-// Mesmo padrão usado internamente por parseTimeRangePt — usado aqui só
-// para CONTAR quantos intervalos distintos existem, nunca para extrair
-// o valor final (isso continua sendo parseTimeRangePt, reutilizado).
-const TIME_RANGE_COUNT_PATTERN = /\d{1,2}h\d{0,2}\s+(?:às|as)\s+\d{1,2}h\d{0,2}/gi;
+// Intervalo completo — mesmo padrão usado internamente por
+// parseTimeRangePt. Usado aqui para CONTAR e para MASCARAR antes de
+// procurar horários únicos (evita contar o "às Yh" final de um
+// intervalo como se fosse um horário único adicional).
+const TIME_RANGE_PATTERN = /\d{1,2}h\d{0,2}\s+(?:às|as)\s+\d{1,2}h\d{0,2}/gi;
 
-// Level 2, 2026-09-26 — achado real: um nome de dia da semana sozinho
-// aparece com frequência em texto puramente editorial/noticioso (ex:
-// "resultado da eleição de sexta-feira"), sem nenhuma recorrência
-// genuína. Confirmado por execução real contra um caso deste tipo,
-// nesta Activity. Para reduzir falsos positivos sem exigir gramática
-// que nenhuma fonte real usa, só considera recorrência quando o texto
-// tem ADICIONALMENTE um destes dois sinais — presentes em todos os 4
-// padrões reais confirmados: a palavra "todo/toda/todos/todas", ou um
-// intervalo de horário explícito ("Xh às Yh"). Nenhum dos dois exige
-// inventar gramática nova — ambos já aparecem nos padrões reais.
+// Activity 10B, Part 1 — horário único com preposição, sem intervalo.
+// Mesmo vocabulário de preposições já usado por parseTimeRangePt
+// ("a partir d[ae]s?", "às"/"as") — não introduz gramática nova.
+const SINGLE_TIME_PATTERN = /(?:a partir d[ae]s?|às|as)\s+\d{1,2}h\d{0,2}/gi;
+
+// Activity 10B, Part 2 — semântica mensal com qualificador ordinal
+// ("todo último domingo de cada mês", "na primeira terça-feira").
+// Sem \b inicial deliberadamente: palavras começadas por vogal
+// acentuada (ex. "último") não são reconhecidas como limite de
+// palavra por \b em JavaScript (\w não inclui acentos) — confirmado
+// por execução real durante esta Activity; o mesmo padrão sem \b já
+// é a convenção usada por DAY_PATTERN neste ficheiro.
+const ORDINAL_MONTH_PATTERN =
+  /(primeir[oa]|segund[oa]|terceir[oa]|quart[oa]|últim[oa]|ultim[oa]|pen[uú]ltim[oa])\s+(domingo|segunda(?:-feira)?|ter[çc]a(?:-feira)?|quarta(?:-feira)?|quinta(?:-feira)?|sexta(?:-feira)?|s[áa]bado)/i;
+
+// Mesmo padrão da Activity 8 — "todo/toda/todos/todas" ou um
+// intervalo de horário são os dois sinais que, junto com um dia
+// detectado, distinguem recorrência genuína de menção editorial de
+// dia da semana num evento único.
 const RECURRENCE_SIGNAL_PATTERN = /\btod[ao]s?\b/i;
-
-function hasRecurrenceSignal(text: string): boolean {
-  return RECURRENCE_SIGNAL_PATTERN.test(text) || TIME_RANGE_COUNT_PATTERN.test(text);
-}
 
 function detectWeekdays(text: string): number[] {
   const days = new Set<number>();
@@ -83,21 +102,95 @@ function detectWeekdays(text: string): number[] {
   return [...days].sort((a, b) => a - b);
 }
 
-function countTimeRanges(text: string): number {
-  const matches = text.match(TIME_RANGE_COUNT_PATTERN);
-  return matches ? matches.length : 0;
+function hasRecurrenceSignal(text: string): boolean {
+  // Instâncias NOVAS de TIME_RANGE_PATTERN/SINGLE_TIME_PATTERN — nunca a
+  // mesma instância usada por matchAll() em countTimeMentions(). Confirmado
+  // por execução real, nesta Activity: mesmo com lastIndex resetado antes
+  // de .test(), o matchAll() subsequente na MESMA instância ainda perdia
+  // menções — só instâncias verdadeiramente separadas eliminam o problema
+  // por completo. Mesmo princípio já usado por DAY_PATTERN (new RegExp(...)
+  // antes de cada uso em detectWeekdays).
+  const rangeCheck = new RegExp(TIME_RANGE_PATTERN.source, TIME_RANGE_PATTERN.flags);
+  const singleCheck = new RegExp(SINGLE_TIME_PATTERN.source, SINGLE_TIME_PATTERN.flags);
+  return RECURRENCE_SIGNAL_PATTERN.test(text) || rangeCheck.test(text) || singleCheck.test(text);
 }
 
 /**
- * Texto candidato para detecção: title + description. RawActivityItem
- * não tem um campo dedicado de "texto de horário" — estes dois campos
- * são os únicos garantidamente presentes em qualquer Collector. Fonte
- * mais rica por Collector (ex: raw_payload.raw_text) fica fora de
- * escopo aqui, deliberadamente — evita depender de uma forma não
- * tipada e específica de cada Collector.
+ * Activity 10B, Part 1 — conta quantas menções de horário distintas
+ * existem no texto: cada intervalo completo conta 1, cada horário
+ * único (fora de qualquer intervalo já contado) conta 1. Nunca conta
+ * o mesmo horário duas vezes.
+ */
+function countTimeMentions(text: string): { rangeCount: number; singleCount: number; total: number } {
+  // Instâncias novas a cada chamada — mesmo motivo de hasRecurrenceSignal:
+  // detectRecurrenceItems chama isto uma vez por item, num lote; reutilizar
+  // as constantes módulo-level via matchAll() com estado de lastIndex
+  // partilhado com outras chamadas (hasRecurrenceSignal) já provou, por
+  // execução real, perder menções.
+  const rangePattern = new RegExp(TIME_RANGE_PATTERN.source, TIME_RANGE_PATTERN.flags);
+  const singlePattern = new RegExp(SINGLE_TIME_PATTERN.source, SINGLE_TIME_PATTERN.flags);
+  const ranges = [...text.matchAll(rangePattern)];
+  let masked = text;
+  for (const r of ranges) masked = masked.replace(r[0], ' '.repeat(r[0].length));
+  const singles = [...masked.matchAll(singlePattern)];
+  return { rangeCount: ranges.length, singleCount: singles.length, total: ranges.length + singles.length };
+}
+
+/**
+ * Texto candidato para detecção. Activity 8: title + description
+ * (os únicos campos garantidamente presentes). Activity 10B, Part 4:
+ * acrescenta, quando disponível em raw_payload e seguro, o contexto
+ * adicional que os Collectors já preservam como evidência de fonte —
+ * NUNCA dados interpretados:
+ *   - narrative_fallback: raw_payload.raw_text (artigo completo já
+ *     preservado desde a Activity 8, nunca antes consumido aqui);
+ *   - structured_block, evento único: raw_payload.article_context_text
+ *     (Activity 10B, Part 3 — só presente quando o Collector confirma
+ *     que o artigo produziu exactamente 1 sub-evento).
+ * Ambos são detectados por metadados já existentes em raw_payload
+ * (extraction_method), nunca inferidos aqui.
  */
 function buildCandidateText(item: RawActivityItem): string {
-  return [item.title, item.description ?? ''].filter(Boolean).join(' ');
+  const parts: string[] = [item.title, item.description ?? ''];
+
+  const payload = item.raw_payload;
+  const extractionMethod = payload?.['extraction_method'];
+  if (extractionMethod === 'narrative_fallback' && typeof payload?.['raw_text'] === 'string') {
+    parts.push(payload['raw_text'] as string);
+  }
+  if (typeof payload?.['article_context_text'] === 'string') {
+    parts.push(payload['article_context_text'] as string);
+  }
+
+  return parts.filter(Boolean).join(' ');
+}
+
+/**
+ * Activid 10B — mesma prioridade da Activity 8 para o hint verbatim
+ * (description sobre title quando description contém o sinal), mas
+ * agora também considera o contexto adicional (raw_text/
+ * article_context_text) quando é onde o sinal de recorrência
+ * realmente vive — sempre o campo INTEIRO de onde veio, nunca uma
+ * reconstrução.
+ */
+function pickTextHint(item: RawActivityItem): string {
+  const description = item.description ?? '';
+  if (description && (detectWeekdays(description).length > 0 || hasRecurrenceSignal(description))) {
+    return description;
+  }
+
+  const payload = item.raw_payload;
+  const extractionMethod = payload?.['extraction_method'];
+  if (extractionMethod === 'narrative_fallback' && typeof payload?.['raw_text'] === 'string') {
+    const rawText = payload['raw_text'] as string;
+    if (detectWeekdays(rawText).length > 0) return rawText;
+  }
+  if (typeof payload?.['article_context_text'] === 'string') {
+    const contextText = payload['article_context_text'] as string;
+    if (detectWeekdays(contextText).length > 0) return contextText;
+  }
+
+  return item.title;
 }
 
 /**
@@ -126,38 +219,58 @@ export function detectRecurrence(item: RawActivityItem): RecurrenceDetectedItem 
     };
   }
 
-  const rangeCount = countTimeRanges(candidateText);
+  // Activity 10B, Part 2 — guarda de segurança mensal-ordinal. Se o
+  // texto candidato contém "todo último domingo"/"na primeira
+  // terça-feira"/etc., NUNCA classifica como weekly — o contrato
+  // actual não consegue representar isto sem perda semântica (cada
+  // domingo ≠ último domingo do mês). Verificado ANTES de qualquer
+  // outra classificação, com precedência sobre o resultado semanal.
+  if (ORDINAL_MONTH_PATTERN.test(candidateText)) {
+    const textHint = pickTextHint(item);
+    const updatedItem: RawActivityItem = item.recurrence_text_hint === textHint
+      ? item
+      : { ...item, recurrence_text_hint: textHint };
+
+    return {
+      item: updatedItem,
+      recurrence: {
+        recurrence_type: null,
+        recurrence_days: null,
+        recurrence_time: null,
+        review_reasons: ['recurrence_ordinal_month_not_representable'],
+      },
+    };
+  }
+
+  const { rangeCount, total } = countTimeMentions(candidateText);
   const reviewReasons: RecurrenceReviewReason[] = [];
   let recurrenceTime: string | null = null;
 
-  if (rangeCount === 1) {
-    // Um único intervalo, partilhado por todos os dias detectados
-    // (Casos B/C). Reutiliza parseTimeRangePt — não duplica parsing.
+  if (total === 1) {
+    // Uma única menção de horário — intervalo ou horário único,
+    // partilhado por todos os dias detectados. Reutiliza
+    // parseTimeRangePt — não duplica parsing.
     const { time } = parseTimeRangePt(candidateText);
     recurrenceTime = time;
-    // O intervalo tem sempre fim quando rangeCount===1 (o padrão de
-    // contagem exige "Xh às Yh") — o fim nunca é persistido nesta
-    // camada (só recurrence_time existe), mas nunca é perdido: fica
-    // recuperável, verbatim, em recurrence_text_hint.
-    reviewReasons.push('recurrence_end_time_not_persisted');
-  } else if (rangeCount >= 2) {
-    // Horários diferentes por dia (Caso D) — o contrato actual não
-    // consegue representar isto fielmente com um único recurrence_time.
+    if (rangeCount === 1) {
+      // Veio de um intervalo completo — o fim nunca é persistido
+      // nesta camada, mas nunca é perdido: fica recuperável, verbatim,
+      // em recurrence_text_hint (comportamento da Activity 8, inalterado).
+      reviewReasons.push('recurrence_end_time_not_persisted');
+    }
+    // Activity 10B, Part 1: quando a única menção é um horário ÚNICO
+    // (sem intervalo), nada foi perdido — sem review_reason.
+  } else if (total >= 2) {
+    // Horários diferentes por dia — o contrato actual não consegue
+    // representar isto fielmente com um único recurrence_time.
     // NUNCA escolher um dos horários arbitrariamente.
     recurrenceTime = null;
     reviewReasons.push('recurrence_per_day_times_not_representable');
   }
-  // rangeCount === 0: recorrência sem horário publicado (Caso A) —
-  // recurrenceTime permanece null, sem review_reasons.
+  // total === 0: recorrência sem horário publicado — recurrenceTime
+  // permanece null, sem review_reasons.
 
-  // Hint verbatim — o campo INTEIRO (title ou description) onde a
-  // recorrência foi encontrada, nunca uma reconstrução/interpretação.
-  // description prioritizado sobre title: nos padrões reais observados
-  // (staging.raw_activity_items, prefeitura_iguaba_grande), a frase de
-  // horário vive tipicamente numa descrição/sub-bloco, não no título.
-  const description = item.description ?? '';
-  const textHint = description && detectWeekdays(description).length > 0 ? description : item.title;
-
+  const textHint = pickTextHint(item);
   const updatedItem: RawActivityItem = item.recurrence_text_hint === textHint
     ? item
     : { ...item, recurrence_text_hint: textHint };

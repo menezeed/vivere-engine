@@ -11,13 +11,21 @@ export type RecurrenceType = 'none' | 'daily' | 'weekly' | 'biweekly' | 'monthly
 
 /**
  * Level 2, 2026-09-26 — sinais de auditoria para casos loss-aware.
- * Mesmo padrão de MapReviewReason (collectors) — union fechada,
+ * Mesmo padrão de MapReviewReason (collectors) — união fechada,
  * nunca um enum global novo. A evidência completa permanece em
  * recurrence_text_hint, nunca só nestes sinais.
+ *
+ * Activity 10B, 2026-09-27 — acrescentado
+ * recurrence_ordinal_month_not_representable: sinaliza semântica
+ * mensal com qualificador ordinal ("todo último domingo de cada
+ * mês"), que o contrato actual (recurrence_type/days/time) não
+ * consegue representar sem perda ("todo domingo" ≠ "último domingo
+ * do mês"). Nunca classificado como weekly — ver detectRecurrence.ts.
  */
 export type RecurrenceReviewReason =
   | 'recurrence_end_time_not_persisted'
-  | 'recurrence_per_day_times_not_representable';
+  | 'recurrence_per_day_times_not_representable'
+  | 'recurrence_ordinal_month_not_representable';
 
 /**
  * Resultado do detector para uma RawActivityItem. type/days/time

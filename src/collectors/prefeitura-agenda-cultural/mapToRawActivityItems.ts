@@ -1,6 +1,7 @@
 import type { RawActivityItem, RawOccurrence } from '../../types/RawActivityItem';
 import { parseServicoBlock, type ServicoSubEvent, type ServicoReviewReason } from './parsers/servicoBlockParser';
 import { parseNarrativeFallback, type NarrativeReviewReason } from './parsers/narrativeFallbackParser';
+import { stripHtmlToText } from './parsers/sharedTextUtils';
 
 /**
  * Orquestração das duas camadas de extração:
@@ -21,6 +22,26 @@ import { parseNarrativeFallback, type NarrativeReviewReason } from './parsers/na
  * confidence/review, esses são metadados internos deste extrator,
  * preservados em raw_payload para auditoria e uso futuro pelo painel
  * de revisão.
+ *
+ * Activity 10B, 2026-09-27 — Recurrence Discovery Hardening, Part 3.
+ * Quando a camada 1 produz EXACTAMENTE 1 sub-evento, o artigo
+ * completo (post.contentHtml, mecanicamente convertido a texto puro
+ * via stripHtmlToText — mesma função já usada por
+ * narrativeFallbackParser, não duplicada) é preservado em
+ * raw_payload.article_context_text — evidência de fonte, nunca
+ * interpretada aqui, disponível ao estágio 02-recurrence-detection
+ * para encontrar semântica de recorrência que viva fora do bloco
+ * SERVIÇO: extraído (ex: "Yoga no Forte" — "As aulas acontecem todo
+ * último domingo de cada mês" vive na prosa do artigo, não no bloco
+ * Dia:/Horário:/Local:).
+ *
+ * Regra de segurança dura (invariante, não uma heurística): quando a
+ * camada 1 produz MAIS DE UM sub-evento, article_context_text NUNCA é
+ * populado — nenhum contexto partilhado é propagado para os
+ * sub-eventos individuais, preservando o isolamento já correcto entre
+ * eles (confirmado por evidência real, artigo multi-evento FLIC,
+ * 2026-09-27: cada sub-evento já tem só o seu próprio raw_text,
+ * comportamento que este artigo não altera).
  */
 
 export type ExtractionMethod = 'servico_block' | 'narrative_fallback' | 'none';
@@ -59,6 +80,7 @@ function buildItemFromServicoSubEvent(
   post: WordPressPostInput,
   ev: ServicoSubEvent,
   subEventIndex: number,
+  articleContextText: string | null,
 ): RawActivityItem {
   const occurrence = servicoSubEventToOccurrence(ev);
   const reviewReasons: MapReviewReason[] = [];
@@ -99,6 +121,13 @@ function buildItemFromServicoSubEvent(
       extraction_confidence: CONFIDENCE_SERVICO_BLOCK,
       review_reasons: reviewReasons,
       raw_text: ev.rawBlockText,
+      // Activity 10B, Part 3 — só presente quando o post produziu
+      // exactamente 1 sub-evento (verificado por quem chama esta
+      // função, nunca aqui). undefined quando não aplicável — nunca
+      // null explícito, para distinguir claramente de "verificado e
+      // ausente" (RawActivityItem não usa essa distinção em nenhum
+      // outro campo de raw_payload).
+      ...(articleContextText !== null ? { article_context_text: articleContextText } : {}),
     },
   };
 }
@@ -160,7 +189,17 @@ export function mapToRawActivityItems(post: WordPressPostInput): MapResult {
   // EXCLUSIVAMENTE esse resultado. A camada 2 não roda — não há
   // tentativa de "complementar" ou "validar contra" a narrativa.
   if (servico.found && servico.subEvents.length > 0) {
-    const items = servico.subEvents.map((ev, idx) => buildItemFromServicoSubEvent(post, ev, idx));
+    // Activity 10B, Part 3 — invariante de segurança dura: contexto do
+    // artigo só é calculado e propagado quando há EXACTAMENTE 1
+    // sub-evento. Para >1, permanece null — isolamento entre
+    // sub-eventos preservado, sem excepção.
+    const articleContextText = servico.subEvents.length === 1
+      ? stripHtmlToText(post.contentHtml)
+      : null;
+
+    const items = servico.subEvents.map((ev, idx) =>
+      buildItemFromServicoSubEvent(post, ev, idx, articleContextText),
+    );
     const skipped = servico.subEvents
       .map((ev, idx) => ({ ev, idx }))
       .filter(({ ev }) => !ev.date)

@@ -1,6 +1,7 @@
 import type { RawActivityItem, RawOccurrence } from '../../types/RawActivityItem';
 import { parseStructuredBlock, type StructuredSubEvent, type StructuredBlockReviewReason } from './parsers/structuredBlockParser';
 import { parseNarrativeFallback, type NarrativeReviewReason } from './parsers/narrativeFallbackParser';
+import { stripHtmlToText } from './parsers/sharedTextUtils';
 import type { WordPressContentSourceConfig } from './config/WordPressContentSourceConfig';
 
 /**
@@ -24,6 +25,20 @@ import type { WordPressContentSourceConfig } from './config/WordPressContentSour
  * confidence/review, esses são metadados internos deste extrator,
  * preservados em raw_payload para auditoria e uso futuro pelo painel
  * de revisão.
+ *
+ * Activity 10B, 2026-09-27 — Recurrence Discovery Hardening, Part 3.
+ * Mesmo mecanismo do colector prefeitura-agenda-cultural (espelho
+ * generalizado): quando a camada 1 produz EXACTAMENTE 1 sub-evento, o
+ * artigo completo (post.contentHtml, mecanicamente convertido a texto
+ * puro via stripHtmlToText — mesma função já usada por
+ * narrativeFallbackParser deste colector, não duplicada) é preservado
+ * em raw_payload.article_context_text — evidência de fonte, nunca
+ * interpretada aqui, disponível ao estágio 02-recurrence-detection.
+ *
+ * Regra de segurança dura (invariante, não uma heurística): quando a
+ * camada 1 produz MAIS DE UM sub-evento, article_context_text NUNCA é
+ * populado — nenhum contexto partilhado é propagado para os
+ * sub-eventos individuais.
  */
 
 export type ExtractionMethod = 'structured_block' | 'narrative_fallback' | 'none';
@@ -63,6 +78,7 @@ function buildItemFromStructuredSubEvent(
   ev: StructuredSubEvent,
   subEventIndex: number,
   sourceKey: string,
+  articleContextText: string | null,
 ): RawActivityItem {
   const occurrence = structuredSubEventToOccurrence(ev);
   const reviewReasons: MapReviewReason[] = [];
@@ -103,6 +119,10 @@ function buildItemFromStructuredSubEvent(
       extraction_confidence: CONFIDENCE_STRUCTURED_BLOCK,
       review_reasons: reviewReasons,
       raw_text: ev.rawBlockText,
+      // Activity 10B, Part 3 — só presente quando o post produziu
+      // exactamente 1 sub-evento (verificado por quem chama esta
+      // função, nunca aqui). undefined quando não aplicável.
+      ...(articleContextText !== null ? { article_context_text: articleContextText } : {}),
     },
   };
 }
@@ -169,8 +189,15 @@ export function mapToRawActivityItems(
   // EXCLUSIVAMENTE esse resultado. A camada 2 não roda — não há
   // tentativa de "complementar" ou "validar contra" a narrativa.
   if (structuredResult.found && structuredResult.subEvents.length > 0) {
+    // Activity 10B, Part 3 — invariante de segurança dura: contexto do
+    // artigo só é calculado e propagado quando há EXACTAMENTE 1
+    // sub-evento. Para >1, permanece null.
+    const articleContextText = structuredResult.subEvents.length === 1
+      ? stripHtmlToText(post.contentHtml)
+      : null;
+
     const items = structuredResult.subEvents.map((ev, idx) =>
-      buildItemFromStructuredSubEvent(post, ev, idx, sourceConfig.source_key),
+      buildItemFromStructuredSubEvent(post, ev, idx, sourceConfig.source_key, articleContextText),
     );
     const skipped = structuredResult.subEvents
       .map((ev, idx) => ({ ev, idx }))

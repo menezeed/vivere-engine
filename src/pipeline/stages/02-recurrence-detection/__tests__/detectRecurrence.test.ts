@@ -177,4 +177,189 @@ describe('detectRecurrence — padrões reais confirmados', () => {
     expect(results[1]!.item.source_item_id).toBe('2');
     expect(results[1]!.recurrence.recurrence_type).toBe('weekly');
   });
+
+  // Activity 10B, 2026-09-27 — teste de regressão para o bug real de
+  // lastIndex (regex global reutilizada entre .test()/.matchAll()),
+  // confirmado por execução durante esta Activity: chamar
+  // detectRecurrenceItems repetidamente sobre o MESMO array tem de
+  // produzir sempre o mesmo resultado — nunca alternar por causa de
+  // estado de regex partilhado entre chamadas.
+  it('resultado é estável em chamadas repetidas de detectRecurrenceItems sobre o mesmo lote (regressão lastIndex)', () => {
+    const items = [
+      makeItem({ source_item_id: '1', description: 'toda sexta-feira' }),
+      makeItem({ source_item_id: '2', description: 'Quartas e sextas das 9h às 11h' }),
+      makeItem({ source_item_id: '3', description: 'terças, às 9h, e quintas, às 17h' }),
+    ];
+
+    const first = detectRecurrenceItems(items);
+    for (let i = 0; i < 5; i++) {
+      const again = detectRecurrenceItems(items);
+      expect(again.map((r) => r.recurrence)).toEqual(first.map((r) => r.recurrence));
+    }
+  });
+});
+
+// Activity 10B, 2026-09-27 — Recurrence Discovery Hardening.
+describe('detectRecurrence — Activity 10B Part 1 (extracção de horário único)', () => {
+  it('A. "toda quinta-feira, às 17h" → weekly/[4]/17:00, sem perda, sem review_reason', () => {
+    const item = makeItem({ title: 'Coral', description: 'A oficina de coral acontece toda quinta-feira, às 17h.' });
+    const result = detectRecurrence(item);
+
+    expect(result.recurrence.recurrence_type).toBe('weekly');
+    expect(result.recurrence.recurrence_days).toEqual([4]);
+    expect(result.recurrence.recurrence_time).toBe('17:00');
+    expect(result.recurrence.review_reasons).toEqual([]);
+  });
+
+  it('B. intervalo completo continua a funcionar como antes (regressão)', () => {
+    const item = makeItem({ description: 'Todas as sextas-feiras, das 10h às 15h' });
+    const result = detectRecurrence(item);
+
+    expect(result.recurrence.recurrence_time).toBe('10:00');
+    expect(result.recurrence.review_reasons).toEqual(['recurrence_end_time_not_persisted']);
+  });
+
+  it('C. dois horários únicos distintos por dia → recurrence_time NULL, per-day-gap, nunca escolhido arbitrariamente', () => {
+    const item = makeItem({ description: 'terças, às 9h, e quintas, às 17h' });
+    const result = detectRecurrence(item);
+
+    expect(result.recurrence.recurrence_type).toBe('weekly');
+    expect(result.recurrence.recurrence_days).toEqual([2, 4]);
+    expect(result.recurrence.recurrence_time).toBeNull();
+    expect(result.recurrence.review_reasons).toEqual(['recurrence_per_day_times_not_representable']);
+  });
+
+  it('dois intervalos completos distintos → comportamento inalterado (regressão, Activity 8 Caso D)', () => {
+    const item = makeItem({ description: 'Terças das 14h às 16h15 e sextas das 9h às 11h' });
+    const result = detectRecurrence(item);
+
+    expect(result.recurrence.recurrence_time).toBeNull();
+    expect(result.recurrence.review_reasons).toEqual(['recurrence_per_day_times_not_representable']);
+  });
+
+  it('sem nenhuma menção de horário → NULL, sem review_reason (regressão, Activity 8 Caso A)', () => {
+    const item = makeItem({ description: 'toda sexta-feira' });
+    const result = detectRecurrence(item);
+
+    expect(result.recurrence.recurrence_time).toBeNull();
+    expect(result.recurrence.review_reasons).toEqual([]);
+  });
+});
+
+describe('detectRecurrence — Activity 10B Part 2 (guarda mensal-ordinal)', () => {
+  it('D. "todo último domingo de cada mês" → NÃO weekly, recurrence estruturada null, review_reason ordinal', () => {
+    const item = makeItem({ description: 'As aulas acontecem todo último domingo de cada mês.' });
+    const result = detectRecurrence(item);
+
+    expect(result.recurrence.recurrence_type).toBeNull();
+    expect(result.recurrence.recurrence_days).toBeNull();
+    expect(result.recurrence.recurrence_time).toBeNull();
+    expect(result.recurrence.review_reasons).toEqual(['recurrence_ordinal_month_not_representable']);
+    // Evidência preservada, verbatim, mesmo sem recorrência estruturada:
+    expect(result.item.recurrence_text_hint).toContain('último domingo de cada mês');
+  });
+
+  it('E. "todo domingo" simples continua weekly/[0] — a guarda não é demasiado agressiva (regressão)', () => {
+    const item = makeItem({ description: 'todo domingo' });
+    const result = detectRecurrence(item);
+
+    expect(result.recurrence.recurrence_type).toBe('weekly');
+    expect(result.recurrence.recurrence_days).toEqual([0]);
+    expect(result.recurrence.review_reasons).toEqual([]);
+  });
+
+  it('guarda dispara para "todo primeiro sábado do mês" (variante ordinal diferente, com sinal "todo")', () => {
+    const item = makeItem({ description: 'A reunião acontece todo primeiro sábado do mês.' });
+    const result = detectRecurrence(item);
+
+    expect(result.recurrence.recurrence_type).toBeNull();
+    expect(result.recurrence.review_reasons).toEqual(['recurrence_ordinal_month_not_representable']);
+  });
+
+  it('I. protecção de falso positivo editorial permanece PASS (regressão, Activity 8)', () => {
+    const item = makeItem({ title: 'Prefeitura divulga resultado da eleição de sexta-feira' });
+    const result = detectRecurrence(item);
+
+    expect(result.recurrence.recurrence_type).toBeNull();
+    expect(result.item.recurrence_text_hint).toBeNull();
+  });
+
+  it('J. recorrência semanal já suportada permanece PASS (regressão, Activity 8/9)', () => {
+    const item = makeItem({ description: 'Quartas e sextas das 9h às 11h' });
+    const result = detectRecurrence(item);
+
+    expect(result.recurrence.recurrence_type).toBe('weekly');
+    expect(result.recurrence.recurrence_days).toEqual([3, 5]);
+  });
+});
+
+describe('detectRecurrence — Activity 10B Part 4 (contexto adicional: raw_payload.raw_text / article_context_text)', () => {
+  it('F. article_context_text disponível (evento único) é consumido pelo detector', () => {
+    const item = makeItem({
+      title: 'Yoga no Forte – Edição de setembro',
+      description: null,
+      raw_payload: {
+        extraction_method: 'structured_block',
+        raw_text: 'Yoga no Forte – Edição de setembro\nDia: 27 de setembro de 2026 (domingo)\nHorário: 7h às 8h',
+        article_context_text: 'As aulas acontecem todo último domingo de cada mês.',
+      },
+    });
+    const result = detectRecurrence(item);
+
+    // A guarda ordinal (Part 2) dispara, porque o contexto chegou ao detector:
+    expect(result.recurrence.review_reasons).toEqual(['recurrence_ordinal_month_not_representable']);
+    expect(result.item.recurrence_text_hint).toContain('todo último domingo de cada mês');
+  });
+
+  it('G. article_context_text AUSENTE (multi-evento, invariante de segurança) — contexto nunca chega ao detector', () => {
+    // Simula o comportamento correcto do Collector para >1 sub-evento:
+    // article_context_text nunca é populado — o mesmo texto que existiria
+    // no artigo original simplesmente não está aqui, tal como o Collector
+    // garante (ver mapToRawActivityItems.ts, Activity 10B Part 3).
+    const item = makeItem({
+      title: '17 de setembro (quinta-feira)',
+      description: null,
+      raw_payload: {
+        extraction_method: 'structured_block',
+        raw_text: '17 de setembro (quinta-feira)\n\n14h — Abertura Oficial',
+        // sem article_context_text — invariante do Collector
+      },
+    });
+    const result = detectRecurrence(item);
+
+    expect(result.recurrence.recurrence_type).toBeNull();
+    expect(result.recurrence.review_reasons).toEqual([]);
+  });
+
+  it('H. narrative_fallback: raw_payload.raw_text (artigo completo, já preservado desde a Activity 8) é consumido sem repropor description', () => {
+    const item = makeItem({
+      title: 'Coral para idosos',
+      description: null,
+      raw_payload: {
+        extraction_method: 'narrative_fallback',
+        raw_text: 'A oficina de coral para idosos acontece toda quinta-feira, às 17h, no Teatro Municipal.',
+      },
+    });
+    const result = detectRecurrence(item);
+
+    expect(result.recurrence.recurrence_type).toBe('weekly');
+    expect(result.recurrence.recurrence_days).toEqual([4]);
+    expect(result.recurrence.recurrence_time).toBe('17:00');
+    // description nunca é tocado/reinterpretado — continua null no item original:
+    expect(item.description).toBeNull();
+  });
+
+  it('K. narrative_fallback SEM recorrência genuína continua sem detecção (regressão, Pre-Flight 1.3)', () => {
+    const item = makeItem({
+      title: 'Mostra coletiva',
+      description: null,
+      raw_payload: {
+        extraction_method: 'narrative_fallback',
+        raw_text: 'A partir desta quinta-feira, o Forte São Mateus recebe novos artistas para a mostra coletiva.',
+      },
+    });
+    const result = detectRecurrence(item);
+
+    expect(result.recurrence.recurrence_type).toBeNull();
+  });
 });
