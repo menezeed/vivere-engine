@@ -6,6 +6,7 @@ import { ActivityStagingRepository } from '../ActivityStagingRepository';
 import type { RawVenueItem } from '../../../types/RawVenueItem';
 import type { RawActivityItem } from '../../../types/RawActivityItem';
 import type { FilteredVenueItem } from '../../../pipeline/stages/00-filter-venue/index';
+import type { RecurrenceDetectedItem } from '../../../pipeline/stages/02-recurrence-detection';
 
 function makeRawVenue(overrides: Partial<RawVenueItem> = {}): RawVenueItem {
   return {
@@ -61,7 +62,7 @@ function makeUpsertDb(returnedRows: object[] = []) {
   return { schema, from, upsert, select };
 }
 
-// ─── RawVenueItemRepository ───────────────────────────────────
+// ─── RawVenueItemRepository ─────────────────────────────────────────────
 
 describe('RawVenueItemRepository.insertBatch', () => {
   it('retorna lista vazia quando não há itens', async () => {
@@ -105,7 +106,7 @@ describe('RawVenueItemRepository.insertBatch', () => {
   });
 });
 
-// ─── RawActivityItemRepository ───────────────────────────────
+// ─── RawActivityItemRepository ─────────────────────────────────────────────
 
 describe('RawActivityItemRepository.insertBatch', () => {
   it('serializa venue_mention como colunas planas (não JSONB embutido)', async () => {
@@ -155,7 +156,7 @@ describe('RawActivityItemRepository.insertBatch', () => {
   });
 });
 
-// ─── VenueStagingRepository ──────────────────────────────────
+// ─── VenueStagingRepository ─────────────────────────────────────────────
 
 describe('VenueStagingRepository.insertBatch', () => {
   function makeFiltered(decision: string, sourceItemId: string): FilteredVenueItem<string, string> {
@@ -294,15 +295,32 @@ describe('VenueStagingRepository.insertBatch', () => {
   });
 });
 
-// ─── ActivityStagingRepository ───────────────────────────────
+// ─── ActivityStagingRepository ─────────────────────────────────────────────
 
 describe('ActivityStagingRepository.insertBatch', () => {
+  // Activity 8/26, 2026-09-26 — assinatura mudou para RecurrenceDetectedItem[].
+  function makeDetected(
+    recurrenceOverrides: Partial<RecurrenceDetectedItem['recurrence']> = {},
+    itemOverrides: Partial<RawActivityItem> = {},
+  ): RecurrenceDetectedItem {
+    return {
+      item: makeRawActivity(itemOverrides),
+      recurrence: {
+        recurrence_type: null,
+        recurrence_days: null,
+        recurrence_time: null,
+        review_reasons: [],
+        ...recurrenceOverrides,
+      },
+    };
+  }
+
   it('insere com venue_resolution_status = unresolved sempre', async () => {
     const db = makeUpsertDb([{ id: 'staging-act-uuid' }]);
     const repo = new ActivityStagingRepository(db as never);
 
     await repo.insertBatch(
-      [makeRawActivity()],
+      [makeDetected()],
       [{ id: 'raw-act-id', source_item_id: 'post_110155' }],
       'vivere-60-mais',
     );
@@ -316,7 +334,7 @@ describe('ActivityStagingRepository.insertBatch', () => {
     const repo = new ActivityStagingRepository(db as never);
 
     await repo.insertBatch(
-      [makeRawActivity()],
+      [makeDetected()],
       [{ id: 'raw-act-id', source_item_id: 'post_110155' }],
       'vivere-60-mais',
     );
@@ -331,5 +349,39 @@ describe('ActivityStagingRepository.insertBatch', () => {
     const count = await repo.insertBatch([], [], 'vivere-60-mais');
     expect(count).toBe(0);
     expect(db.schema).not.toHaveBeenCalled();
+  });
+
+  it('Activity 8/26 — grava recurrence_type/recurrence_days/recurrence_time do resultado do detector', async () => {
+    const db = makeUpsertDb([{ id: 'staging-act-uuid' }]);
+    const repo = new ActivityStagingRepository(db as never);
+
+    await repo.insertBatch(
+      [makeDetected({ recurrence_type: 'weekly', recurrence_days: [3, 5], recurrence_time: '09:00' })],
+      [{ id: 'raw-act-id', source_item_id: 'post_110155' }],
+      'vivere-60-mais',
+    );
+
+    const [rows] = db.upsert.mock.calls[0] as [object[]];
+    const row = rows[0] as Record<string, unknown>;
+    expect(row['recurrence_type']).toBe('weekly');
+    expect(row['recurrence_days']).toEqual([3, 5]);
+    expect(row['recurrence_time']).toBe('09:00');
+  });
+
+  it('Activity 8/26 — recurrence NULL quando o detector não encontra recorrência (nunca \'none\' literal nesta camada)', async () => {
+    const db = makeUpsertDb([{ id: 'staging-act-uuid' }]);
+    const repo = new ActivityStagingRepository(db as never);
+
+    await repo.insertBatch(
+      [makeDetected()],
+      [{ id: 'raw-act-id', source_item_id: 'post_110155' }],
+      'vivere-60-mais',
+    );
+
+    const [rows] = db.upsert.mock.calls[0] as [object[]];
+    const row = rows[0] as Record<string, unknown>;
+    expect(row['recurrence_type']).toBeNull();
+    expect(row['recurrence_days']).toBeNull();
+    expect(row['recurrence_time']).toBeNull();
   });
 });

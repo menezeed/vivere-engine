@@ -1,6 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { PersistedRawActivityItem } from '../types/persistenceTypes';
-import type { RawActivityItem } from '../../types/RawActivityItem';
+import type { RecurrenceDetectedItem } from '../../pipeline/stages/02-recurrence-detection';
 import { logger } from '../../lib/logger';
 
 /**
@@ -13,6 +13,16 @@ import { logger } from '../../lib/logger';
  *
  * Idempotência: ON CONFLICT(raw_activity_item_id) DO NOTHING — requer
  * a constraint UNIQUE(raw_activity_item_id) adicionada pela migration 0003.
+ *
+ * Activity 8/26, 2026-09-26 — Recurrence Detection. Assinatura mudou
+ * de RawActivityItem[] para RecurrenceDetectedItem[] (mesmo padrão já
+ * usado por VenueStagingRepository.insertBatch() com FilteredVenueItem[])
+ * — cada item chega já emparelhado com o resultado do estágio
+ * 02-recurrence-detection (pipeline/stages), corrido em memória antes
+ * da persistência raw. recurrence_type/recurrence_days/recurrence_time
+ * (migration 0018) são escritos aqui tal como o estágio os produziu —
+ * NULL quando nenhuma recorrência foi detectada, nunca 'none' literal
+ * (a normalização para 'none' pertence à Activity 9, Publishing).
  */
 export class ActivityStagingRepository {
   private static readonly BATCH_SIZE = 50;
@@ -20,7 +30,7 @@ export class ActivityStagingRepository {
   constructor(private readonly db: SupabaseClient) {}
 
   async insertBatch(
-    items: RawActivityItem[],
+    items: RecurrenceDetectedItem[],
     persistedRaw: PersistedRawActivityItem[],
     productKey: string,
   ): Promise<number> {
@@ -37,7 +47,7 @@ export class ActivityStagingRepository {
       const batch = items.slice(i, i + ActivityStagingRepository.BATCH_SIZE);
 
       const rows = batch
-        .map((item) => {
+        .map(({ item, recurrence }) => {
           const rawId = rawIdBySourceItemId.get(item.source_item_id);
           if (!rawId) {
             logger.warn(
@@ -52,6 +62,9 @@ export class ActivityStagingRepository {
             product_key:            productKey,
             venue_resolution_status: 'unresolved',   // Entity Resolution decide depois
             proposal_status:        'pending_review', // Human Review decide depois
+            recurrence_type:        recurrence.recurrence_type,
+            recurrence_days:        recurrence.recurrence_days,
+            recurrence_time:        recurrence.recurrence_time,
           };
         })
         .filter((row): row is NonNullable<typeof row> => row !== null);

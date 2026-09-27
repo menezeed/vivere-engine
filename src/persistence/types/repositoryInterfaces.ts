@@ -2,6 +2,7 @@ import type { RawVenueItem } from '../../types/RawVenueItem';
 import type { RawActivityItem } from '../../types/RawActivityItem';
 import type { PersistedRawVenueItem, PersistedRawActivityItem } from './persistenceTypes';
 import type { FilteredVenueItem } from '../../pipeline/stages/00-filter-venue/index';
+import type { RecurrenceDetectedItem } from '../../pipeline/stages/02-recurrence-detection';
 import type {
   ReviewFilter,
   ReviewContext,
@@ -62,9 +63,16 @@ export interface IVenueStagingRepository {
   ): Promise<number>;
 }
 
+/**
+ * Activity 8/26, 2026-09-26 — Recurrence Detection. Assinatura mudou
+ * de RawActivityItem[] para RecurrenceDetectedItem[] — mesmo padrão
+ * já usado por IVenueStagingRepository com FilteredVenueItem. Cada
+ * item chega já emparelhado com o resultado do estágio
+ * 02-recurrence-detection, corrido em memória antes da persistência raw.
+ */
 export interface IActivityStagingRepository {
   insertBatch(
-    items: RawActivityItem[],
+    items: RecurrenceDetectedItem[],
     persistedRaw: PersistedRawActivityItem[],
     productKey: string,
   ): Promise<number>;

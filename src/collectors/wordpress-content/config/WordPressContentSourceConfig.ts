@@ -70,5 +70,16 @@ export interface WordPressContentSourceConfig {
   region_metadata?: {
     city?: string;
     state?: string;
+    /**
+     * Activity 8/26, 2026-09-26 — candidato aprovado para resolver o
+     * fuso horário da fonte (Temporal / Recurrence Contract V1,
+     * Activity 7/26). Formato IANA (ex: 'America/Sao_Paulo'). Opcional
+     * — ainda não consumido por nenhuma lógica nesta Activity;
+     * occurrenceSelection.ts/PublicationTransformer.ts continuam a
+     * ignorá-lo até à Activity 9/26 (Integrate recurrence into
+     * Publishing), que é onde a conversão de horário local para UTC
+     * passa a usar este valor.
+     */
+    timezone?: string;
   };
 }

@@ -10,6 +10,7 @@ import type { VenueFilterRuleSet } from '../../pipeline/stages/00-filter-venue/t
 import { filterVenueItems } from '../../pipeline/stages/00-filter-venue';
 import type { FilteredVenueItem } from '../../pipeline/stages/00-filter-venue/index';
 import { applyGeographicGate } from '../../pipeline/stages/01-geographic-gate';
+import { detectRecurrenceItems } from '../../pipeline/stages/02-recurrence-detection';
 import type { RawVenueItem } from '../../types/RawVenueItem';
 import type { PersistedRawVenueItem } from '../types/persistenceTypes';
 
@@ -42,6 +43,16 @@ import type { PersistedRawVenueItem } from '../types/persistenceTypes';
  * partilham a mesma lógica de filtro/gate/staging/métricas via
  * stageVenues() privado — a ÚNICA diferença entre os dois caminhos é
  * a origem de items/persistedRaw (Collector vs. leitura da Camada A).
+ *
+ * Activity 8/26, 2026-09-26 — Recurrence Detection. runActivityIngestion()
+ * ganha um novo passo, 02-recurrence-detection, entre a coleta e a
+ * persistência raw — função pura, corre em memória, nunca modifica
+ * RawActivityItem in-place (devolve objectos novos). O resultado
+ * (RecurrenceDetectedItem[]) alimenta tanto rawActivityItem.insertBatch()
+ * (via .map(d => d.item), já com recurrence_text_hint populado quando
+ * detectado) quanto activityStaging.insertBatch() (o array completo,
+ * com a regra estruturada). Mesmo padrão já usado para venues
+ * (00-filter-venue/01-geographic-gate entre coleta e venueStaging).
  */
 export class IngestionOrchestrator {
   constructor(private readonly repos: IRepositorySet) {}
@@ -250,13 +261,20 @@ export class IngestionOrchestrator {
 
       const collected = await collector.collect({ sinceDays: options.sinceDays });
 
+      // Activity 8/26, 2026-09-26 — 02-recurrence-detection, em
+      // memória, ANTES da persistência raw. Nunca modifica
+      // collected.items in-place; detected[i].item pode ser um
+      // objecto novo (com recurrence_text_hint populado) ou o mesmo
+      // objecto de entrada (nada detectado).
+      const detected = detectRecurrenceItems(collected.items);
+
       const persistedRaw = dryRun
         ? []
-        : await this.repos.rawActivityItem.insertBatch(collected.items, runId!);
+        : await this.repos.rawActivityItem.insertBatch(detected.map((d) => d.item), runId!);
 
       const stagedCount = dryRun
         ? 0
-        : await this.repos.activityStaging.insertBatch(collected.items, persistedRaw, product_key);
+        : await this.repos.activityStaging.insertBatch(detected, persistedRaw, product_key);
 
       if (!dryRun && runId) {
         await this.repos.ingestionRun.finish(runId, {
