@@ -9,6 +9,10 @@
  * introduzido só para essa chamada; S_ACT_ID continua a representar o
  * staging id em todos os outros usos (stagingId, findByEngineId de venue,
  * etc.), inalterado.
+ *
+ * Activity 9/26, 2026-09-27 — mockActivity ganhou recurrenceType/
+ * recurrenceDays/recurrenceTime (campos novos, obrigatórios em
+ * PublishableActivity — null, evento único, sem recorrência).
  */
 
 import { describe, it, expect, vi } from 'vitest';
@@ -25,7 +29,7 @@ import type {
   PublishableActivity,
 } from '../types/domain.js';
 
-// ── Fixtures ─────────────────────────────────────────────────────────────
+// ── Fixtures ──────────────────────────────────────────────────────────
 
 const RUN_ID      = 'run-001'  as PublicationRunId;
 const VENUE_ID    = 'venue-001' as PublicVenueId;
@@ -70,9 +74,13 @@ const mockActivity: PublishableActivity = {
   resolvedVenueStagingId: S_VENUE_ID,
   promotedActivityId:    null,
   stagingUpdatedAt:      new Date('2026-07-01'),
+  // Activity 9/26, 2026-09-27 — evento único, sem recorrência.
+  recurrenceType:        null,
+  recurrenceDays:        null,
+  recurrenceTime:        null,
 };
 
-// ── Mock factory ─────────────────────────────────────────────────────────
+// ── Mock factory ──────────────────────────────────────────────────────
 
 function makeMockRepos(): IPublishingRepositorySet {
   return PublishingRepositoryFactory.fromObject({
@@ -118,7 +126,7 @@ function makeMockRepos(): IPublishingRepositorySet {
   });
 }
 
-// ── Testes ───────────────────────────────────────────────────────────────
+// ── Testes ──────────────────────────────────────────────────────────
 
 describe('PublishingRepositoryFactory.fromObject', () => {
   it('retorna o mesmo objecto sem transformação', () => {
@@ -289,5 +297,12 @@ describe('Whitelist ADR-0018 — campos preservados', () => {
     const keys = Object.keys(mockActivity);
     expect(keys).toContain('imageUrl');
     expect(keys).not.toContain('imagem_url');
+  });
+
+  it('Activity 9/26 — PublishableActivity expõe recurrenceType/recurrenceDays/recurrenceTime (ADR-0018 revisto)', () => {
+    const keys = Object.keys(mockActivity);
+    expect(keys).toContain('recurrenceType');
+    expect(keys).toContain('recurrenceDays');
+    expect(keys).toContain('recurrenceTime');
   });
 });

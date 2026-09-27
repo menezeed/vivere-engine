@@ -412,6 +412,13 @@ export class ActivityPublisher {
       resolvedVenueStagingId: original.resolvedVenueStagingId, // pass-through, não usado na escrita
       promotedActivityId:    original.promotedActivityId,
       stagingUpdatedAt:      original.stagingUpdatedAt,
+      // Activity 9/26, 2026-09-27 — operational.recurrence_type é sempre
+      // resolvido ('none' explícito, nunca null) pelo Transformer; o
+      // PublicActivityRepository lê estes três campos do objecto adaptado
+      // tal como o Transformer os decidiu, sem reinterpretar.
+      recurrenceType:        operational.recurrence_type,
+      recurrenceDays:        operational.recurrence_days,
+      recurrenceTime:        operational.recurrence_time,
     };
   }
 }

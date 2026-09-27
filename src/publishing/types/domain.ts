@@ -5,7 +5,7 @@
  * Zero acoplamento a Supabase, Hono ou qualquer framework externo.
  */
 
-// ── Branded IDs ──────────────────────────────────────────────────────────
+// ── Branded IDs ──────────────────────────────────────────────────────
 
 export type PublicationRunId    = string & { readonly _brand: 'PublicationRunId' };
 export type PublicVenueId       = string & { readonly _brand: 'PublicVenueId' };
@@ -32,11 +32,19 @@ export type StagingActivityId   = string & { readonly _brand: 'StagingActivityId
  */
 export type EngineActivityId    = string & { readonly _brand: 'EngineActivityId' };
 
-// ── Engine status ────────────────────────────────────────────────────────
+// ── Engine status ──────────────────────────────────────────────────
 
 export type EngineStatus = 'active' | 'archived' | 'draft';
 
-// ── Publishable venue — o que o engine lê de staging ────────────────────
+// ── Recurrence (Activity 9/26, 2026-09-27) ──────────────────────────
+//
+// Mesmo union já definido em pipeline/stages/02-recurrence-detection
+// (Activity 8/26) — reutilizado aqui, não redefinido, para manter um
+// único vocabulário de valores em todo o pipeline (staging → public).
+import type { RecurrenceType } from '../../pipeline/stages/02-recurrence-detection/types.js';
+export type { RecurrenceType };
+
+// ── Publishable venue — o que o engine lê de staging ──────────────────
 
 /**
  * Venue pronto para publicação — JOIN de venues_staging + raw_venue_items.
@@ -65,7 +73,7 @@ export interface PublishableVenue {
   readonly city:               string | null;
 }
 
-// ── Publishable activity — o que o engine lê de staging ──────────────────
+// ── Publishable activity — o que o engine lê de staging ──────────────
 
 /**
  * Uma ocorrência de raw_activity_items.occurrences (Sprint 8.7 / ADR-0020).
@@ -102,6 +110,8 @@ export interface PublishableActivity {
    * PublishableActivityRepository). Único array vazio nunca ocorre na
    * leitura real (occurrences é sempre not-null em raw_activity_items,
    * confirmado na Sprint 8.7), mas o tipo permite-o defensivamente.
+   * Activity 9/26 — um array vazio aqui é o caso normal para uma
+   * activity puramente recorrente, sem ocorrência concreta publicada.
    */
   readonly occurrences:            readonly ActivityOccurrence[];
   /**
@@ -139,9 +149,21 @@ export interface PublishableActivity {
   readonly resolvedVenueStagingId: StagingVenueId | null;
   readonly promotedActivityId:     PublicActivityId | null;
   readonly stagingUpdatedAt:       Date;
+  /**
+   * Activity 9/26, 2026-09-27 — activities_staging.recurrence_type/
+   * recurrence_days/recurrence_time (migration 0018/Activity 8/26). Valor
+   * TAL COMO lido de staging — null quando o detector (02-recurrence-
+   * detection) não encontrou recorrência nenhuma. A validação de "regra
+   * estruturada válida" e a normalização para 'none' acontecem no
+   * PublicationTransformer, nunca aqui — este tipo só transporta o dado,
+   * sem interpretar.
+   */
+  readonly recurrenceType:         RecurrenceType | null;
+  readonly recurrenceDays:         readonly number[] | null;
+  readonly recurrenceTime:         string | null;
 }
 
-// ── Publication run ────────────────────────────────────────────────────
+// ── Publication run ──────────────────────────────────────────────────
 
 export type PublicationRunStatus = 'running' | 'success' | 'partial' | 'failed';
 
@@ -274,6 +296,13 @@ export interface OperationalVenueInput {
  *
  * `engine_activity_id: EngineActivityId` (Level 3, 2026-09-23) — antes era
  * StagingActivityId; ver activityIdentity.ts para a mudança de contrato.
+ *
+ * `recurrence_type/recurrence_days/recurrence_time` (Activity 9/26,
+ * 2026-09-27) — ADR-0018 revisto: deixaram de ser "campos preservados,
+ * nunca escritos pelo Engine" e passam a fazer parte da whitelist real de
+ * escrita, ver ADR-0018 (secção "Revisão 2026-09-27"). `recurrence_type`
+ * aqui é SEMPRE resolvido (nunca null) — 'none' explícito quando não há
+ * recorrência válida, nunca depende do DEFAULT da coluna Postgres.
  */
 export interface OperationalActivityInput {
   readonly title:               string;
@@ -289,4 +318,7 @@ export interface OperationalActivityInput {
   readonly product_key:         string;
   readonly engine_status:       EngineStatus;
   readonly last_published_at:   Date;
+  readonly recurrence_type:     RecurrenceType;
+  readonly recurrence_days:     readonly number[] | null;
+  readonly recurrence_time:     string | null;
 }

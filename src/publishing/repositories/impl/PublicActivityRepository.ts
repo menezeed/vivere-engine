@@ -2,7 +2,11 @@
  * src/publishing/repositories/impl/PublicActivityRepository.ts
  * Escreve em public.activities. Whitelist ADR-0018.
  * NUNCA escreve: category, schedule, price, is_free, is_sponsored,
- *                recurrence_*, interested_count.
+ *                interested_count.
+ * Activity 9/26, 2026-09-27 — recurrence_type/recurrence_days/
+ * recurrence_time SAÍRAM da lista de "nunca escreve" — ver ADR-0018,
+ * secção "Revisão 2026-09-27", e PublicationTransformer.transformActivity()
+ * para a resolução explícita destes valores antes de chegarem aqui.
  * NOTA: image_url → imagem_url (typo existente — ADR-0015).
  *
  * Level 3, 2026-09-23 — findByEngineId()/findPublicationStateByEngineId()
@@ -43,6 +47,12 @@ export class PublicActivityRepository implements IPublicActivityRepository {
         url:               activity.sourceUrl,
         phone:             activity.phone,
         venue_id:          activity.resolvedPublicVenueId ?? null,
+        // Activity 9/26 — recurrence_type é sempre resolvido pelo
+        // PublicationTransformer (nunca null aqui); days/time podem ser
+        // null (não recorrente, ou loss-aware).
+        recurrence_type:   activity.recurrenceType ?? 'none',
+        recurrence_days:   activity.recurrenceDays ?? null,
+        recurrence_time:   activity.recurrenceTime ?? null,
         // Campos da engine
         engine_activity_id: activity.stagingId,
         source_key:         activity.sourceKey,
@@ -50,7 +60,7 @@ export class PublicActivityRepository implements IPublicActivityRepository {
         engine_status:      'active',
         last_published_at:  new Date().toISOString(),
         // category, schedule, price, is_free, is_sponsored,
-        // recurrence_*, interested_count → NUNCA aqui (ADR-0018)
+        // interested_count → NUNCA aqui (ADR-0018)
       })
       .select('id')
       .single();
@@ -71,6 +81,9 @@ export class PublicActivityRepository implements IPublicActivityRepository {
         url:               activity.sourceUrl,
         phone:             activity.phone,
         venue_id:          activity.resolvedPublicVenueId ?? null,
+        recurrence_type:   activity.recurrenceType ?? 'none',
+        recurrence_days:   activity.recurrenceDays ?? null,
+        recurrence_time:   activity.recurrenceTime ?? null,
         last_published_at: new Date().toISOString(),
       })
       .eq('id', publicActivityId);

@@ -17,8 +17,11 @@
  *
  * Mapeamento de campos: whitelist definitiva do ADR-0018. Qualquer campo
  * fora da whitelist (category, schedule, price, is_free, is_sponsored,
- * recurrence_*, interested_count, city) nunca é lido nem escrito aqui —
- * lista positiva, não lista negativa.
+ * interested_count, city) nunca é lido nem escrito aqui — lista positiva,
+ * não lista negativa. Activity 9/26, 2026-09-27 — ADR-0018 revisto:
+ * recurrence_type/recurrence_days/recurrence_time SAÍRAM da lista de
+ * campos preservados/nunca-escritos e ENTRARAM na whitelist real — ver
+ * nota completa em transformActivity() e em ADR-0018.
  *
  * Integração com os repositórios: NÃO é feita nesta sprint. Ver decisão
  * arquitectural da Sprint 8.3 (Questão C) — VenuePublisher/ActivityPublisher
@@ -27,7 +30,7 @@
  * PublishableVenue/PublishableActivity (contratos congelados da Sprint 8.2).
  *
  * CORRECÇÃO (Level 3, 2026-09-23) — Stable Source Activity Identity.
- * engine_activity_id deixou de ser activity.stagingId (efémero — novo a
+ * engine_activity_id deixou de ser activity.stagingId (efémero — novo em
  * cada ingestion_run, ver ADR sobre raw_activity_items append-only) e
  * passou a ser deriveEngineActivityId(activity.sourceKey,
  * activity.sourceItemId) — determinístico, estável entre execuções para a
@@ -42,9 +45,44 @@ import type {
   PublishableActivity,
   OperationalVenueInput,
   OperationalActivityInput,
+  RecurrenceType,
 } from '../types/domain.js';
 import { selectNextOccurrence, occurrenceToDateRange } from './occurrenceSelection.js';
 import { deriveEngineActivityId } from './activityIdentity.js';
+
+// Activity 9/26, 2026-09-27 — mesmos valores já suportados pelo app
+// (Activity 7/26), confirmados por código real (ExploreScreen.js,
+// OnboardingScreen.js, services/notifications.js).
+const VALID_RECURRENCE_TYPES = new Set<RecurrenceType>(['daily', 'weekly', 'biweekly', 'monthly']);
+
+/**
+ * Activity 9/26, 2026-09-27 — decide se (recurrenceType, recurrenceDays,
+ * recurrenceTime) representa uma regra de recorrência ESTRUTURADA VÁLIDA,
+ * suficiente para publicar uma activity só com base nela (sem ocorrência
+ * concreta). Decisão Level 3 explícita: nunca usar apenas
+ * `recurrence_type !== null` como critério — um estado incompleto (ex:
+ * 'weekly' sem recurrence_days, ou um valor de tipo desconhecido) nunca é
+ * tratado como recorrência publicável, mesmo que recurrence_type não seja
+ * null/none.
+ *
+ * recurrence_time NULL é sempre permitido, para qualquer tipo válido —
+ * loss-aware por desenho (Activity 8/26, Caso D: horários diferentes por
+ * dia, recurrence_time explicitamente NULL, nunca inventado).
+ *
+ * daily/monthly não exigem recurrence_days aqui — nenhuma fonte real
+ * observada até agora produz estes tipos (Activity 8/26 só implementa
+ * detecção de weekly); a validação fica pronta para quando existir
+ * evidência real, sem inventar uma exigência não confirmada.
+ */
+function isValidStructuredRecurrence(
+  type: RecurrenceType | null,
+  days: readonly number[] | null,
+): boolean {
+  if (type === null || type === 'none') return false;
+  if (!VALID_RECURRENCE_TYPES.has(type)) return false;
+  if ((type === 'weekly' || type === 'biweekly') && (!days || days.length === 0)) return false;
+  return true;
+}
 
 export class PublicationTransformer {
   /**
@@ -80,11 +118,29 @@ export class PublicationTransformer {
 
   /**
    * PublishableActivity → OperationalActivityInput, ou null se não existir
-   * nenhuma ocorrência futura (ADR-0020) — activity efectivamente expirada.
-   * O chamador (ActivityPublisher) decide a acção sobre null: nunca inserir
-   * (se nunca publicada) ou arquivar (se já publicada). O Transformer não
-   * toma essa decisão de negócio — apenas sinaliza "sem representação
-   * operacional válida agora", continuando puro e determinístico.
+   * nenhuma ocorrência futura NEM recorrência estruturada válida (ADR-0020,
+   * revisto Activity 9/26) — activity efectivamente sem representação
+   * operacional válida agora. O chamador (ActivityPublisher) decide a acção
+   * sobre null: nunca inserir (se nunca publicada) ou arquivar (se já
+   * publicada). O Transformer não toma essa decisão de negócio — apenas
+   * sinaliza "sem representação operacional válida agora", continuando puro
+   * e determinístico.
+   *
+   * Activity 9/26, 2026-09-27 — elegibilidade revista (Decision 2,
+   * aprovada): uma activity recorrente (recurrence estruturada válida,
+   * ver isValidStructuredRecurrence) é publicável mesmo com
+   * occurrences=[] — não materializa ocorrências futuras, não inventa
+   * start_date/end_date. Quando não há ocorrência concreta E a recorrência
+   * não é válida, o comportamento é EXACTAMENTE o mesmo de antes desta
+   * Activity: null (skip/archive). Quando existe ocorrência concreta E
+   * recorrência válida simultaneamente (Activity 8/26, Caso E), o
+   * comportamento temporal existente é preservado — start_date/end_date
+   * vêm da ocorrência concreta, recurrence_* é escrito de qualquer forma.
+   *
+   * recurrence_type no OperationalActivityInput é SEMPRE resolvido
+   * explicitamente aqui — nunca null, nunca depende do DEFAULT 'none' da
+   * coluna Postgres (que só se aplica a campos OMITIDOS do INSERT, nunca a
+   * um valor null explícito).
    *
    * @param activity     Activity lida de staging, com occurrences já parseado
    *                     (PublishableActivityRepository) e resolvedPublicVenueId
@@ -103,11 +159,19 @@ export class PublicationTransformer {
     asOf: Date,
   ): OperationalActivityInput | null {
     const nextOccurrence = selectNextOccurrence(activity.occurrences, asOf);
-    if (nextOccurrence === null) {
+    const hasValidRecurrence = isValidStructuredRecurrence(activity.recurrenceType, activity.recurrenceDays);
+
+    if (nextOccurrence === null && !hasValidRecurrence) {
+      // ADR-0020, regra 5, inalterada: nem ocorrência futura, nem
+      // recorrência estruturada válida → sem representação operacional.
       return null;
     }
 
-    const { startDate, endDate } = occurrenceToDateRange(nextOccurrence);
+    const { startDate, endDate } = nextOccurrence !== null
+      ? occurrenceToDateRange(nextOccurrence)
+      // Recurrence-only (Activity 9/26, Decision 2): sem ocorrência
+      // concreta, sem boundary inventado — NULL, nunca um placeholder.
+      : { startDate: null, endDate: null };
 
     return {
       title:              activity.title,
@@ -127,6 +191,13 @@ export class PublicationTransformer {
       product_key:        activity.productKey,
       engine_status:      'active',
       last_published_at:  publishedAt,
+      // Activity 9/26, 2026-09-27 — recurrence_type sempre resolvido,
+      // nunca null. Um estado inválido/incompleto (hasValidRecurrence
+      // false) é tratado exactamente como ausência de recorrência —
+      // nunca publicado como uma regra estruturada quebrada.
+      recurrence_type: hasValidRecurrence ? (activity.recurrenceType as RecurrenceType) : 'none',
+      recurrence_days: hasValidRecurrence ? activity.recurrenceDays : null,
+      recurrence_time: hasValidRecurrence ? activity.recurrenceTime : null,
     };
   }
 }

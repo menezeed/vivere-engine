@@ -72,6 +72,11 @@ function makeActivity(overrides: Partial<PublishableActivity> = {}): Publishable
     resolvedVenueStagingId: 'sv-001' as StagingVenueId,
     promotedActivityId:    null,
     stagingUpdatedAt:      new Date('2026-07-01T00:00:00.000Z'),
+    // Activity 9/26, 2026-09-27 — testes existentes são todos de eventos
+    // únicos, sem recorrência; null é o valor correcto por omissão aqui.
+    recurrenceType:        null,
+    recurrenceDays:        null,
+    recurrenceTime:        null,
     ...overrides,
   };
 }
@@ -346,6 +351,181 @@ describe('ActivityPublisher ÔÇö dirty check', () => {
   });
 });
 
+// ── Activity 9/26 — transições de recorrência (Level 2, changes requested) ──
+
+describe('ActivityPublisher — Activity 9/26 recurrence transitions', () => {
+  it('D. recurrence_time update — weekly [5] 10:00 → weekly [5] 11:00, UPDATE, mesmo engine_activity_id, nenhuma Activity nova', async () => {
+    const publicId = 'activity-existing-d' as PublicActivityId;
+    const activity = makeActivity({
+      stagingId:          'sa-d-001' as StagingActivityId,
+      sourceItemId:        'recurrence-d-001',
+      promotedActivityId:  publicId,
+      stagingUpdatedAt:    new Date('2026-07-05T00:00:00.000Z'),
+      recurrenceType: 'weekly',
+      recurrenceDays: [5],
+      recurrenceTime: '11:00',
+    });
+    const publicationState = vi.fn().mockResolvedValue(makeState(publicId, new Date('2026-07-01T00:00:00.000Z')));
+    const { publishableActivity, publicActivity, eventRepo } = makeRepos({ findDirty: [activity], publicationState });
+
+    const publisher = new ActivityPublisher(publishableActivity, publicActivity, eventRepo, () => NOW);
+    const metrics = await publisher.publish(PRODUCT_KEY, RUN_ID);
+
+    const expectedEngineId = deriveEngineActivityId(activity.sourceKey, activity.sourceItemId);
+    expect(publicActivity.findPublicationStateByEngineId).toHaveBeenCalledWith(expectedEngineId);
+    expect(publicActivity.update).toHaveBeenCalledWith(
+      publicId,
+      expect.objectContaining({ recurrenceTime: '11:00', recurrenceDays: [5] }),
+    );
+    expect(publicActivity.insert).not.toHaveBeenCalled();
+    expect(metrics.activitiesUpdated).toBe(1);
+  });
+
+  it('E. recurrence_days update — [5] 09:00 → [3,5] 09:00, UPDATE, mesma identidade, recurrence_days final [3,5]', async () => {
+    const publicId = 'activity-existing-e' as PublicActivityId;
+    const activity = makeActivity({
+      stagingId:          'sa-e-001' as StagingActivityId,
+      sourceItemId:        'recurrence-e-001',
+      promotedActivityId:  publicId,
+      stagingUpdatedAt:    new Date('2026-07-05T00:00:00.000Z'),
+      recurrenceType: 'weekly',
+      recurrenceDays: [3, 5],
+      recurrenceTime: '09:00',
+    });
+    const publicationState = vi.fn().mockResolvedValue(makeState(publicId, new Date('2026-07-01T00:00:00.000Z')));
+    const { publishableActivity, publicActivity, eventRepo } = makeRepos({ findDirty: [activity], publicationState });
+
+    const publisher = new ActivityPublisher(publishableActivity, publicActivity, eventRepo, () => NOW);
+    const metrics = await publisher.publish(PRODUCT_KEY, RUN_ID);
+
+    const expectedEngineId = deriveEngineActivityId(activity.sourceKey, activity.sourceItemId);
+    expect(publicActivity.update).toHaveBeenCalledWith(
+      publicId,
+      expect.objectContaining({ recurrenceDays: [3, 5] }),
+    );
+    expect(publicActivity.findPublicationStateByEngineId).toHaveBeenCalledWith(expectedEngineId);
+    expect(metrics.activitiesUpdated).toBe(1);
+  });
+
+  it('F. recurrence_type update — weekly → biweekly, UPDATE, mesma identidade, recurrence_type final biweekly', async () => {
+    const publicId = 'activity-existing-f' as PublicActivityId;
+    const activity = makeActivity({
+      stagingId:          'sa-f-001' as StagingActivityId,
+      sourceItemId:        'recurrence-f-001',
+      promotedActivityId:  publicId,
+      stagingUpdatedAt:    new Date('2026-07-05T00:00:00.000Z'),
+      recurrenceType: 'biweekly',
+      recurrenceDays: [5],
+      recurrenceTime: '10:00',
+    });
+    const publicationState = vi.fn().mockResolvedValue(makeState(publicId, new Date('2026-07-01T00:00:00.000Z')));
+    const { publishableActivity, publicActivity, eventRepo } = makeRepos({ findDirty: [activity], publicationState });
+
+    const publisher = new ActivityPublisher(publishableActivity, publicActivity, eventRepo, () => NOW);
+    const metrics = await publisher.publish(PRODUCT_KEY, RUN_ID);
+
+    expect(publicActivity.update).toHaveBeenCalledWith(
+      publicId,
+      expect.objectContaining({ recurrenceType: 'biweekly' }),
+    );
+    expect(metrics.activitiesUpdated).toBe(1);
+  });
+
+  it('G. recurrence → none — staging volta a NULL/NULL/NULL, UPDATE escreve recurrence_type=none e days/time NULL (nunca preserva os antigos), mesmo engine_activity_id', async () => {
+    const publicId = 'activity-existing-g' as PublicActivityId;
+    const activity = makeActivity({
+      stagingId:          'sa-g-001' as StagingActivityId,
+      sourceItemId:        'recurrence-g-001',
+      promotedActivityId:  publicId,
+      stagingUpdatedAt:    new Date('2026-07-05T00:00:00.000Z'),
+      recurrenceType: null,
+      recurrenceDays: null,
+      recurrenceTime: null,
+    });
+    const publicationState = vi.fn().mockResolvedValue(makeState(publicId, new Date('2026-07-01T00:00:00.000Z')));
+    const { publishableActivity, publicActivity, eventRepo } = makeRepos({ findDirty: [activity], publicationState });
+
+    const publisher = new ActivityPublisher(publishableActivity, publicActivity, eventRepo, () => NOW);
+    const metrics = await publisher.publish(PRODUCT_KEY, RUN_ID);
+
+    const expectedEngineId = deriveEngineActivityId(activity.sourceKey, activity.sourceItemId);
+    expect(publicActivity.findPublicationStateByEngineId).toHaveBeenCalledWith(expectedEngineId);
+    const [calledId, calledAdapted] = (publicActivity.update as ReturnType<typeof vi.fn>).mock.calls[0]!;
+    expect(calledId).toBe(publicId);
+    expect(calledAdapted.recurrenceType).toBe('none');
+    expect(calledAdapted.recurrenceDays).toBeNull();
+    expect(calledAdapted.recurrenceTime).toBeNull();
+    expect(metrics.activitiesUpdated).toBe(1);
+  });
+
+  it('H. none → recurrence — staging passa a ter weekly/[5]/10:00, UPDATE da mesma Activity, mesmo engine_activity_id', async () => {
+    const publicId = 'activity-existing-h' as PublicActivityId;
+    const activity = makeActivity({
+      stagingId:          'sa-h-001' as StagingActivityId,
+      sourceItemId:        'recurrence-h-001',
+      promotedActivityId:  publicId,
+      stagingUpdatedAt:    new Date('2026-07-05T00:00:00.000Z'),
+      recurrenceType: 'weekly',
+      recurrenceDays: [5],
+      recurrenceTime: '10:00',
+    });
+    const publicationState = vi.fn().mockResolvedValue(makeState(publicId, new Date('2026-07-01T00:00:00.000Z')));
+    const { publishableActivity, publicActivity, eventRepo } = makeRepos({ findDirty: [activity], publicationState });
+
+    const publisher = new ActivityPublisher(publishableActivity, publicActivity, eventRepo, () => NOW);
+    const metrics = await publisher.publish(PRODUCT_KEY, RUN_ID);
+
+    const expectedEngineId = deriveEngineActivityId(activity.sourceKey, activity.sourceItemId);
+    expect(publicActivity.findPublicationStateByEngineId).toHaveBeenCalledWith(expectedEngineId);
+    expect(publicActivity.update).toHaveBeenCalledWith(
+      publicId,
+      expect.objectContaining({ recurrenceType: 'weekly', recurrenceDays: [5], recurrenceTime: '10:00' }),
+    );
+    expect(publicActivity.insert).not.toHaveBeenCalled();
+    expect(metrics.activitiesUpdated).toBe(1);
+  });
+
+  it('I. idempotent republish — mesma (source_key, source_item_id), com recorrência, nunca cria Activity nova nem muda engine_activity_id', async () => {
+    const activity = makeActivity({
+      stagingId:     'sa-i-001' as StagingActivityId,
+      sourceItemId:  'recurrence-i-001',
+      recurrenceType: 'weekly',
+      recurrenceDays: [5],
+      recurrenceTime: '10:00',
+    });
+    const expectedEngineId = deriveEngineActivityId(activity.sourceKey, activity.sourceItemId);
+
+    const { publishableActivity: pa1, publicActivity: pub1, eventRepo: ev1 } = makeRepos({ findUnpublished: [activity] });
+    const publisher1 = new ActivityPublisher(pa1, pub1, ev1, () => NOW);
+    await publisher1.publish(PRODUCT_KEY, RUN_ID);
+
+    expect(pub1.insert).toHaveBeenCalledTimes(1);
+    const insertedActivity = (pub1.insert as ReturnType<typeof vi.fn>).mock.calls[0]![0];
+    expect(insertedActivity.stagingId).toBe(expectedEngineId);
+
+    const publicId = 'activity-i-published' as PublicActivityId;
+    const publicationState = vi.fn().mockResolvedValue(makeState(publicId, new Date('2026-07-01T00:00:00.000Z')));
+    const activityRepublished = makeActivity({
+      stagingId:           'sa-i-002' as StagingActivityId,
+      sourceItemId:        'recurrence-i-001',
+      promotedActivityId:  publicId,
+      stagingUpdatedAt:    new Date('2026-07-05T00:00:00.000Z'),
+      recurrenceType: 'weekly',
+      recurrenceDays: [5],
+      recurrenceTime: '10:00',
+    });
+    const { publishableActivity: pa2, publicActivity: pub2, eventRepo: ev2 } = makeRepos({ findDirty: [activityRepublished], publicationState });
+    const publisher2 = new ActivityPublisher(pa2, pub2, ev2, () => NOW);
+    const metrics2 = await publisher2.publish(PRODUCT_KEY, RUN_ID);
+
+    expect(pub2.findPublicationStateByEngineId).toHaveBeenCalledWith(expectedEngineId);
+    expect(pub2.insert).not.toHaveBeenCalled();
+    expect(pub2.update).toHaveBeenCalledWith(publicId, expect.anything());
+    expect(metrics2.activitiesPublished).toBe(0);
+    expect(metrics2.activitiesUpdated).toBe(1);
+  });
+});
+
 // ÔöÇÔöÇ Arquiva├º├úo (capacidade expl├¡cita) ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
 
 describe('ActivityPublisher.archiveActivity', () => {
@@ -494,8 +674,8 @@ describe('ActivityPublisher.adaptToPublishableActivity', () => {
   it('fun├º├úo pura: reconstr├│i PublishableActivity a partir do OperationalActivityInput + original', () => {
     const original = makeActivity({ promotedActivityId: 'activity-x' as PublicActivityId });
     const operational = {
-      title:              'T├¡tulo Transformado',
-      description:        'Descri├º├úo',
+      title:              'Título Transformado',
+      description:        'Descrição',
       start_date:         new Date('2026-08-01T09:00:00.000Z'),
       end_date:            null,
       imagem_url:          'https://x.com/img.jpg',
@@ -511,11 +691,17 @@ describe('ActivityPublisher.adaptToPublishableActivity', () => {
       product_key:         original.productKey,
       engine_status:       'active' as const,
       last_published_at:   NOW,
+      // Activity 9/26, 2026-09-27 — recurrence_type é sempre resolvido
+      // (nunca null) no OperationalActivityInput real; aqui uma regra
+      // válida, para confirmar o passthrough no adaptador.
+      recurrence_type:     'weekly' as const,
+      recurrence_days:     [5],
+      recurrence_time:     '10:00',
     };
 
     const adapted = ActivityPublisher.adaptToPublishableActivity(operational, original);
 
-    expect(adapted.title).toBe('T├¡tulo Transformado');
+    expect(adapted.title).toBe('Título Transformado');
     expect(adapted.imageUrl).toBe('https://x.com/img.jpg');
     expect(adapted.resolvedPublicVenueId).toBe('venue-y');
     expect(adapted.stagingId).toBe(original.stagingId);
@@ -523,6 +709,10 @@ describe('ActivityPublisher.adaptToPublishableActivity', () => {
     expect(adapted.promotedActivityId).toBe('activity-x');
     expect(adapted.stagingUpdatedAt).toBe(original.stagingUpdatedAt);
     expect(adapted.occurrences).toBe(original.occurrences); // pass-through
+    // Activity 9/26, 2026-09-27 — recurrence_* vem do operational, não do original:
+    expect(adapted.recurrenceType).toBe('weekly');
+    expect(adapted.recurrenceDays).toEqual([5]);
+    expect(adapted.recurrenceTime).toBe('10:00');
   });
 });
 

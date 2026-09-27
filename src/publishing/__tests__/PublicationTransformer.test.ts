@@ -11,6 +11,15 @@
  * activityIdentity.test.ts, para sourceKey='prefeitura_cabo_frio' +
  * sourceItemId='146007_0' — mantido consistente entre os dois arquivos de
  * teste deliberadamente.
+ *
+ * Activity 9/26, 2026-09-27 — makeActivity() ganhou recurrenceType/
+ * recurrenceDays/recurrenceTime (campos novos, obrigatórios em
+ * PublishableActivity — default null, evento único). ADR-0018 revisto:
+ * recurrence_type/recurrence_days/recurrence_time SAÍRAM da lista de
+ * campos preservados/nunca-escritos — testes de whitelist actualizados
+ * (16 campos, não mais 13). Testes novos de recorrência no final do
+ * arquivo (describe 'PublicationTransformer.transformActivity — Activity
+ * 9/26 Recurrence').
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
@@ -24,7 +33,7 @@ import type {
   PublicVenueId,
 } from '../types/domain.js';
 
-// ── Fixtures ─────────────────────────────────────────────────────────────
+// ── Fixtures ──────────────────────────────────────────────────────────
 
 const S_VENUE_ID = 'sv-001' as StagingVenueId;
 const S_ACT_ID    = 'sa-001' as StagingActivityId;
@@ -83,13 +92,17 @@ function makeActivity(overrides: Partial<PublishableActivity> = {}): Publishable
     resolvedVenueStagingId: S_VENUE_ID,
     promotedActivityId:    null,
     stagingUpdatedAt:      new Date('2026-07-01'),
+    // Activity 9/26, 2026-09-27 — default: evento único, sem recorrência.
+    recurrenceType:        null,
+    recurrenceDays:        null,
+    recurrenceTime:        null,
     ...overrides,
   };
 }
 
 const fullActivity = makeActivity();
 
-// ── transformVenue ──────────────────────────────────────────────────────
+// ── transformVenue ──────────────────────────────────────────────────
 
 describe('PublicationTransformer.transformVenue', () => {
   it('mapeia todos os campos da whitelist ADR-0018 (COPY)', () => {
@@ -156,7 +169,7 @@ describe('PublicationTransformer.transformVenue', () => {
   });
 });
 
-// ── transformActivity ────────────────────────────────────────────────────
+// ── transformActivity ──────────────────────────────────────────────────
 
 describe('PublicationTransformer.transformActivity', () => {
   it('mapeia todos os campos da whitelist ADR-0018 (COPY), com start_date/end_date da próxima ocorrência', () => {
@@ -201,29 +214,31 @@ describe('PublicationTransformer.transformActivity', () => {
     expect(result!.last_published_at).toBe(PUBLISHED_AT);
   });
 
-  it('nunca expõe campos preservados (ADR-0018): category, schedule, price, is_free, is_sponsored, recurrence_*, interested_count', () => {
+  it('nunca expõe campos preservados (ADR-0018): category, schedule, price, is_free, is_sponsored, interested_count', () => {
     const result = PublicationTransformer.transformActivity(fullActivity, PUBLISHED_AT, AS_OF);
     const keys = Object.keys(result!);
 
+    // Activity 9/26, 2026-09-27 — recurrence_type/days/time SAÍRAM desta
+    // lista (ADR-0018 revisto) — ver describe 'Recurrence' abaixo, que
+    // confirma explicitamente que ESTES campos AGORA SÃO produzidos.
     for (const forbidden of [
-      'category', 'schedule', 'price', 'is_free', 'is_sponsored',
-      'recurrence_type', 'recurrence_days', 'recurrence_time', 'interested_count',
+      'category', 'schedule', 'price', 'is_free', 'is_sponsored', 'interested_count',
     ]) {
       expect(keys).not.toContain(forbidden);
     }
   });
 
-  it('produz exactamente os 13 campos da whitelist — nada a mais, nada a menos', () => {
+  it('produz exactamente os 16 campos da whitelist (Activity 9/26: +recurrence_type/days/time) — nada a mais, nada a menos', () => {
     const result = PublicationTransformer.transformActivity(fullActivity, PUBLISHED_AT, AS_OF);
     expect(Object.keys(result!).sort()).toEqual([
       'description', 'end_date', 'engine_activity_id', 'engine_status', 'imagem_url',
-      'last_published_at', 'phone', 'product_key', 'source_key', 'start_date', 'title',
-      'url', 'venue_id',
+      'last_published_at', 'phone', 'product_key', 'recurrence_days', 'recurrence_time',
+      'recurrence_type', 'source_key', 'start_date', 'title', 'url', 'venue_id',
     ].sort());
   });
 });
 
-// ── transformActivity — múltiplas ocorrências e expiração (ADR-0020) ────────
+// ── transformActivity — múltiplas ocorrências e expiração (ADR-0020) ──────
 
 describe('PublicationTransformer.transformActivity — ADR-0020', () => {
   it('selecciona a primeira ocorrência futura entre várias, ordenadas ou não', () => {
@@ -246,7 +261,7 @@ describe('PublicationTransformer.transformActivity — ADR-0020', () => {
     expect(result).not.toBeNull();
   });
 
-  it('devolve null quando todas as ocorrências já passaram — nunca cai para a última passada', () => {
+  it('devolve null quando todas as ocorrências já passaram e não há recorrência válida — nunca cai para a última passada', () => {
     const activity = makeActivity({
       occurrences: [
         { date: '2026-01-01', time: null, endDate: null, endTime: null },
@@ -257,7 +272,7 @@ describe('PublicationTransformer.transformActivity — ADR-0020', () => {
     expect(result).toBeNull();
   });
 
-  it('devolve null quando occurrences está vazio', () => {
+  it('devolve null quando occurrences está vazio e não há recorrência válida', () => {
     const activity = makeActivity({ occurrences: [] });
     const result = PublicationTransformer.transformActivity(activity, PUBLISHED_AT, AS_OF);
     expect(result).toBeNull();
@@ -278,7 +293,157 @@ describe('PublicationTransformer.transformActivity — ADR-0020', () => {
   });
 });
 
-// ── Pureza e determinismo ────────────────────────────────────────────────
+// ── transformActivity — Activity 9/26 Recurrence ──────────────────────
+
+describe('PublicationTransformer.transformActivity — Activity 9/26 Recurrence', () => {
+  it('A. staging NULL/NULL/NULL → public recurrence_type="none", days/time NULL', () => {
+    const activity = makeActivity({ recurrenceType: null, recurrenceDays: null, recurrenceTime: null });
+    const result = PublicationTransformer.transformActivity(activity, PUBLISHED_AT, AS_OF);
+
+    expect(result).not.toBeNull();
+    expect(result!.recurrence_type).toBe('none');
+    expect(result!.recurrence_days).toBeNull();
+    expect(result!.recurrence_time).toBeNull();
+  });
+
+  it('B. weekly single day → passthrough directo', () => {
+    const activity = makeActivity({ recurrenceType: 'weekly', recurrenceDays: [5], recurrenceTime: '10:00' });
+    const result = PublicationTransformer.transformActivity(activity, PUBLISHED_AT, AS_OF);
+
+    expect(result!.recurrence_type).toBe('weekly');
+    expect(result!.recurrence_days).toEqual([5]);
+    expect(result!.recurrence_time).toBe('10:00');
+  });
+
+  it('C. weekly multiple days → passthrough directo', () => {
+    const activity = makeActivity({ recurrenceType: 'weekly', recurrenceDays: [3, 5], recurrenceTime: '09:00' });
+    const result = PublicationTransformer.transformActivity(activity, PUBLISHED_AT, AS_OF);
+
+    expect(result!.recurrence_days).toEqual([3, 5]);
+    expect(result!.recurrence_time).toBe('09:00');
+  });
+
+  it('J. RECURRENCE-ONLY — occurrences=[], weekly válido → publicável, start_date=NULL, end_date=NULL, nunca skip_expired', () => {
+    const activity = makeActivity({
+      occurrences: [],
+      recurrenceType: 'weekly',
+      recurrenceDays: [5],
+      recurrenceTime: '10:00',
+    });
+    const result = PublicationTransformer.transformActivity(activity, PUBLISHED_AT, AS_OF);
+
+    expect(result).not.toBeNull(); // NÃO é tratado como skip_expired
+    expect(result!.start_date).toBeNull();
+    expect(result!.end_date).toBeNull();
+    expect(result!.recurrence_type).toBe('weekly');
+    expect(result!.recurrence_days).toEqual([5]);
+    expect(result!.recurrence_time).toBe('10:00');
+  });
+
+  it('recurrence + ocorrência concreta simultâneas — comportamento temporal existente preservado, recurrence escrito de qualquer forma', () => {
+    const activity = makeActivity({
+      occurrences: [futureOccurrence],
+      recurrenceType: 'weekly',
+      recurrenceDays: [5],
+      recurrenceTime: '10:00',
+    });
+    const result = PublicationTransformer.transformActivity(activity, PUBLISHED_AT, AS_OF);
+
+    // start_date/end_date vêm da ocorrência concreta, como sempre:
+    expect(result!.start_date).toEqual(new Date('2026-08-01T09:00:00.000Z'));
+    expect(result!.end_date).toEqual(new Date('2026-08-01T10:00:00.000Z'));
+    // recurrence escrito de qualquer forma:
+    expect(result!.recurrence_type).toBe('weekly');
+    expect(result!.recurrence_days).toEqual([5]);
+  });
+
+  it('K. LOSS-AWARE — weekly, days=[2,5], time=NULL → publicável, recurrence_time permanece NULL, sem horário inventado', () => {
+    const activity = makeActivity({
+      occurrences: [],
+      recurrenceType: 'weekly',
+      recurrenceDays: [2, 5],
+      recurrenceTime: null,
+    });
+    const result = PublicationTransformer.transformActivity(activity, PUBLISHED_AT, AS_OF);
+
+    expect(result).not.toBeNull();
+    expect(result!.recurrence_days).toEqual([2, 5]);
+    expect(result!.recurrence_time).toBeNull();
+  });
+
+  it('L. INVALID/INCOMPLETE — weekly sem recurrence_days, sem occurrence → NÃO publicável (null, como antes desta Activity)', () => {
+    const activity = makeActivity({
+      occurrences: [],
+      recurrenceType: 'weekly',
+      recurrenceDays: [], // incompleto — weekly exige dias
+      recurrenceTime: null,
+    });
+    const result = PublicationTransformer.transformActivity(activity, PUBLISHED_AT, AS_OF);
+
+    expect(result).toBeNull();
+  });
+
+  it('L (continuação). recurrence_days NULL com weekly, sem occurrence → NÃO publicável', () => {
+    const activity = makeActivity({
+      occurrences: [],
+      recurrenceType: 'weekly',
+      recurrenceDays: null,
+      recurrenceTime: null,
+    });
+    const result = PublicationTransformer.transformActivity(activity, PUBLISHED_AT, AS_OF);
+
+    expect(result).toBeNull();
+  });
+
+  it('L (continuação 2). recurrence_type inválido/desconhecido, sem occurrence → NÃO publicável, tratado como sem recorrência', () => {
+    const activity = makeActivity({
+      occurrences: [],
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- valor deliberadamente inválido para o teste
+      recurrenceType: 'yearly' as any,
+      recurrenceDays: [1],
+      recurrenceTime: '10:00',
+    });
+    const result = PublicationTransformer.transformActivity(activity, PUBLISHED_AT, AS_OF);
+
+    expect(result).toBeNull();
+  });
+
+  it('L (continuação 3). estado inválido MAS com occurrence concreta → publica, recurrence_type cai para "none" (nunca publica o estado quebrado)', () => {
+    const activity = makeActivity({
+      occurrences: [futureOccurrence],
+      recurrenceType: 'weekly',
+      recurrenceDays: [], // incompleto
+      recurrenceTime: '10:00',
+    });
+    const result = PublicationTransformer.transformActivity(activity, PUBLISHED_AT, AS_OF);
+
+    expect(result).not.toBeNull(); // publica, por causa da ocorrência concreta
+    expect(result!.recurrence_type).toBe('none'); // mas NUNCA como 'weekly' quebrado
+    expect(result!.recurrence_days).toBeNull();
+    expect(result!.recurrence_time).toBeNull();
+  });
+
+  it('M. NON-RECURRING REGRESSION — evento normal com ocorrência futura publica exactamente como antes', () => {
+    const result = PublicationTransformer.transformActivity(fullActivity, PUBLISHED_AT, AS_OF);
+    expect(result).not.toBeNull();
+    expect(result!.start_date).toEqual(new Date('2026-08-01T09:00:00.000Z'));
+    expect(result!.recurrence_type).toBe('none');
+  });
+
+  it('M (continuação). NON-RECURRING REGRESSION — evento normal sem ocorrência futura continua null (skip/archive), como antes', () => {
+    const activity = makeActivity({ occurrences: [], recurrenceType: null, recurrenceDays: null, recurrenceTime: null });
+    const result = PublicationTransformer.transformActivity(activity, PUBLISHED_AT, AS_OF);
+    expect(result).toBeNull();
+  });
+
+  it('recurrence_time nunca é convertido — permanece a mesma string local, sem UTC', () => {
+    const activity = makeActivity({ recurrenceType: 'weekly', recurrenceDays: [5], recurrenceTime: '10:00' });
+    const result = PublicationTransformer.transformActivity(activity, PUBLISHED_AT, AS_OF);
+    expect(result!.recurrence_time).toBe('10:00'); // string idêntica, nenhuma conversão
+  });
+});
+
+// ── Pureza e determinismo ──────────────────────────────────────────────
 
 describe('PublicationTransformer — pureza e determinismo', () => {
   beforeEach(() => {

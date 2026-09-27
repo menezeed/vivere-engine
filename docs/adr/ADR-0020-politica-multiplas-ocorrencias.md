@@ -1,6 +1,6 @@
 # ADR-0020 — Política de Publicação de Activities com Múltiplas Ocorrências
 
-**Status:** Aceito
+**Status:** Aceito (revisto em 2026-09-27 — ver secção "Revisão 2026-09-27")
 **Data:** 2026-07-10
 
 ---
@@ -23,11 +23,13 @@ não há hoje suporte, no schema público nem no app, para uma activity com
 múltiplas datas operacionais simultâneas. `occurrences` pode, no entanto,
 conter mais do que uma entrada.
 
-Adicionalmente: `activities_staging`/`raw_activity_items` não têm nenhum
-campo `recurrence_type`/`recurrence_days`/`recurrence_time` — esses campos
-já estavam excluídos da whitelist do ADR-0018, reservados a edição
-manual/legacy. `occurrences` representa **datas concretas mencionadas na
-fonte**, não uma regra de recorrência.
+Adicionalmente: `activities_staging`/`raw_activity_items` não tinham, à
+data desta decisão original, nenhum campo `recurrence_type`/
+`recurrence_days`/`recurrence_time` — esses campos já estavam excluídos
+da whitelist do ADR-0018, reservados a edição manual/legacy.
+`occurrences` representa **datas concretas mencionadas na fonte**, não
+uma regra de recorrência. *(Nota, 2026-09-27: isto mudou — ver secção
+"Revisão 2026-09-27".)*
 
 ## Decisão
 
@@ -45,7 +47,9 @@ ocorrências (uma activity operacional por ocorrência, ou um campo
    - mapear para `public.activities.start_date`/`end_date`;
    - continuar a publicação normalmente.
 5. Se não existir nenhuma ocorrência `>= asOf`:
-   - **não inserir** uma activity nova em `public.activities`;
+   - **não inserir** uma activity nova em `public.activities`, **salvo**
+     a excepção de recorrência estruturada válida (ver "Revisão
+     2026-09-27");
    - se já tiver sido publicada anteriormente, **arquivar** o registo
      operacional (`engine_status = archived`);
    - nunca usar silenciosamente a última ocorrência passada.
@@ -116,3 +120,37 @@ escrita). Correcção em três partes, tratada separadamente:
 3. `PublishableActivityRepository` mantém, entretanto, um parser tolerante:
    aceita array nativo ou string JSON; qualquer outra forma é um erro
    explícito (nunca falha silenciosamente para `[]`).
+
+---
+
+## Revisão 2026-09-27 (Activity 9/26 — Level 3, Decision 2)
+
+**O que mudou**: o Engine ganhou (Activity 8/26) um *pipeline* de
+detecção de recorrência estruturada (`recurrence_type`/`recurrence_days`/
+`recurrence_time`, `staging.activities_staging`, migration 0018). Uma
+*activity* pode agora ser genuinamente recorrente ("toda sexta-feira"),
+sem nunca ter uma data concreta publicada pela fonte — `occurrences=[]`
+por desenho, não por falha de extracção.
+
+**Excepção aprovada à regra de selecção (passo 5 acima)**: quando não
+existe nenhuma ocorrência futura (`occurrences=[]` ou todas passadas), a
+*activity* **ainda assim é publicável** se tiver uma regra de recorrência
+estruturada **válida** (ver critério exacto em
+`PublicationTransformer.ts`, função `isValidStructuredRecurrence` — pelo
+menos um `recurrence_type` reconhecido, e `recurrence_days` não-vazio
+quando o tipo o exigir). Neste caso:
+
+- `start_date` = `NULL`
+- `end_date` = `NULL`
+- **nunca** materializa as próximas N ocorrências futuras
+- **nunca** inventa um `start_date`/`end_date` a partir de qualquer outra
+  fonte (ex: data de ingestão)
+
+**A regra original permanece inalterada para *activities* NÃO
+recorrentes**: sem ocorrência futura E sem recorrência válida → continua
+`null` (nunca inserida; arquivada se já publicada antes) — exactamente
+como definido em 2026-07-10, sem excepção.
+
+**Um estado de recorrência incompleto/inválido nunca activa esta
+excepção** — é tratado exactamente como ausência de recorrência (ver
+ADR-0018, Revisão 2026-09-27, e Decision 2 completa em Activity 9/26).

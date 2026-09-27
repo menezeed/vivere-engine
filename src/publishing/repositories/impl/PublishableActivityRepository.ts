@@ -13,14 +13,22 @@ import type {
   PublicVenueId,
   PublicActivityId,
   ActivityFunnel,
+  RecurrenceType,
 } from '../../types/domain.js';
 import { logger } from '../../../lib/logger.js';
 
 // Level 3, 2026-09-23 — source_item_id acrescentado ao SELECT: necessário
 // para deriveEngineActivityId(sourceKey, sourceItemId) — Stable Source
 // Activity Identity.
+//
+// Activity 9/26, 2026-09-27 — recurrence_type/recurrence_days/
+// recurrence_time acrescentados: lidos directamente de
+// activities_staging (migration 0018, Activity 8/26), não do JOIN com
+// raw_activity_items — são o resultado do estágio 02-recurrence-detection,
+// já interpretado, não evidência bruta.
 const SELECT = `
   id, product_key, promoted_activity_id, resolved_venue_staging_id, venue_resolution_status,
+  recurrence_type, recurrence_days, recurrence_time,
   raw_activity_items!inner (
     source_key, source_item_id,
     title, description, occurrences, image_url, external_url, contact_phone,
@@ -45,6 +53,12 @@ const SELECT = `
  * activity-engine-discovery-1.2.md). O que mudou é ONDE esta excepção é
  * apanhada — ver enrichWithPublicVenueIds() abaixo — para que uma
  * activity com este problema não impeça a leitura das restantes.
+ *
+ * Activity 9/26, 2026-09-27 — recorrência estruturada (recurrence_type/
+ * days/time) é um caminho COMPLETAMENTE SEPARADO deste parser: uma
+ * activity recurrence-only tem occurrences=[] (array vazio, válido,
+ * nunca lança aqui) e a recorrência chega por colunas próprias de
+ * activities_staging, nunca dentro de occurrences[].
  */
 export function parseOccurrences(raw: unknown): readonly ActivityOccurrence[] {
   let value: unknown = raw;
@@ -117,6 +131,12 @@ function mapRow(
     // updated_at (mesmo problema documentado em PublishableVenueRepository).
     // Sinal correcto: raw_activity_items.collected_at.
     stagingUpdatedAt:      new Date(raw['collected_at'] as string ?? Date.now()),
+    // Activity 9/26, 2026-09-27 — lido directamente da coluna de
+    // activities_staging, sem transformação: o valor tal como o estágio
+    // 02-recurrence-detection o produziu (Activity 8/26).
+    recurrenceType:        (row['recurrence_type'] as RecurrenceType | null) ?? null,
+    recurrenceDays:        (row['recurrence_days'] as number[] | null) ?? null,
+    recurrenceTime:        (row['recurrence_time'] as string | null) ?? null,
   };
 }
 
