@@ -228,3 +228,67 @@ describe('mapToRawActivityItems — contrato venue_mention (ajuste de Fase 3, ve
     expect(result.items[0].venue_mention?.raw_address_text).toBeNull();
   });
 });
+
+// Activity 13/26, 2026-09-27 — F5, Fix 1. Marcador corrigido, tal
+// como escrito em cabo-frio.ts/sao-pedro-da-aldeia.ts após esta
+// Activity: /<strong>\s*servi[çc]o:?\s*<\/strong>/i — exige que o
+// marcador esteja isolado dentro de <strong>, nunca a palavra comum
+// "serviço"/"serviços" em qualquer lugar do texto. Testado aqui
+// directamente (não via SERVICO_MARKER local do arquivo, que continua
+// a representar o padrão genérico antigo para os testes de mecanismo
+// acima, inalterados).
+describe('mapToRawActivityItems — Activity 13 F5, marcador corrigido (produção real)', () => {
+  const FIXED_MARKER = /<strong>\s*servi[çc]o:?\s*<\/strong>/i;
+
+  it('1. marcador genuíno Cabo Frio "<strong>SERVIÇO:</strong>" continua a activar structured_block (regressão, caso real Yoga no Forte)', () => {
+    const post = makePost({
+      id: 110155,
+      contentHtml:
+        '<p><strong>SERVIÇO:</strong></p><p><strong>Yoga no Forte</strong><br>' +
+        'Dia: 28 de junho de 2026<br>Horário: 7h às 8h<br>Local: Canto do Forte</p>',
+    });
+
+    const result = mapToRawActivityItems(post, { source_key: 'prefeitura_cabo_frio', structured_block_marker: FIXED_MARKER });
+
+    expect(result.extractionMethod).toBe('structured_block');
+    expect(result.items).toHaveLength(1);
+  });
+
+  it('2. marcador genuíno São Pedro "<strong>Serviço</strong>" (SEM dois-pontos, caso real Junho Violeta) — reconhecimento do marcador confirmado', () => {
+    // Confirma-se aqui SÓ o reconhecimento do marcador (Fix 1) contra o
+    // texto real confirmado por fetch directo desta Activity — não o
+    // pipeline completo do post real (HTML integral não confirmado
+    // como fixture fiel, ver relatório desta Activity).
+    const html = '<p><strong>Serviço</strong></p><p>Evento: Teste<br>Data: Quarta-feira (17/06)<br>Horário: 8h45<br>Local: Teatro</p>';
+    expect(FIXED_MARKER.test(html)).toBe(true);
+  });
+
+  it('3. "prestadores de serviços" em prosa comum NÃO activa structured_block (caso real PNAB)', () => {
+    const post = makePost({
+      id: 999,
+      title: 'Cultura divulga resultado final do primeiro ciclo de credenciamento de pareceristas da PNAB',
+      contentHtml:
+        '<p class="wp-block-paragraph">A Secretaria Municipal de Cultura divulgou, nesta sexta-feira (25/09), ' +
+        'o resultado final do primeiro ciclo de habilitação. As dúvidas devem ser encaminhadas até as 17h, ' +
+        'no horário de Brasília.</p>' +
+        '<p><strong>Sobre o Edital –</strong> O Chamamento Público nº 04/2026 prevê o credenciamento de ' +
+        'prestadores de serviços para análise técnica.</p>',
+    });
+
+    const result = mapToRawActivityItems(post, { source_key: 'prefeitura_sao_pedro_da_aldeia', structured_block_marker: FIXED_MARKER });
+
+    expect(result.extractionMethod).not.toBe('structured_block');
+    expect(result.items).toHaveLength(0);
+  });
+
+  it('4. "Os serviços atenderão" em prosa comum NÃO activa structured_block', () => {
+    const post = makePost({
+      contentHtml:
+        '<p>Os serviços atenderão às demandas da Secretaria, conforme o edital, nesta quinta-feira (10).</p>',
+    });
+
+    const result = mapToRawActivityItems(post, { source_key: 'prefeitura_sao_pedro_da_aldeia', structured_block_marker: FIXED_MARKER });
+
+    expect(result.extractionMethod).not.toBe('structured_block');
+  });
+});

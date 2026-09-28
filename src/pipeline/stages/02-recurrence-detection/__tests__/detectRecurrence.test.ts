@@ -363,3 +363,80 @@ describe('detectRecurrence — Activity 10B Part 4 (contexto adicional: raw_payl
     expect(result.recurrence.recurrence_type).toBeNull();
   });
 });
+
+// Activity 13/26, 2026-09-27 — F5, Fix 2 (guarda de referência datada).
+describe('detectRecurrence — Activity 13 F5 (guarda de referência datada)', () => {
+  it('5. PNAB real: "nesta sexta-feira (25/09)" + "até as 17h" (frase não relacionada) → NÃO produz recorrência falsa', () => {
+    const item = makeItem({
+      title: 'Cultura divulga resultado final do primeiro ciclo de credenciamento de pareceristas da PNAB',
+      description: 'A Secretaria Municipal de Cultura de São Pedro da Aldeia divulgou, nesta sexta-feira (25/09), o resultado final do primeiro ciclo de habilitação. As dúvidas sobre o edital devem ser encaminhadas exclusivamente pelo e-mail, até as 17h, no horário de Brasília.',
+    });
+    const result = detectRecurrence(item);
+
+    expect(result.recurrence.recurrence_type).toBeNull();
+    expect(result.recurrence.recurrence_days).toBeNull();
+    expect(result.recurrence.recurrence_time).toBeNull();
+  });
+
+  it('6. regressão — "Todas as sextas-feiras, das 10h às 15h" continua weekly/[5]/10:00 (Activity 8, inalterado)', () => {
+    const item = makeItem({ description: 'Todas as sextas-feiras, das 10h às 15h' });
+    const result = detectRecurrence(item);
+
+    expect(result.recurrence.recurrence_type).toBe('weekly');
+    expect(result.recurrence.recurrence_days).toEqual([5]);
+    expect(result.recurrence.recurrence_time).toBe('10:00');
+  });
+
+  it('7. caso real misto — recorrência genuína + edição específica com data entre parênteses SOBREVIVE ao guarda (Activity 8, Caso E)', () => {
+    const item = makeItem({
+      title: 'Feira semanal de adoção de cães e gatos ganha novidade nesta sexta-feira (01)',
+      description: 'A Feira Semanal de Adoção de Cães e Gatos de São Pedro da Aldeia terá uma novidade nesta sexta-feira (01/05). Toda sexta-feira, cães e gatos resgatados encontram um lar. A ação acontece das 10h às 15h.',
+    });
+    const result = detectRecurrence(item);
+
+    expect(result.recurrence.recurrence_type).toBe('weekly');
+    expect(result.recurrence.recurrence_days).toEqual([5]);
+    expect(result.recurrence.recurrence_time).toBe('10:00');
+  });
+
+  it('guarda não dispara para menção de dia isolada sem NENHUM sinal de horário (mesmo com data entre parênteses) — continua sem recorrência, review_reasons vazio', () => {
+    const item = makeItem({ title: 'Prefeitura anuncia resultado da eleição nesta sexta-feira (25/09)' });
+    const result = detectRecurrence(item);
+
+    expect(result.recurrence.recurrence_type).toBeNull();
+    expect(result.recurrence.review_reasons).toEqual([]);
+  });
+
+  // Fronteira exacta do guarda — 4 casos mínimos.
+  it('fronteira A — "sexta-feira (25)" sem barra, + horário não relacionado → mesma semântica de data explícita que com barra', () => {
+    const item = makeItem({ description: 'nesta sexta-feira (25), o evento acontece. até as 17h, prazo final.' });
+    const result = detectRecurrence(item);
+
+    expect(result.recurrence.recurrence_type).toBeNull();
+  });
+
+  it('fronteira B — "sexta-feira (25/09)" com barra, + horário não relacionado → sem recorrência', () => {
+    const item = makeItem({ description: 'sexta-feira (25/09), o evento acontece. até as 17h, prazo final.' });
+    const result = detectRecurrence(item);
+
+    expect(result.recurrence.recurrence_type).toBeNull();
+  });
+
+  it('fronteira C — "toda sexta-feira" + "sexta-feira (25/09)" + horário recorrente → recorrência preservada', () => {
+    const item = makeItem({ description: 'toda sexta-feira, sexta-feira (25/09) inclusive, das 10h às 15h.' });
+    const result = detectRecurrence(item);
+
+    expect(result.recurrence.recurrence_type).toBe('weekly');
+    expect(result.recurrence.recurrence_days).toEqual([5]);
+    expect(result.recurrence.recurrence_time).toBe('10:00');
+  });
+
+  it('fronteira D — "todas as sextas-feiras, às 10h" (horário único, sem data entre parênteses) → recorrência preservada', () => {
+    const item = makeItem({ description: 'todas as sextas-feiras, às 10h' });
+    const result = detectRecurrence(item);
+
+    expect(result.recurrence.recurrence_type).toBe('weekly');
+    expect(result.recurrence.recurrence_days).toEqual([5]);
+    expect(result.recurrence.recurrence_time).toBe('10:00');
+  });
+});

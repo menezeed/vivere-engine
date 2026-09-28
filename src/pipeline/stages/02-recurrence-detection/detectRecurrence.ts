@@ -90,6 +90,19 @@ const ORDINAL_MONTH_PATTERN =
 // dia da semana num evento único.
 const RECURRENCE_SIGNAL_PATTERN = /\btod[ao]s?\b/i;
 
+// Activity 13/26, 2026-09-27 — F5, Fix 2. Dia da semana com data
+// explícita entre parênteses ("sexta-feira (25/09)", "quarta-feira
+// (17)") — mesma forma sintáctica já reconhecida por
+// extractParentheticalDayNumber (sharedTextUtils.ts) para identificar
+// uma REFERÊNCIA A DATA ÚNICA, nunca uma regra recorrente. Reutilizado
+// aqui como sinal negativo: quando a ÚNICA evidência de dia no texto
+// vem nesta forma, e não há nenhum sinal "todo/toda" independente,
+// não é recorrência — é a mesma classe de falso positivo já protegida
+// desde a Activity 8 (Caso H), agora estendida a um caso real onde um
+// horário não relacionado, noutra frase, tornava esse dia elegível
+// por engano.
+const DAY_WITH_PARENTHETICAL_DATE = /(?:domingo|segunda|ter[çc]a|quarta|quinta|sexta|s[áa]bado)-?feiras?\s*\(\d{1,2}(?:\/\d{1,2})?\)/gi;
+
 function detectWeekdays(text: string): number[] {
   const days = new Set<number>();
   const pattern = new RegExp(DAY_PATTERN);
@@ -100,6 +113,35 @@ function detectWeekdays(text: string): number[] {
     if (num !== undefined) days.add(num);
   }
   return [...days].sort((a, b) => a - b);
+}
+
+/**
+ * Activity 13/26, F5 Fix 2 — verdadeiro quando TODOS os dias
+ * detectados no texto aparecem SÓ em forma de data explícita entre
+ * parênteses ("sexta-feira (25/09)"), e não existe nenhum sinal
+ * "todo/toda" independente. Instância nova a cada chamada, mesmo
+ * motivo já documentado para TIME_RANGE_PATTERN/SINGLE_TIME_PATTERN
+ * (lastIndex partilhado entre chamadas, Activity 10B).
+ *
+ * Caso real que exige o "E não há sinal todo/toda": "terá uma
+ * novidade nesta sexta-feira (01/05). Toda sexta-feira, cães e gatos
+ * encontram lar." — aqui HÁ uma data explícita, mas TAMBÉM um sinal
+ * "todo/toda" independente, então a recorrência genuína permanece
+ * detectada (Activity 8, Caso E — recorrência + ocorrência concreta).
+ */
+function hasOnlyDatedWeekdayMentions(text: string, allDays: readonly number[]): boolean {
+  if (allDays.length === 0) return false;
+  const datedPattern = new RegExp(DAY_WITH_PARENTHETICAL_DATE.source, DAY_WITH_PARENTHETICAL_DATE.flags);
+  const datedMatches = [...text.matchAll(datedPattern)];
+  const datedDays = new Set<number>();
+  for (const m of datedMatches) {
+    const dayNameMatch = m[0].match(/domingo|segunda|ter[çc]a|quarta|quinta|sexta|s[áa]bado/i);
+    if (!dayNameMatch) continue;
+    const num = WEEKDAY_TO_NUMBER[dayNameMatch[0].toLowerCase()];
+    if (num !== undefined) datedDays.add(num);
+  }
+  const allDaysAreDated = allDays.every((d) => datedDays.has(d));
+  return allDaysAreDated && !RECURRENCE_SIGNAL_PATTERN.test(text);
 }
 
 function hasRecurrenceSignal(text: string): boolean {
@@ -166,7 +208,7 @@ function buildCandidateText(item: RawActivityItem): string {
 }
 
 /**
- * Activid 10B — mesma prioridade da Activity 8 para o hint verbatim
+ * Activity 10B — mesma prioridade da Activity 8 para o hint verbatim
  * (description sobre title quando description contém o sinal), mas
  * agora também considera o contexto adicional (raw_text/
  * article_context_text) quando é onde o sinal de recorrência
@@ -208,6 +250,28 @@ export function detectRecurrence(item: RawActivityItem): RecurrenceDetectedItem 
     // Nenhuma recorrência detectada — dia da semana sozinho, sem
     // sinal de recorrência genuína (ex: menção editorial de dia), ou
     // nenhum dia mencionado. Item devolvido sem alteração.
+    return {
+      item,
+      recurrence: {
+        recurrence_type: null,
+        recurrence_days: null,
+        recurrence_time: null,
+        review_reasons: [],
+      },
+    };
+  }
+
+  // Activity 13/26, F5 Fix 2 — guarda de referência datada. Confirmado
+  // por evidência real (PNAB, São Pedro da Aldeia): um dia mencionado
+  // só como referência a uma data única de publicação ("nesta
+  // sexta-feira (25/09)"), combinado com um horário completamente não
+  // relacionado noutra frase do mesmo texto ("até as 17h", prazo de
+  // e-mail), passava o gate acima (dia + sinal de horário, ambos
+  // presentes) e produzia recorrência falsa. Tratado exactamente como
+  // a protecção de falso positivo já existente (Activity 8, Caso H) —
+  // devolvido sem alteração, sem review_reason (não é uma recorrência
+  // genuína com perda, é ausência de recorrência).
+  if (hasOnlyDatedWeekdayMentions(candidateText, days)) {
     return {
       item,
       recurrence: {
