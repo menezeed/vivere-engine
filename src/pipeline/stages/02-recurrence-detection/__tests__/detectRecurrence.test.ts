@@ -5,7 +5,7 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { detectRecurrence, detectRecurrenceItems } from '../detectRecurrence';
+import { detectRecurrence, detectRecurrenceItems, hasQualifyingRecurrenceEvidence } from '../detectRecurrence';
 import type { RawActivityItem } from '../../../../types/RawActivityItem';
 
 function makeItem(overrides: Partial<RawActivityItem> = {}): RawActivityItem {
@@ -438,5 +438,29 @@ describe('detectRecurrence — Activity 13 F5 (guarda de referência datada)', (
     expect(result.recurrence.recurrence_type).toBe('weekly');
     expect(result.recurrence.recurrence_days).toEqual([5]);
     expect(result.recurrence.recurrence_time).toBe('10:00');
+  });
+});
+
+// Activity 13/26, F6, 2026-09-28 — hasQualifyingRecurrenceEvidence,
+// exportada para reuso por narrativeFallbackParser.ts (Collector).
+describe('hasQualifyingRecurrenceEvidence — exportada para reuso (Activity 13, F6)', () => {
+  it('verdadeiro para recorrência genuína real (Feira, São Pedro da Aldeia)', () => {
+    expect(hasQualifyingRecurrenceEvidence('Toda sexta-feira, cães e gatos encontram lar. Acontece das 10h às 15h.')).toBe(true);
+  });
+
+  it('falso para PNAB (dia + horário não relacionados)', () => {
+    expect(hasQualifyingRecurrenceEvidence('nesta sexta-feira (25/09), resultado final. até as 17h, prazo.')).toBe(false);
+  });
+
+  it('falso para dia sozinho, sem nenhum sinal de horário ou "todo/toda"', () => {
+    expect(hasQualifyingRecurrenceEvidence('O evento acontece sexta-feira.')).toBe(false);
+  });
+
+  it('falso para horário sozinho, sem nenhum dia da semana', () => {
+    expect(hasQualifyingRecurrenceEvidence('O evento acontece às 10h.')).toBe(false);
+  });
+
+  it('falso para mensal-ordinal não suportado', () => {
+    expect(hasQualifyingRecurrenceEvidence('todo último domingo de cada mês')).toBe(false);
   });
 });

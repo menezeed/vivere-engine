@@ -64,3 +64,82 @@ describe('parseNarrativeFallback — nenhum sinal de data', () => {
     expect(result.status).toBe('not_found');
   });
 });
+
+// Activity 13/26, F6, 2026-09-28 — Pure Recurrence Narrative Discovery
+// Gap. Quando não há data concreta, mas há evidência forte e
+// determinística de recorrência (reutilizada de detectRecurrence.ts,
+// nunca reimplementada aqui), o resultado passa a ser 'recurrence_only'
+// em vez de 'not_found'.
+describe('parseNarrativeFallback — Activity 13 F6 (recurrence-only, sem data concreta)', () => {
+  it('1. POSITIVO real — "Toda sexta-feira... das 10h às 15h" (Feira, São Pedro da Aldeia) → recurrence_only', () => {
+    const html =
+      '<p>Toda sexta-feira, cães e gatos resgatados encontram um lar definitivo em São Pedro da Aldeia. ' +
+      'A Feira de Adoção da ONG UZCA acontece das 10h às 15h, no estacionamento da American Pet, ' +
+      'às margens da Rodovia RJ-140, com apoio da Prefeitura.</p>';
+
+    const result = parseNarrativeFallback(html, { year: 2026, month: 9 });
+
+    expect(result.status).toBe('recurrence_only');
+    expect(result.date).toBeNull();
+    expect(result.time).toBeNull(); // recurrence_time é calculado depois, por detectRecurrence — nunca aqui
+    expect(result.confidence).toBe(NARRATIVE_CONFIDENCE.RECURRENCE_ONLY);
+    expect(result.candidateDates).toEqual([]);
+  });
+
+  it('2. NEGATIVO real — PNAB: "nesta sexta-feira (25/09)" + "até as 17h" (não relacionados) → not_found, nunca recurrence_only', () => {
+    const html =
+      '<p>A Secretaria Municipal de Cultura divulgou, nesta sexta-feira (25/09), o resultado final do ' +
+      'primeiro ciclo de habilitação. As dúvidas devem ser encaminhadas até as 17h, no horário de Brasília.</p>';
+
+    const result = parseNarrativeFallback(html, { year: 2026, month: 9 });
+
+    // "sexta-feira (25/09)" tem barra — não corresponde ao padrão de data
+    // candidata (dd) sem barra, então nunca chega a existir uma data
+    // candidata aqui; cai directamente no ramo novo (F6), que corretamente
+    // rejeita por falta de evidência forte de recorrência (dia e horário
+    // em frases não relacionadas) — resultado final: not_found, nunca
+    // recurrence_only. Confirma que F6 não introduz um falso positivo
+    // onde antes (Activity 8/9/10B) já não havia nenhum.
+    expect(result.status).toBe('not_found');
+  });
+
+  it('3. NEGATIVO — apenas dia da semana, sem nenhuma evidência forte de recorrência → not_found', () => {
+    const html = '<p>O evento acontece sexta-feira, no centro da cidade.</p>';
+    const result = parseNarrativeFallback(html, { year: 2026, month: 9 });
+
+    expect(result.status).toBe('not_found');
+  });
+
+  it('4. NEGATIVO — apenas horário, sem nenhum dia da semana → not_found', () => {
+    const html = '<p>O evento acontece às 10h, no centro da cidade.</p>';
+    const result = parseNarrativeFallback(html, { year: 2026, month: 9 });
+
+    expect(result.status).toBe('not_found');
+  });
+
+  it('5. NEGATIVO — mensal-ordinal não suportado ("todo último domingo de cada mês") → nunca vira recurrence_only', () => {
+    const html = '<p>As aulas acontecem todo último domingo de cada mês, no Teatro Municipal.</p>';
+    const result = parseNarrativeFallback(html, { year: 2026, month: 9 });
+
+    expect(result.status).toBe('not_found');
+  });
+
+  it('6. regressão — narrativa com data concreta válida continua pelo caminho "extracted" existente, inalterado', () => {
+    const html =
+      '<p>Neste domingo (28) acontece uma apresentação especial no Centro Cultural. ' +
+      'A partir das 19h, o público poderá acompanhar o show gratuitamente.</p>';
+    const result = parseNarrativeFallback(html, { year: 2026, month: 6 });
+
+    expect(result.status).toBe('extracted');
+    expect(result.date).toBe('2026-06-28');
+  });
+
+  it('7. venue ausente em recurrence_only também sinaliza review_reason (mesmo padrão do caminho "extracted")', () => {
+    const html = '<p>Toda sexta-feira, das 10h às 15h, acontece a atividade.</p>';
+    const result = parseNarrativeFallback(html, { year: 2026, month: 9 });
+
+    expect(result.status).toBe('recurrence_only');
+    expect(result.venueName).toBeNull();
+    expect(result.reviewReasons).toContain('venue_not_extracted_from_narrative');
+  });
+});

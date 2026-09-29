@@ -242,6 +242,27 @@ function pickTextHint(item: RawActivityItem): string {
  * mesmo objecto de entrada quando nada é detectado (nenhuma mutação
  * em qualquer dos dois casos).
  */
+/**
+ * Activity 13/26, F6 — lógica de qualificação PURA, exportada para
+ * reuso fora deste módulo (narrativeFallbackParser.ts). Responde só
+ * "este texto tem evidência forte e determinística de recorrência
+ * genuína?" — reutiliza exactamente a mesma sequência de gates já
+ * usada dentro de detectRecurrence() (dia detectado, sinal de
+ * recorrência, nunca só menção datada, nunca mensal-ordinal) — nunca
+ * reimplementada, para nunca haver duas fontes de verdade sobre o que
+ * conta como recorrência. Usada pelo Collector para decidir SE deve
+ * criar um RawActivityItem sem ocorrência concreta — nunca para
+ * calcular recurrence_type/days/time, que continuam exclusivamente
+ * responsabilidade de detectRecurrence().
+ */
+export function hasQualifyingRecurrenceEvidence(text: string): boolean {
+  const days = detectWeekdays(text);
+  if (days.length === 0 || !hasRecurrenceSignal(text)) return false;
+  if (hasOnlyDatedWeekdayMentions(text, days)) return false;
+  if (ORDINAL_MONTH_PATTERN.test(text)) return false;
+  return true;
+}
+
 export function detectRecurrence(item: RawActivityItem): RecurrenceDetectedItem {
   const candidateText = buildCandidateText(item);
   const days = detectWeekdays(candidateText);

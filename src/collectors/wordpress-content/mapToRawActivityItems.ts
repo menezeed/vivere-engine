@@ -226,6 +226,20 @@ export function mapToRawActivityItems(
     };
   }
 
+  // Activity 13/26, F6 — mesma construção de item que 'extracted',
+  // reaproveitada sem alteração: narrative.date é null aqui, e
+  // buildItemFromNarrative já trata isso correctamente (occurrence
+  // null → occurrences: []). A recorrência em si nunca é calculada
+  // aqui — fica exclusivamente a cargo do estágio
+  // 02-recurrence-detection, chamado depois, a jusante deste Collector.
+  if (narrative.status === 'recurrence_only') {
+    return {
+      items: [buildItemFromNarrative(post, narrative, sourceConfig.source_key)],
+      skipped: [],
+      extractionMethod: 'narrative_fallback',
+    };
+  }
+
   if (narrative.status === 'ambiguous') {
     return {
       items: [],
