@@ -59,9 +59,77 @@ const WEEKDAY_TO_NUMBER: Record<string, number> = {
   sabado: 6,
 };
 
-// Nome do dia + 's' plural opcional + '-feira'/'feira' opcional (com 's' plural opcional).
-// Ex: "sexta", "sextas", "sexta-feira", "sextas-feiras" — todos casam.
-const DAY_PATTERN = /(domingo|segunda|ter[çc]a|quarta|quinta|sexta|s[áa]bado)s?(?:-?feiras?)?/gi;
+// Activity 13/26, F10-B, 2026-09-29 — correcção de causa raiz. Nome do
+// dia + 's' plural opcional + '-feira'/'feira' opcional (com 's'
+// plural opcional). ANTES: "segunda", "terça", "quarta", "quinta",
+// "sexta" casavam SOZINHAS, sem exigir "-feira" — mas estas cinco
+// palavras são também ordinais comuns em português ("segunda
+// apresentação", "quarta edição", "sexta edição"), completamente sem
+// relação com dias da semana. Confirmado por evidência real: um
+// artigo genuíno sobre um espectáculo de teatro mencionava "essa
+// segunda apresentação" (a segunda vez que a peça é mostrada) — nunca
+// "segunda-feira" — e isso produzia uma recorrência semanal falsa
+// (weekly/[1,6]) a partir de um evento de sábado único.
+//
+// Corrigido: "domingo"/"sábado" continuam sem exigir sufixo (nunca
+// levam "-feira" em português real, nunca são ordinais comuns); as
+// restantes cinco EXIGEM agora o sufixo "-feira(s)" para contar como
+// dia INEQUÍVOCO, sozinhas. Isto por si só quebrava um caso real já
+// suportado desde a Activity 8 — "Quartas e sextas das 9h às 11h"
+// (lista de dias abreviados, sem "-feira", mas claramente uma lista de
+// horário, não um ordinal) — corrigido abaixo com
+// ABBREVIATED_WEEKDAY_LIST, um segundo padrão, mais estrito, que só
+// aceita a forma abreviada dentro de uma estrutura de lista
+// imediatamente seguida de evidência de horário.
+const DAY_PATTERN = /(?:(domingo|s[áa]bado)s?|(segunda|ter[çc]a|quarta|quinta|sexta)s?-?feiras?)/gi;
+
+// Activity 13/26, F10-B, 2026-09-29 — segunda parte da correcção,
+// REVISTA após regressão real confirmada por execução. A primeira
+// tentativa (lista de dias + UM horário partilhado no final, ex:
+// "Quartas e sextas das 9h às 11h") era demasiado estreita — quebrava
+// o Caso D original da Activity 8 ("Terças das 14h às 16h15 e sextas
+// das 9h às 11h", cada dia com o SEU PRÓPRIO horário, não partilhado)
+// e o Caso C da Activity 10B ("terças, às 9h, e quintas, às 17h").
+//
+// Abordagem revista, por FRASE: divide o texto em frases (por
+// pontuação de fim de frase); dentro de qualquer frase que contenha
+// evidência de horário (intervalo OU horário único), aceita TODOS os
+// dias abreviados presentes NESSA MESMA frase — cobre "lista + um
+// horário partilhado" E "dia+horário, dia+horário" indiferentemente,
+// sem exigir uma estrutura sintáctica específica. Um ordinal solto
+// como "segunda edição" nunca está na mesma frase que uma evidência de
+// horário relacionada (confirmado pelos textos reais desta sessão —
+// Teatro Municipal: "segunda apresentação" está numa frase diferente
+// de "às 19h"), por isso nunca qualifica.
+const ABBREVIATED_WEEKDAY_STEM_ONLY = /domingo|segunda|ter[çc]a|quarta|quinta|sexta|s[áa]bado/gi;
+const ABBREVIATED_LIST_TIME_EVIDENCE =
+  /\d{1,2}h\d{0,2}\s+(?:às|as)\s+\d{1,2}h\d{0,2}|(?:a partir d[ae]s?|às|as)\s+\d{1,2}h\d{0,2}/i;
+
+function extractAbbreviatedListDays(text: string): number[] {
+  const days = new Set<number>();
+  const clauses = text.split(/[.!?\n]+/);
+  for (const clause of clauses) {
+    if (!ABBREVIATED_LIST_TIME_EVIDENCE.test(clause)) continue;
+    const stemPattern = new RegExp(ABBREVIATED_WEEKDAY_STEM_ONLY.source, ABBREVIATED_WEEKDAY_STEM_ONLY.flags);
+    let stemMatch: RegExpExecArray | null;
+    while ((stemMatch = stemPattern.exec(clause)) !== null) {
+      // Activity 13/26, F10-B — refinamento após regressão real: não
+      // basta a frase conter ALGUMA evidência de horário — exige-se
+      // que exista evidência de horário DAQUI PARA A FRENTE, a partir
+      // da posição exacta desta menção de dia, dentro da mesma frase.
+      // Confirmado por evidência real necessário: "neste sábado
+      // (03/10), às 19h, acontece a segunda apresentação" — "segunda"
+      // vem DEPOIS do horário, nunca tem horário à frente — corrige o
+      // falso positivo sem quebrar "Terças das 14h às 16h15 e sextas
+      // das 9h às 11h" (cada dia sempre tem o seu horário à frente).
+      const restOfClause = clause.slice(stemMatch.index);
+      if (!ABBREVIATED_LIST_TIME_EVIDENCE.test(restOfClause)) continue;
+      const num = WEEKDAY_TO_NUMBER[stemMatch[0].toLowerCase()];
+      if (num !== undefined) days.add(num);
+    }
+  }
+  return [...days];
+}
 
 // Intervalo completo — mesmo padrão usado internamente por
 // parseTimeRangePt. Usado aqui para CONTAR e para MASCARAR antes de
@@ -84,11 +152,38 @@ const SINGLE_TIME_PATTERN = /(?:a partir d[ae]s?|às|as)\s+\d{1,2}h\d{0,2}/gi;
 const ORDINAL_MONTH_PATTERN =
   /(primeir[oa]|segund[oa]|terceir[oa]|quart[oa]|últim[oa]|ultim[oa]|pen[uú]ltim[oa])\s+(domingo|segunda(?:-feira)?|ter[çc]a(?:-feira)?|quarta(?:-feira)?|quinta(?:-feira)?|sexta(?:-feira)?|s[áa]bado)/i;
 
-// Mesmo padrão da Activity 8 — "todo/toda/todos/todas" ou um
-// intervalo de horário são os dois sinais que, junto com um dia
-// detectado, distinguem recorrência genuína de menção editorial de
-// dia da semana num evento único.
-const RECURRENCE_SIGNAL_PATTERN = /\btod[ao]s?\b/i;
+// Activity 13/26, F8, 2026-09-29 — correcção de causa raiz. O padrão
+// original, /\btod[ao]s?\b/i, casava "todo/toda/todos/todas" como
+// PALAVRA em qualquer lugar do texto — incluindo o seu uso comum como
+// quantificador português ("todos os documentos", "toda a
+// população"), sem nenhuma relação com recorrência. Confirmado por
+// evidência real: um artigo administrativo (PNAB) contendo "Todos os
+// documentos estão disponíveis" — frase comum, não relacionada — fez
+// o guarda de "só menção datada" (abaixo) concluir, erradamente, que
+// havia um sinal de recorrência independente, permitindo uma
+// recorrência falsa a partir de uma menção de dia meramente datada.
+//
+// Corrigido para exigir associação estrutural: "todo/toda(s)" seguido,
+// no máximo por UMA palavra intermédia (artigo "o/os/a/as", ou um
+// adjectivo ordinal como "último"/"primeiro", conforme exigido pelos
+// casos reais de mensal-ordinal — Activity 10B), por um nome de dia da
+// semana — "toda sexta-feira", "todos os sábados", "todo último
+// domingo". "todos os documentos"/"toda a população" nunca casam,
+// porque a palavra final não é um dia da semana. Única semântica de
+// sinal de recorrência "todo/toda" em todo o módulo — reutilizada por
+// hasRecurrenceSignal() e hasOnlyDatedWeekdayMentions() (e, por
+// extensão, por hasQualifyingRecurrenceEvidence(), Activity 13 F6).
+const RECURRENCE_SIGNAL_PATTERN =
+  /\btod[ao]s?\s+(?:\S+\s+)?(?:domingo|s[áa]bado)s?\b|\btod[ao]s?\s+(?:\S+\s+)?(?:segunda|ter[çc]a|quarta|quinta|sexta)s?-?feiras?/i;
+
+// Activity 13/26, F10-B — mesma correcção de causa raiz aplicada aqui:
+// "segunda"/"terça"/"quarta"/"quinta"/"sexta" são também ordinais
+// comuns em português ("toda segunda apresentação", "toda quarta
+// parte"), sem relação com dias da semana. Exigir "-feira" para estas
+// cinco (domingo/sábado continuam sem sufixo, nunca ambíguos) fecha
+// esse risco sem quebrar nenhum caso real ou testado nesta sessão —
+// nenhuma evidência de "toda segunda" (sem -feira) como forma
+// suportada foi encontrada no repositório.
 
 // Activity 13/26, 2026-09-27 — F5, Fix 2. Dia da semana com data
 // explícita entre parênteses ("sexta-feira (25/09)", "quarta-feira
@@ -101,17 +196,47 @@ const RECURRENCE_SIGNAL_PATTERN = /\btod[ao]s?\b/i;
 // desde a Activity 8 (Caso H), agora estendida a um caso real onde um
 // horário não relacionado, noutra frase, tornava esse dia elegível
 // por engano.
-const DAY_WITH_PARENTHETICAL_DATE = /(?:domingo|segunda|ter[çc]a|quarta|quinta|sexta|s[áa]bado)-?feiras?\s*\(\d{1,2}(?:\/\d{1,2})?\)/gi;
+// Activity 13/26, F9, 2026-09-29 — correcção de causa raiz. O sufixo
+// "-feira" era exigido SEMPRE, para qualquer dia — mas "domingo" e
+// "sábado" NUNCA levam "-feira" em português real ("domingo-feira"/
+// "sábado-feira" não existem). Confirmado por evidência real: "neste
+// sábado (03)" e "neste domingo (13)" nunca eram reconhecidos como
+// menção DATADA por este guarda — eram tratados como menção de dia
+// "nua", permitindo recorrência semanal falsa a partir de um evento
+// de data única. Corrigido tornando "-feira(s)" inteiramente opcional
+// para todos os dias, não só para segunda-a-sexta.
+const DAY_WITH_PARENTHETICAL_DATE = /(?:domingo|segunda|ter[çc]a|quarta|quinta|sexta|s[áa]bado)(?:-?feiras?)?\s*\(\d{1,2}(?:\/\d{1,2})?\)/gi;
+
+// Activity 13/26, F10-A, 2026-09-29 — forma INVERSA real, confirmada
+// por evidência: "02 de outubro (sexta-feira)", "20 de setembro
+// (domingo)" — a data explícita vem primeiro, o dia da semana vem
+// depois, entre parênteses, como esclarecimento. O padrão acima só
+// reconhecia a ordem "dia-da-semana (número)" — esta ordem invertida
+// nunca era reconhecida como "datada", permitindo recorrência falsa a
+// partir de eventos de data única e explícita. Propósito idêntico ao
+// padrão acima: nunca calcula recorrência, só marca o dia como já
+// associado a uma data concreta.
+const INVERSE_DATED_WEEKDAY = /\d{1,2}\s+de\s+[a-zà-ú]+\s*\((domingo|segunda-?feiras?|ter[çc]a-?feiras?|quarta-?feiras?|quinta-?feiras?|sexta-?feiras?|s[áa]bado)\)/gi;
 
 function detectWeekdays(text: string): number[] {
   const days = new Set<number>();
-  const pattern = new RegExp(DAY_PATTERN);
+  const pattern = new RegExp(DAY_PATTERN.source, DAY_PATTERN.flags);
   let match: RegExpExecArray | null;
   while ((match = pattern.exec(text)) !== null) {
-    const base = match[1]!.toLowerCase();
+    // Activity 13/26, F10-B — dois grupos de captura agora: grupo 1
+    // para domingo/sábado (sem sufixo), grupo 2 para os outros cinco
+    // dias (com sufixo -feira obrigatório).
+    const base = (match[1] ?? match[2])!.toLowerCase();
     const num = WEEKDAY_TO_NUMBER[base];
     if (num !== undefined) days.add(num);
   }
+
+  // Activity 13/26, F10-B — segunda fonte: dias abreviados, só quando
+  // na mesma frase que evidência de horário (ver extractAbbreviatedListDays).
+  for (const num of extractAbbreviatedListDays(text)) {
+    days.add(num);
+  }
+
   return [...days].sort((a, b) => a - b);
 }
 
@@ -136,6 +261,16 @@ function hasOnlyDatedWeekdayMentions(text: string, allDays: readonly number[]): 
   const datedDays = new Set<number>();
   for (const m of datedMatches) {
     const dayNameMatch = m[0].match(/domingo|segunda|ter[çc]a|quarta|quinta|sexta|s[áa]bado/i);
+    if (!dayNameMatch) continue;
+    const num = WEEKDAY_TO_NUMBER[dayNameMatch[0].toLowerCase()];
+    if (num !== undefined) datedDays.add(num);
+  }
+  // Activity 13/26, F10-A — forma inversa "DD de mês (dia-da-semana)",
+  // instância nova, mesmo motivo já documentado (lastIndex partilhado).
+  const inversePattern = new RegExp(INVERSE_DATED_WEEKDAY.source, INVERSE_DATED_WEEKDAY.flags);
+  const inverseMatches = [...text.matchAll(inversePattern)];
+  for (const m of inverseMatches) {
+    const dayNameMatch = m[1]!.match(/domingo|segunda|ter[çc]a|quarta|quinta|sexta|s[áa]bado/i);
     if (!dayNameMatch) continue;
     const num = WEEKDAY_TO_NUMBER[dayNameMatch[0].toLowerCase()];
     if (num !== undefined) datedDays.add(num);

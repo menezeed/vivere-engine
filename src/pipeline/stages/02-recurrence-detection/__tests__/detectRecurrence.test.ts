@@ -464,3 +464,317 @@ describe('hasQualifyingRecurrenceEvidence — exportada para reuso (Activity 13,
     expect(hasQualifyingRecurrenceEvidence('todo último domingo de cada mês')).toBe(false);
   });
 });
+
+// Activity 13/26, F8, 2026-09-29 — correcção de causa raiz: "todo/toda/
+// todos/todas" só conta como sinal de recorrência quando estruturalmente
+// associado a um dia da semana, nunca como palavra comum em qualquer
+// lugar do texto (quantificador português "todos os X", "toda a Y").
+describe('detectRecurrence — Activity 13 F8 (sinal todo/toda associado ao dia, não à palavra solta)', () => {
+  const PNAB_REAL_FULL_TEXT =
+    'A Secretaria Municipal de Cultura de São Pedro da Aldeia divulgou, nesta sexta-feira (25/09), o resultado final do primeiro ciclo de habilitação e a atualização da lista de credenciados do Edital de Chamamento Público nº 04/2026. O processo é destinado ao credenciamento de pareceristas para os editais da Política Nacional Aldir Blanc (PNAB) de Fomento à Cultura. Também foi divulgado o resultado dos recursos. Todos os documentos estão disponíveis na página do edital no Portal da Transparência. Clique aqui para consultar os resultados. Os profissionais habilitados e credenciados integrarão o Banco de Pareceristas da Secretaria Municipal de Cultura. Conforme o edital, o credenciamento gera expectativa de contratação, ficando a convocação condicionada à necessidade da administração municipal, à disponibilidade orçamentária e financeira e à ordem de classificação dos credenciados. O Termo de Referência prevê a distribuição dos trabalhos por rodízio sequencial entre os pareceristas aptos, observadas a ordem de classificação e a disponibilidade para execução dos serviços. As dúvidas sobre o edital devem ser encaminhadas à Comissão de Contratação durante a vigência do chamamento, exclusivamente pelo e-mail editais.cultura@pmspa.rj.gov.br, até as 17h, no horário de Brasília. Sobre o Edital – O Chamamento Público nº 04/2026 prevê o credenciamento de prestadores de serviços para análise técnica, avaliação de mérito cultural e emissão de pareceres conclusivos sobre projetos apresentados aos editais da PNAB. Os serviços atenderão às demandas da Secretaria Municipal de Cultura, conforme as condições e exigências estabelecidas no edital e em seus anexos.';
+
+  it('1. "toda sexta-feira" → sinal de recorrência (regressão, inalterado)', () => {
+    const r = detectRecurrence(makeItem({ description: 'toda sexta-feira, das 10h às 15h' }));
+    expect(r.recurrence.recurrence_type).toBe('weekly');
+  });
+
+  it('2. "todas as sextas-feiras" → sinal de recorrência (regressão, inalterado)', () => {
+    const r = detectRecurrence(makeItem({ description: 'todas as sextas-feiras, das 10h às 15h' }));
+    expect(r.recurrence.recurrence_type).toBe('weekly');
+  });
+
+  it('3. "todo sábado" → sinal de recorrência (novo positivo)', () => {
+    const r = detectRecurrence(makeItem({ description: 'todo sábado, das 9h às 12h' }));
+    expect(r.recurrence.recurrence_type).toBe('weekly');
+    expect(r.recurrence.recurrence_days).toEqual([6]);
+  });
+
+  it('4. "todos os sábados" → sinal de recorrência (novo positivo)', () => {
+    const r = detectRecurrence(makeItem({ description: 'todos os sábados, às 9h' }));
+    expect(r.recurrence.recurrence_type).toBe('weekly');
+    expect(r.recurrence.recurrence_days).toEqual([6]);
+  });
+
+  it('5. "Toda sexta-feira, das 10h às 15h" preserva weekly/[5]/10:00 (Feira real)', () => {
+    const r = detectRecurrence(makeItem({ description: 'Toda sexta-feira, cães e gatos encontram lar. Acontece das 10h às 15h.' }));
+    expect(r.recurrence.recurrence_type).toBe('weekly');
+    expect(r.recurrence.recurrence_days).toEqual([5]);
+    expect(r.recurrence.recurrence_time).toBe('10:00');
+  });
+
+  it('6. PNAB — texto REAL completo (com "Todos os documentos estão disponíveis") → sem recorrência (F8, causa raiz corrigida)', () => {
+    const r = detectRecurrence(makeItem({ title: 'Cultura divulga resultado final do primeiro ciclo de credenciamento de pareceristas da PNAB', description: PNAB_REAL_FULL_TEXT }));
+    expect(r.recurrence.recurrence_type).toBeNull();
+    expect(r.recurrence.recurrence_days).toBeNull();
+    expect(r.recurrence.recurrence_time).toBeNull();
+  });
+
+  it('7. "Todas as informações estão disponíveis" + dia datado → sem recorrência', () => {
+    const r = detectRecurrence(makeItem({ description: 'Todas as informações estão disponíveis. sexta-feira (25/09). até as 17h.' }));
+    expect(r.recurrence.recurrence_type).toBeNull();
+  });
+
+  it('8. "toda a população" + dia datado → sem recorrência', () => {
+    const r = detectRecurrence(makeItem({ description: 'toda a população foi informada. sexta-feira (25/09). até as 17h.' }));
+    expect(r.recurrence.recurrence_type).toBeNull();
+  });
+
+  it('9. "todo o processo" + dia datado → sem recorrência', () => {
+    const r = detectRecurrence(makeItem({ description: 'todo o processo foi concluído. sexta-feira (25/09). até as 17h.' }));
+    expect(r.recurrence.recurrence_type).toBeNull();
+  });
+
+  it('10. dia sozinho, sem horário nem "todo/toda" → comportamento existente preservado', () => {
+    const r = detectRecurrence(makeItem({ description: 'O evento acontece sexta-feira.' }));
+    expect(r.recurrence.recurrence_type).toBeNull();
+  });
+
+  it('11. horário sozinho, sem dia → comportamento existente preservado', () => {
+    const r = detectRecurrence(makeItem({ description: 'O evento acontece às 10h.' }));
+    expect(r.recurrence.recurrence_type).toBeNull();
+  });
+
+  it('12. mensal-ordinal não suportado → comportamento de segurança preservado', () => {
+    const r = detectRecurrence(makeItem({ description: 'As aulas acontecem todo último domingo de cada mês.' }));
+    expect(r.recurrence.recurrence_type).toBeNull();
+    expect(r.recurrence.review_reasons).toEqual(['recurrence_ordinal_month_not_representable']);
+  });
+
+  it('13. "toda sexta-feira" + edição específica "nesta sexta-feira (01)" → recorrência preservada (Activity 8, Caso E)', () => {
+    const r = detectRecurrence(makeItem({ description: 'terá uma novidade nesta sexta-feira (01/05). Toda sexta-feira, cães e gatos encontram lar. das 10h às 15h.' }));
+    expect(r.recurrence.recurrence_type).toBe('weekly');
+    expect(r.recurrence.recurrence_days).toEqual([5]);
+    expect(r.recurrence.recurrence_time).toBe('10:00');
+  });
+
+  it('14. quantificador comum ("todos os documentos") + "toda sexta-feira" genuína no mesmo texto → recorrência preservada, porque existe evidência genuína independente', () => {
+    const r = detectRecurrence(makeItem({ description: 'Todos os documentos estão disponíveis para consulta. Toda sexta-feira, das 10h às 15h, acontece a feira.' }));
+    expect(r.recurrence.recurrence_type).toBe('weekly');
+    expect(r.recurrence.recurrence_days).toEqual([5]);
+    expect(r.recurrence.recurrence_time).toBe('10:00');
+  });
+
+  it('F6 compatibilidade — hasQualifyingRecurrenceEvidence ainda qualifica a Feira real após a correcção de F8', () => {
+    expect(hasQualifyingRecurrenceEvidence('Toda sexta-feira, cães e gatos encontram lar. Acontece das 10h às 15h.')).toBe(true);
+  });
+});
+
+// Activity 13/26, F9, 2026-09-29 — correcção de causa raiz: "domingo" e
+// "sábado" nunca levam sufixo "-feira" em português — o guarda de "só
+// menção datada" exigia esse sufixo sempre, deixando "neste sábado (03)"/
+// "neste domingo (13)" passar como se fossem dias "nus", sem data,
+// produzindo recorrência semanal falsa a partir de eventos de data única.
+describe('detectRecurrence — Activity 13 F9 (domingo/sábado sem sufixo -feira reconhecidos como datados)', () => {
+  it('1. "neste sábado (03)" + horário → sem recorrência', () => {
+    const r = detectRecurrence(makeItem({ description: 'O evento acontece neste sábado (03), às 19h.' }));
+    expect(r.recurrence.recurrence_type).toBeNull();
+  });
+
+  it('2. "neste sabado (03)" (sem acento) + horário → sem recorrência', () => {
+    const r = detectRecurrence(makeItem({ description: 'O evento acontece neste sabado (03), às 19h.' }));
+    expect(r.recurrence.recurrence_type).toBeNull();
+  });
+
+  it('3. "neste domingo (13)" + horário → sem recorrência', () => {
+    const r = detectRecurrence(makeItem({ description: 'O evento acontece neste domingo (13), às 15h.' }));
+    expect(r.recurrence.recurrence_type).toBeNull();
+  });
+
+  it('4. "sexta-feira (25)" sem barra + horário não relacionado → supressão preservada (regressão F5)', () => {
+    const r = detectRecurrence(makeItem({ description: 'nesta sexta-feira (25), o evento. até as 17h, prazo.' }));
+    expect(r.recurrence.recurrence_type).toBeNull();
+  });
+
+  it('5. "sexta-feira (25/09)" com barra + horário não relacionado → supressão preservada (regressão F5)', () => {
+    const r = detectRecurrence(makeItem({ description: 'sexta-feira (25/09), o evento. até as 17h, prazo.' }));
+    expect(r.recurrence.recurrence_type).toBeNull();
+  });
+
+  it('6. "todo sábado" → recorrência genuína preservada', () => {
+    const r = detectRecurrence(makeItem({ description: 'todo sábado, das 9h às 12h' }));
+    expect(r.recurrence.recurrence_type).toBe('weekly');
+    expect(r.recurrence.recurrence_days).toEqual([6]);
+  });
+
+  it('7. "todos os sábados" → recorrência genuína preservada', () => {
+    const r = detectRecurrence(makeItem({ description: 'todos os sábados, às 9h' }));
+    expect(r.recurrence.recurrence_type).toBe('weekly');
+    expect(r.recurrence.recurrence_days).toEqual([6]);
+  });
+
+  it('8. "todo domingo" → recorrência genuína preservada', () => {
+    const r = detectRecurrence(makeItem({ description: 'todo domingo, das 9h às 12h' }));
+    expect(r.recurrence.recurrence_type).toBe('weekly');
+    expect(r.recurrence.recurrence_days).toEqual([0]);
+  });
+
+  it('9. "todos os domingos" → recorrência genuína preservada', () => {
+    const r = detectRecurrence(makeItem({ description: 'todos os domingos, às 9h' }));
+    expect(r.recurrence.recurrence_type).toBe('weekly');
+    expect(r.recurrence.recurrence_days).toEqual([0]);
+  });
+
+  it('10. "toda sexta-feira" → recorrência genuína preservada (regressão)', () => {
+    const r = detectRecurrence(makeItem({ description: 'toda sexta-feira, das 10h às 15h' }));
+    expect(r.recurrence.recurrence_type).toBe('weekly');
+  });
+
+  it('11. "todos os sábados" + "neste sábado (03)" → recorrência preservada (evidência independente)', () => {
+    const r = detectRecurrence(makeItem({ description: 'todos os sábados, das 9h às 12h. neste sábado (03) tem edição especial.' }));
+    expect(r.recurrence.recurrence_type).toBe('weekly');
+    expect(r.recurrence.recurrence_days).toEqual([6]);
+  });
+
+  it('12. "todo domingo" + "neste domingo (13)" → recorrência preservada (evidência independente)', () => {
+    const r = detectRecurrence(makeItem({ description: 'todo domingo, às 10h. neste domingo (13) tem edição especial.' }));
+    expect(r.recurrence.recurrence_type).toBe('weekly');
+    expect(r.recurrence.recurrence_days).toEqual([0]);
+  });
+
+  it('13. regressão F8 — "Todos os documentos estão disponíveis" + "sexta-feira (25/09)" → sem recorrência', () => {
+    const r = detectRecurrence(makeItem({ description: 'Todos os documentos estão disponíveis. sexta-feira (25/09). até as 17h.' }));
+    expect(r.recurrence.recurrence_type).toBeNull();
+  });
+
+  // Exemplos reais que expuseram F9 (São Pedro da Aldeia, população real)
+  it('exemplo real — Teatro Municipal, "neste sábado (03/10)" → sem recorrência', () => {
+    const r = detectRecurrence(makeItem({
+      description: 'O Teatro Municipal Dr. Átila Costa, em São Pedro da Aldeia, recebe neste sábado (03/10), às 19h, o espetáculo Um Final Não Tão Feliz.',
+    }));
+    expect(r.recurrence.recurrence_type).toBeNull();
+  });
+
+  it('exemplo real — Dia D de Vacinação, "neste sábado (26/09)" → sem recorrência', () => {
+    const r = detectRecurrence(makeItem({
+      description: 'A Prefeitura, por meio da Secretaria de Saúde, realiza neste sábado (26/09) o Dia D de Vacinação Antirrábica, das 8h às 12h.',
+    }));
+    expect(r.recurrence.recurrence_type).toBeNull();
+  });
+
+  it('exemplo real — Sonic ao Vivo, "neste domingo (13/09)" → sem recorrência', () => {
+    const r = detectRecurrence(makeItem({
+      description: 'Sonic e sua turma chegam pela primeira vez a São Pedro da Aldeia neste domingo (13/09). O espetáculo Sonic ao Vivo, às 15h.',
+    }));
+    expect(r.recurrence.recurrence_type).toBeNull();
+  });
+
+  it('F6 compatibilidade — Feira real ainda qualifica após F9', () => {
+    expect(hasQualifyingRecurrenceEvidence('Toda sexta-feira, cães e gatos encontram lar. Acontece das 10h às 15h.')).toBe(true);
+  });
+});
+
+// Activity 13/26, F10, 2026-09-29 — F10-A (gramática de data inversa)
+// + F10-B (ambiguidade léxica de "segunda/terça/quarta/quinta/sexta"
+// como ordinais comuns, com preservação da lista abreviada já
+// suportada desde a Activity 8).
+describe('detectRecurrence — Activity 13 F10-A (gramática de data invertida: "DD de mês (dia-da-semana)")', () => {
+  it('Starlight Concert (real) — "no dia 02 de outubro (sexta-feira)" + horário → sem recorrência', () => {
+    const r = detectRecurrence(makeItem({
+      description: 'O projeto Starlight Concert está de volta ao Teatro Municipal. A apresentação será no dia 02 de outubro (sexta-feira), com uma sessão extra às 19h, além da sessão das 21h.',
+    }));
+    expect(r.recurrence.recurrence_type).toBeNull();
+  });
+
+  it('"20 de setembro (domingo)" + horário → sem recorrência', () => {
+    const r = detectRecurrence(makeItem({ description: 'O concerto acontece no dia 20 de setembro (domingo), às 17h.' }));
+    expect(r.recurrence.recurrence_type).toBeNull();
+  });
+
+  it('"18 de setembro (sexta-feira)" + horário → sem recorrência', () => {
+    const r = detectRecurrence(makeItem({ description: 'O evento acontece no dia 18 de setembro (sexta-feira), às 18h.' }));
+    expect(r.recurrence.recurrence_type).toBeNull();
+  });
+
+  it('regressão — forma directa "sexta-feira (25/09)" continua a funcionar (F5/F9, inalterado)', () => {
+    const r = detectRecurrence(makeItem({ description: 'sexta-feira (25/09), o evento. até as 17h, prazo.' }));
+    expect(r.recurrence.recurrence_type).toBeNull();
+  });
+});
+
+describe('detectRecurrence — Activity 13 F10-B (ambiguidade léxica: dias abreviados como ordinais comuns)', () => {
+  it('1. contrato existente PRESERVADO — "Quartas e sextas das 9h às 11h" (Activity 8, Caso C, sem sufixo -feira)', () => {
+    const r = detectRecurrence(makeItem({ description: 'Quartas e sextas das 9h às 11h' }));
+    expect(r.recurrence.recurrence_type).toBe('weekly');
+    expect(r.recurrence.recurrence_days).toEqual([3, 5]);
+  });
+
+  it('2. lista de 3 dias abreviados + horário → preservado', () => {
+    const r = detectRecurrence(makeItem({ description: 'Segundas, quartas e sextas das 9h às 11h' }));
+    expect(r.recurrence.recurrence_days).toEqual([1, 3, 5]);
+  });
+
+  it('3. lista abreviada + horário único (sem intervalo) → preservado', () => {
+    const r = detectRecurrence(makeItem({ description: 'Quartas e sextas às 19h' }));
+    expect(r.recurrence.recurrence_days).toEqual([3, 5]);
+  });
+
+  it('4-5. formas completas continuam inequívocas', () => {
+    expect(detectRecurrence(makeItem({ description: 'segunda-feira das 9h às 11h' })).recurrence.recurrence_days).toEqual([1]);
+    expect(detectRecurrence(makeItem({ description: 'sexta-feira às 19h' })).recurrence.recurrence_days).toEqual([5]);
+  });
+
+  it('6-8. recorrência genuína completa (todo/toda + dia + horário) preservada', () => {
+    expect(detectRecurrence(makeItem({ description: 'toda sexta-feira das 10h às 15h' })).recurrence.recurrence_type).toBe('weekly');
+    expect(detectRecurrence(makeItem({ description: 'todo sábado às 10h' })).recurrence.recurrence_type).toBe('weekly');
+    expect(detectRecurrence(makeItem({ description: 'todo domingo às 10h' })).recurrence.recurrence_type).toBe('weekly');
+  });
+
+  it('9-14. ordinais comuns NUNCA viram dia da semana', () => {
+    expect(detectRecurrence(makeItem({ description: 'não deve deixar de prestigiar essa segunda apresentação' })).recurrence.recurrence_type).toBeNull();
+    expect(detectRecurrence(makeItem({ description: 'esta é a segunda edição do evento' })).recurrence.recurrence_type).toBeNull();
+    expect(detectRecurrence(makeItem({ description: 'pela segunda vez este ano' })).recurrence.recurrence_type).toBeNull();
+    expect(detectRecurrence(makeItem({ description: 'a quarta edição do festival' })).recurrence.recurrence_type).toBeNull();
+    expect(detectRecurrence(makeItem({ description: 'a quinta edição da mostra' })).recurrence.recurrence_type).toBeNull();
+    expect(detectRecurrence(makeItem({ description: 'a sexta edição da mostra' })).recurrence.recurrence_type).toBeNull();
+  });
+
+  it('15. caso crítico misto — sábado datado + "segunda apresentação" (ordinal) → sem recorrência (real, Teatro Municipal)', () => {
+    const r = detectRecurrence(makeItem({
+      description: 'neste sábado (03/10), às 19h, acontece a segunda apresentação',
+    }));
+    expect(r.recurrence.recurrence_type).toBeNull();
+  });
+
+  it('16. lista abreviada + ordinal separado — lista preservada, ordinal não adiciona dia', () => {
+    const r = detectRecurrence(makeItem({ description: 'Quartas e sextas das 9h às 11h. Esta é a segunda edição do projeto.' }));
+    expect(r.recurrence.recurrence_days).toEqual([3, 5]);
+  });
+
+  it('17. recorrência completa genuína + ordinal separado — ordinal não adiciona dia', () => {
+    const r = detectRecurrence(makeItem({ description: 'Toda sexta-feira, das 10h às 15h. Esta é a segunda edição.' }));
+    expect(r.recurrence.recurrence_days).toEqual([5]);
+  });
+
+  it('exemplo real — Teatro Municipal, artigo completo (sábado datado + "segunda apresentação" ordinal) → sem recorrência', () => {
+    const r = detectRecurrence(makeItem({
+      description:
+        'O Teatro Municipal Dr. Átila Costa, em São Pedro da Aldeia, recebe neste sábado (03/10), às 19h, ' +
+        'o espetáculo Um Final Não Tão Feliz, do Coletivo AVENOAR. A classificação indicativa é de 14 anos. ' +
+        'Acredito que quem assistiu da primeira vez não deve deixar de prestigiar essa segunda apresentação, ' +
+        'pois teremos cenas novas.',
+    }));
+    expect(r.recurrence.recurrence_type).toBeNull();
+  });
+
+  it('regressão F5/F8/F9 — PNAB real completo continua limpo', () => {
+    const r = detectRecurrence(makeItem({
+      description:
+        'A Secretaria Municipal de Cultura divulgou, nesta sexta-feira (25/09), o resultado final. ' +
+        'Também foi divulgado o resultado dos recursos. Todos os documentos estão disponíveis. ' +
+        'As dúvidas devem ser encaminhadas até as 17h, no horário de Brasília.',
+    }));
+    expect(r.recurrence.recurrence_type).toBeNull();
+  });
+
+  it('regressão F6 — Feira real continua a qualificar e a produzir weekly/[5]/10:00', () => {
+    const r = detectRecurrence(makeItem({
+      description: 'Toda sexta-feira, cães e gatos encontram lar. Acontece das 10h às 15h.',
+    }));
+    expect(r.recurrence).toEqual({
+      recurrence_type: 'weekly',
+      recurrence_days: [5],
+      recurrence_time: '10:00',
+      review_reasons: ['recurrence_end_time_not_persisted'],
+    });
+  });
+});
