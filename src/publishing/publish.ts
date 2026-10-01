@@ -211,9 +211,10 @@ async function runPreview(productKey: string): Promise<void> {
   console.log('    WHERE product_key = <productKey>');
   console.log("      AND venue_resolution_status IN ('matched', 'proposed_new')");
   console.log('      AND promoted_activity_id IS NULL   -- (findUnpublished) | IS NOT NULL (findDirty)');
-  console.log('  Decisão oficial (confirmada): proposal_status de activities NÃO participa deste');
-  console.log('  gate na Fase 8 — o gate é venue_resolution_status + decisão humana já registada');
-  console.log('  em venue_resolution_decisions. Ver pendência de documentação para Architecture Book v1.2.');
+  console.log('  Decisão oficial (Activity 13/26, Human Review Publication Gate, 2026-09-30):');
+  console.log('  publicação exige proposal_status=\'promoted\' (Human Review do conteúdo da activity,');
+  console.log('  ActivityReviewRepository/ReviewService) E venue_resolution_status elegível, com decisão');
+  console.log('  humana já registada em venue_resolution_decisions para matched. Ambos são obrigatórios.');
   console.log('  Level 2, 2026-09-26 — a segunda metade deste gate (decisão humana) passou a ser');
   console.log('  verificada de facto por ActivityPublisher, não só documentada — ver contagem acima.');
 

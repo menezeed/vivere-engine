@@ -149,6 +149,19 @@ export class PublishableActivityRepository implements IPublishableActivityReposi
       .from('activities_staging')
       .select(SELECT)
       .eq('product_key', productKey)
+      // Activity 13/26, Human Review Publication Gate, 2026-09-30 —
+      // correcção de causa raiz de segurança. Antes desta linha,
+      // venue_resolution_status + promoted_activity_id eram as ÚNICAS
+      // condições de elegibilidade — nenhuma decisão humana sobre o
+      // CONTEÚDO da actividade (título, recorrência, ocorrências) era
+      // exigida. proposal_status='promoted' é o único estado terminal,
+      // exclusivo de admin, do workflow de Human Review já existente
+      // (ActivityReviewRepository/ReviewService) — nunca antes
+      // consultado aqui. Confirmado por medição real: 18 actividades
+      // elegíveis pelo gate antigo, 0 com proposal_status='promoted'.
+      // Resolução de venue permanece um gate independente — elegibilidade
+      // exige AMBOS agora, não substitui nenhuma condição existente.
+      .eq('proposal_status', 'promoted')
       .in('venue_resolution_status', ['matched', 'proposed_new'])
       .is('promoted_activity_id', null);
 
@@ -162,6 +175,11 @@ export class PublishableActivityRepository implements IPublishableActivityReposi
       .from('activities_staging')
       .select(SELECT)
       .eq('product_key', productKey)
+      // Activity 13/26, Human Review Publication Gate — mesma correcção,
+      // mesmo motivo, aplicada também ao caminho de dirty update: uma
+      // actividade já publicada só deve ser re-sincronizada se o seu
+      // conteúdo actual em staging continua no estado humano-aprovado.
+      .eq('proposal_status', 'promoted')
       .in('venue_resolution_status', ['matched', 'proposed_new'])
       .not('promoted_activity_id', 'is', null);
 
