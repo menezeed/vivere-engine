@@ -1,6 +1,8 @@
 # ADR-0018 — Campos Preservados: o Engine Nunca Escreve
 
-**Status:** Aceito (revisto em 2026-09-27 — ver secção "Revisão 2026-09-27")
+**Status:** Aceito (revisto em 2026-09-27 — ver secção "Revisão
+2026-09-27"; revisto novamente em 2026-10-01 — ver secção "Revisão
+2026-10-01")
 **Data:** 2026-07-08
 
 ---
@@ -78,6 +80,70 @@ mesmo sem nenhuma ocorrência concreta futura (`occurrences=[]`) —
 `start_date`/`end_date` ficam `NULL`, nunca inventados. Ver ADR-0020,
 secção "Revisão 2026-09-27", para a actualização correspondente ao
 *gate* de elegibilidade.
+
+---
+
+## Revisão 2026-10-01 (Activity 14/26, Fase 14B) — Contrato de Recorrência V1, confirmado por código
+
+Esta secção regista, com precisão, o que o Activity Discovery V1
+**realmente produz** hoje — distinto do que o contrato a jusante
+(domínio/app) **reconhece**. Confirmado por inspecção directa de
+`src/pipeline/stages/02-recurrence-detection/` ao longo das Activities
+8–10B e 13 (F5–F10).
+
+### Tipos declarados no contrato de domínio
+
+```typescript
+export type RecurrenceType = 'none' | 'daily' | 'weekly' | 'biweekly' | 'monthly';
+```
+
+### O que o detector de Discovery V1 realmente produz
+
+**Apenas `'weekly'`, ou `null`** (que o `PublicationTransformer` normaliza
+para `'none'` explícito na escrita pública — nunca depende do `DEFAULT`
+da coluna, ver secção anterior).
+
+`'daily'`, `'biweekly'` e `'monthly'` são reconhecidos pelo contrato de
+domínio mais amplo, mas **nenhum caminho de código do detector de
+Discovery V1 os produz actualmente**. Isto não é uma limitação de
+publicação (o contrato aceita os cinco valores) — é uma limitação de
+**detecção**: o `detectRecurrence.ts` nunca classifica nenhum texto como
+`'daily'`, `'biweekly'` ou `'monthly'`.
+
+### Semântica dos campos
+
+- **`recurrence_days`**: array de inteiros 0–6, domingo=0 … sábado=6
+  (confirmado pelo mapa `WEEKDAY_TO_NUMBER` em `detectRecurrence.ts`)
+- **`recurrence_time`**: `'HH:MM'` ou `null`. `null` especificamente
+  quando horários distintos por dia não são representáveis sem perda de
+  informação (sinalizado por
+  `review_reasons: ['recurrence_per_day_times_not_representable']`) —
+  nunca um horário escolhido arbitrariamente de entre vários candidatos.
+
+### Comportamentos confirmados por teste
+
+- **Ocorrência única**: `occurrences=[{date,...}]`,
+  `recurrence_type=null` — caminho normal, inalterado desde Activity 8/9.
+- **Recurrence-only**: `occurrences=[]`, `recurrence_type='weekly'` —
+  contrato definido em Activity 9, caminho de Discovery que o produz
+  implementado em F6 (Activity 13).
+- **Ocorrência + recorrência**: ambas preservadas simultaneamente,
+  confirmado por teste explícito ("Caso E", Activity 8) — a recorrência
+  nunca substitui uma ocorrência concreta já extraída.
+- **Recorrência inválida/incompleta**: `recurrence_type` permanece `null`
+  sempre que qualquer guarda de segurança dispara (semântica mensal
+  ordinal não representável, data concreta associada à única menção de
+  dia, etc.) — nunca publica uma regra parcial ou adivinhada.
+
+### Não verificado nesta auditoria
+
+`recurrence → none` em actualização, `none → recurrence` em actualização,
+e republicação idempotente de recorrência **não foram exercitados com
+dados reais** — nenhuma publicação real do Engine tinha acontecido até
+2026-09-23 (0 de 48 `public.activities` com `engine_activity_id`
+não-nulo, Backfill Safety Audit). Estes comportamentos dependem do
+caminho de *dirty update* do Publishing, que ainda não processou uma
+actividade recorrente real.
 
 ---
 
