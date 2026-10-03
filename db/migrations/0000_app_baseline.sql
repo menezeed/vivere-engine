@@ -3,33 +3,45 @@
 --
 -- *** BOOTSTRAP ONLY — NEVER APPLY TO EXISTING PRODUCTION ***
 --
--- Activity 16/26, Fase 16D. Esta migração NUNCA deve ser aplicada ao
--- projecto Supabase de produção real — esse projecto já contém todos
--- estes objectos, criados manualmente antes do Engine existir (ver
--- cabeçalho de 0001_phase3_domain_model.sql, que já documentava isto
--- explicitamente: "O banco dev já contém o schema real do app Vivere
--- 60+... Essas tabelas NÃO são tocadas, renomeadas, alteradas ou
--- removidas por esta migration").
+-- Activity 16/26, Fase 16D (revista Fase 16E após divergência de ACL
+-- descoberta em staging real). Esta migração NUNCA deve ser aplicada
+-- ao projecto Supabase de produção real — esse projecto já contém
+-- todos estes objectos, criados manualmente antes do Engine existir.
 --
--- Esta migração existe só para permitir o bootstrap de um ambiente
--- NOVO E VAZIO (ex: staging) — reproduz, a partir de evidência directa
--- do catálogo ao vivo de produção (Activity 16, Fases 16C.2-16C.4,
--- nunca de memória nem de inferência a partir de código TypeScript), a
--- forma ORIGINAL do schema, tal como existia antes de qualquer
--- migração do Engine (0001-0018) ou de qualquer correcção de segurança
--- (0019).
+-- CORRECÇÃO 16E — ACL EXPLÍCITO, NÃO DEPENDENTE DE DEFAULT ACL:
+-- A primeira versão desta migração (Fase 16D) criava tabelas/views
+-- sem nenhum GRANT/REVOKE explícito, assumindo implicitamente que o
+-- comportamento por omissão do Supabase seria suficiente. Bootstrap
+-- real contra um projecto staging vazio revelou que isso é FALSO: o
+-- default ACL configurado para a role `postgres` (a role que cria
+-- estes objectos via SQL Editor/migração) concede só TRUNCATE/
+-- REFERENCES/TRIGGER a anon/authenticated — nunca SELECT/INSERT/
+-- UPDATE/DELETE, que produção tem via outro mecanismo nunca
+-- documentado (provavelmente Table Editor do Dashboard, que corre
+-- como supabase_admin, cujo default ACL é mais amplo).
 --
--- NUNCA inclui:
---   - colunas engine_* (adicionadas por 0012/0013)
---   - RLS/políticas/funções/trigger de segurança (ver 0019)
---   - dados de produção
+-- Por isso, esta versão estabelece explicitamente o ACL canónico via
+-- REVOKE + GRANT, para as relações onde há evidência directa e
+-- suficiente do estado real de produção (Activity 16C.4):
+--   - public.users (ZERO privilégios a anon/authenticated, confirmado)
+--   - public.active_activities (todos os 7 privilégios, confirmado)
+--   - public.activities (SELECT/INSERT/UPDATE/REFERENCES, confirmado
+--     via role_column_grants; DELETE/TRUNCATE/TRIGGER permanecem
+--     NÃO especificados aqui — sem evidência suficiente para os
+--     reproduzir com confiança, ficam sujeitos ao default ACL, como
+--     antes)
 --
--- Ordem de dependência: products/sources (0001) referenciam nada
--- destas tabelas; activities referencia venues (FK); favorites e
--- activity_interests referenciam activities e auth.users; as views
--- referenciam activities e auth.users. auth.users é provisionado
--- automaticamente por qualquer projecto Supabase novo — nunca criado
--- aqui.
+-- LACUNA CONHECIDA, NÃO RESOLVIDA NESTA MIGRAÇÃO: public.venues,
+-- favorites, activity_interests, suggestions, partners, categories
+-- NUNCA tiveram o seu ACL de produção confirmado directamente nesta
+-- sessão (nem por role_table_grants nem por role_column_grants) —
+-- continuam, por desenho, sem GRANT explícito aqui, sujeitas ao
+-- default ACL da role que as criar. Isto é uma lacuna de evidência
+-- genuína, registada explicitamente, não uma omissão silenciosa.
+-- Antes de considerar esta Activity/Fase fechada, esta lacuna precisa
+-- de ser investigada (consulta read-only a produção, autorizada
+-- separadamente) e, se necessário, corrigida numa revisão futura
+-- desta mesma migração.
 -- ============================================================
 
 -- ------------------------------------------------------------
@@ -50,7 +62,7 @@ create table public.venues (
 );
 
 comment on table public.venues is
-  'Schema original da app Vivere 60+ (legado, pré-Engine). Reconstruído em 0000 a partir de evidência directa do catálogo de produção (Activity 16/26, Fase 16C.4) — nunca modificar o significado desta tabela sem evidência equivalente.';
+  'Schema original da app Vivere 60+ (legado, pré-Engine). Reconstruído em 0000 a partir de evidência directa do catálogo de produção (Activity 16/26, Fase 16C.4) — nunca modificar o significado desta tabela sem evidência equivalente. ACL de produção NÃO confirmado directamente nesta sessão (ver cabeçalho) — lacuna conhecida.';
 
 -- ------------------------------------------------------------
 -- public.activities — forma original, sem campos engine_* (0013)
@@ -79,6 +91,14 @@ create table public.activities (
 
 comment on table public.activities is
   'Schema original da app Vivere 60+ (legado, pré-Engine). Mesma proveniência de public.venues — ver comentário acima.';
+
+-- ACL explícito — evidência directa (role_column_grants, Activity
+-- 15B): SELECT/INSERT/UPDATE/REFERENCES confirmados a anon e
+-- authenticated. DELETE/TRUNCATE/TRIGGER deliberadamente NÃO
+-- especificados — sem evidência suficiente, ficam ao default ACL.
+revoke all on public.activities from anon, authenticated;
+grant select, insert, update, references on public.activities
+  to anon, authenticated;
 
 -- ------------------------------------------------------------
 -- public.favorites
@@ -151,16 +171,19 @@ create table public.categories (
 
 -- ------------------------------------------------------------
 -- public.users — view sobre auth.users (nunca alterar auth.users)
--- Reproduzido tal como confirmado ao vivo: SEM GRANT a anon/
--- authenticated (a view existe mas não está exposta a nenhum cliente
--- hoje — reproduzir essa ausência de grant é a reconstrução segura,
--- não uma mudança deliberada).
+--
+-- ACL explícito — evidência directa (role_table_grants, Activity
+-- 16C.4): ZERO privilégios confirmados para anon/authenticated em
+-- produção. REVOKE explícito garante isto de forma determinística,
+-- independente do default ACL de qualquer role que crie a view.
 -- ------------------------------------------------------------
 create view public.users as
 select id, email,
   raw_user_meta_data ->> 'full_name' as display_name,
   created_at, last_sign_in_at
 from auth.users;
+
+revoke all on public.users from anon, authenticated;
 
 -- ------------------------------------------------------------
 -- public.active_activities — view sobre activities
@@ -170,15 +193,14 @@ from auth.users;
 --
 -- NÃO filtra product_key nem engine_status — comportamento idêntico
 -- ao de produção, reproduzido tal como está, nunca "corrigido"
--- silenciosamente aqui (qualquer correcção de filtro é uma mudança de
--- comportamento, fora do âmbito de reconstrução de baseline).
+-- silenciosamente aqui.
 --
--- ACHADO DE SEGURANÇA NÃO RESOLVIDO AQUI (ver 0019 e
--- scripts/security-rls-validation.ts): esta view tem GRANT INSERT/
--- UPDATE/DELETE/TRUNCATE a anon/authenticated em produção, nunca
--- testado empiricamente. SECURITY VALIDATION REQUIRED BEFORE GO-LIVE
--- — ver scripts/security-rls-validation.ts, casos de teste
--- "via active_activities".
+-- ACL explícito — evidência directa (role_table_grants, Activity
+-- 16C.4): TODOS os 7 privilégios (incluindo INSERT/UPDATE/DELETE,
+-- nunca validados empiricamente) confirmados a anon/authenticated em
+-- produção. Reproduzidos aqui deliberadamente, não corrigidos —
+-- SECURITY VALIDATION REQUIRED BEFORE GO-LIVE, ver
+-- scripts/active-activities-security-addendum.ts.
 -- ------------------------------------------------------------
 create view public.active_activities
 with (security_invoker = true)
@@ -191,3 +213,7 @@ from public.activities
 where (end_date is null or end_date >= current_date)
   and (recurrence_type is not null and recurrence_type <> 'none'
        or recurrence_type = 'none' and start_date >= current_date);
+
+revoke all on public.active_activities from anon, authenticated;
+grant select, insert, update, delete, truncate, references, trigger
+  on public.active_activities to anon, authenticated;
