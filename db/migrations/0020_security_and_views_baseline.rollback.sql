@@ -1,5 +1,5 @@
 -- ============================================================
--- 0019 — Rollback do Baseline de Segurança
+-- 0020 — Rollback do Baseline de Segurança
 --
 -- Ordem: trigger antes de função (dependência); políticas antes de
 -- RLS disable; funções só depois do trigger removido.

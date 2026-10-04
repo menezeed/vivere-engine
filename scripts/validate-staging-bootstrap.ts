@@ -3,7 +3,7 @@
  *
  * Activity 16/26, Fase 16D. Valida, só por leitura, que um ambiente
  * (destinado a ser staging, NUNCA produção) tem exactamente o schema
- * esperado depois de 0000 → 0018 → 0019.
+ * esperado depois de 0000 → 0019 → 0020.
  *
  * NUNCA correr isto contra o projecto Supabase de produção real —
  * destina-se exclusivamente a confirmar um bootstrap de staging.

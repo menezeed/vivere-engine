@@ -1,5 +1,5 @@
 -- ============================================================
--- 0019 — Baseline de Segurança: Captura em Controlo de Versão do
+-- 0020 — Baseline de Segurança: Captura em Controlo de Versão do
 -- Estado Real Aprovado (Activity 15/26 + Activity 16/26, Fase 16D)
 --
 -- Esta migração NÃO introduz nenhum comportamento novo. Reproduz,
@@ -7,14 +7,14 @@
 -- produção ao longo da Activity 15 (RLS + políticas + trigger +
 -- funções), confirmado por inspecção directa do catálogo ao vivo
 -- (Activity 16, Fases 16C.2-16C.4) — nunca encontrado em nenhuma das
--- migrações 0001-0018.
+-- migrações 0001-0019.
 --
 -- Em produção (projecto já existente), aplicar esta migração seria
 -- redundante mas inofensivo (CREATE POLICY com o mesmo nome falharia
 -- se já existir — por desenho, para nunca mascarar silenciosamente
 -- uma divergência real entre o que esta migração assume e o que
 -- produção realmente tem). Em staging (bootstrap novo, depois de
--- 0000-0018), esta migração é o que efectivamente implementa a
+-- 0000-0019), esta migração é o que efectivamente implementa a
 -- correcção de segurança da Activity 15 pela primeira vez nesse
 -- ambiente.
 --

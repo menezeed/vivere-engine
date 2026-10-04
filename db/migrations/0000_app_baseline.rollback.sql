@@ -4,7 +4,7 @@
 -- *** BOOTSTRAP ONLY — NEVER APPLY TO EXISTING PRODUCTION ***
 --
 -- Reverte 0000_app_baseline.sql. Só faz sentido num ambiente onde
--- 0000-0018(-0019) foram aplicados para bootstrap (ex: staging) —
+-- 0000-0019(-0020) foram aplicados para bootstrap (ex: staging) —
 -- NUNCA correr isto contra produção, onde estes objectos nunca foram
 -- criados por esta migração.
 --
