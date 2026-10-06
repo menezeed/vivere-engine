@@ -3,7 +3,7 @@
 ## Ordem de execução
 
 ```
-0000 → 0001 → 0002 → ... → 0018 → 0019 → 0020
+0000 → 0001 → 0002 → ... → 0018 → 0019 → 0020 → 0021
 ```
 
 Numérica, estrita. Nenhum *runner* automatizado de migrações foi
@@ -82,6 +82,25 @@ Em produção, aplicar `0020` seria redundante (os objectos já existem)
 ruidosamente se o nome já existir, nunca mascarando silenciosamente
 uma divergência real entre o que `0020` assume e o que produção
 realmente tem.
+
+## `0021_venues_staging_geographic_status.sql`
+
+Acrescenta `staging.venues_staging.geographic_status` (`text`, NULL
+permitido, sem default) e a CHECK `venues_staging_geographic_status_check`
+(`NULL` ou `inside_radius`, `buffer_zone`, `outside_region`). A produção já
+tem esta coluna e o código depende dela (escrita na ingestão, leitura e
+filtro na review-api, filtro de publicação no Engine), mas nenhuma migração
+anterior a cria (ADR-0022 regista a proveniência como pendência de
+schema-as-code). A 0021 captura em `db/migrations` a definição que a
+produção tem, lida da assinatura de schema de 04/10/2026.
+
+Aditiva e sem dados. Usa `IF NOT EXISTS` porque a incerteza é genuína por
+desenho (contrato forward-only abaixo): ambientes criados do histórico real
+de produção já têm a coluna, os reconstruídos da cadeia não. Em produção
+seria um no-op e não deve ser executada lá sem autorização própria.
+
+O rollback apaga a coluna e os seus dados: só para ambientes reconstruídos,
+nunca para produção.
 
 ## Contrato forward-only
 

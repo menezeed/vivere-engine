@@ -39,6 +39,8 @@ $k = $null
 3  0019_engine_runtime_privileges.sql (um Run) e validação da secção 3
 4  0020_security_and_views_baseline.sql e validação por catálogo de RLS,
    políticas, funções e trigger (a definir no gate da Phase E)
+4b 0021_venues_staging_geographic_status.sql (um Run) e validação da
+   secção 3b
 5  Expor o schema staging na Data API (secção 4) e smoke test (secção 5)
 6  Dados de referência (secção 6): PENDENTE, ver essa secção
 7  Security harness: privilégios temporários, correr, reverter (secção 7)
@@ -114,6 +116,60 @@ order by (resultado like '%MISMATCH%') desc, resultado;
 
 Esta query é também a guarda contra deriva: código novo com tabelas ou
 verbos novos exige actualizar a `0019` e esta matriz.
+
+### 3b. Validação da 0021 (só leitura)
+
+Depois da `0021`. **Critério PASS/FAIL:** as duas primeiras linhas terminam
+em `OK`, o que valida o nome, o tipo, a nulidade e o default da coluna, e o
+nome e a definição exatos da CHECK. Qualquer `MISMATCH` é FAIL.
+
+As linhas `info` são só diagnóstico, **NÃO BLOQUEANTES**, e nunca entram no
+PASS/FAIL. A posição ordinal da coluna depende do histórico do ambiente: um
+apply, rollback e reapply válido dá 15 em vez de 14, porque o PostgreSQL
+mantém o espaço da coluna apagada, e o código usa a coluna pelo nome, não
+pela posição.
+
+```sql
+select facto from (
+  select 1 as o,
+    'col geographic_status | ' || coalesce(c.data_type || '/' || c.udt_name, 'em falta')
+      || ' | nullable=' || coalesce(c.is_nullable, 'n/a')
+      || ' | default=[' || coalesce(c.column_default, '') || ']'
+      || case when c.data_type = 'text' and c.udt_name = 'text'
+               and c.is_nullable = 'YES' and c.column_default is null
+              then ' OK' else ' MISMATCH' end as facto
+  from (select 1) d
+  left join information_schema.columns c
+    on c.table_schema = 'staging' and c.table_name = 'venues_staging' and c.column_name = 'geographic_status'
+  union all
+  select 2,
+    'con venues_staging_geographic_status_check | ' || coalesce(pg_get_constraintdef(k.oid), 'em falta')
+      || case when pg_get_constraintdef(k.oid) =
+              'CHECK (((geographic_status IS NULL) OR (geographic_status = ANY (ARRAY[''inside_radius''::text, ''buffer_zone''::text, ''outside_region''::text]))))'
+              then ' OK' else ' MISMATCH' end
+  from (select 1) d
+  left join pg_constraint k
+    on k.conrelid = 'staging.venues_staging'::regclass and k.conname = 'venues_staging_geographic_status_check'
+  union all
+  select 3, 'info (NAO BLOQUEANTE) ordinal_position=' || coalesce(c.ordinal_position::text, 'n/a')
+  from (select 1) d
+  left join information_schema.columns c
+    on c.table_schema = 'staging' and c.table_name = 'venues_staging' and c.column_name = 'geographic_status'
+  union all
+  select 4, 'info (NAO BLOQUEANTE) colunas de staging.venues_staging=' || count(*)
+  from information_schema.columns where table_schema = 'staging' and table_name = 'venues_staging'
+) q order by o;
+```
+
+Esperado. As linhas 1 e 2 exatamente; as linhas `info` só como diagnóstico
+(o valor da posição pode ser 14 ou 15):
+
+```
+col geographic_status | text/text | nullable=YES | default=[] OK
+con venues_staging_geographic_status_check | CHECK (((geographic_status IS NULL) OR (geographic_status = ANY (ARRAY['inside_radius'::text, 'buffer_zone'::text, 'outside_region'::text])))) OK
+info (NAO BLOQUEANTE) ordinal_position=14
+info (NAO BLOQUEANTE) colunas de staging.venues_staging=14
+```
 
 ## 4. Expor o schema `staging` na Data API
 

@@ -76,6 +76,13 @@ sua proveniência exacta em `db/migrations/` permanece uma pendência de
 schema-as-code a esclarecer separadamente, sem bloquear esta correcção
 de documentação.
 
+**Actualização (migration 0021):** a definição que a produção tem (coluna
+`text` com NULL permitido, sem default, e a CHECK
+`venues_staging_geographic_status_check`) foi capturada por leitura da
+assinatura de schema da produção (2026-10-04) e passa a estar em
+`db/migrations/0021_venues_staging_geographic_status.sql`. A proveniência
+histórica da coluna continua por esclarecer.
+
 O resto desta ADR (Contexto, Justificação, secções abaixo) mantém-se
 válido tal como escrito em 2026-07-15 — só a forma de persistir
 `outside_region` mudou, não o resto da política de classificação por
