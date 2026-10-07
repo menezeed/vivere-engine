@@ -3,7 +3,7 @@
 ## Ordem de execução
 
 ```
-0000 → 0001 → 0002 → ... → 0018 → 0019 → 0020 → 0021
+0000 → 0001 → 0002 → ... → 0018 → 0019 → 0020 → 0021 → 0022
 ```
 
 Numérica, estrita. Nenhum *runner* automatizado de migrações foi
@@ -101,6 +101,21 @@ seria um no-op e não deve ser executada lá sem autorização própria.
 
 O rollback apaga a coluna e os seus dados: só para ambientes reconstruídos,
 nunca para produção.
+
+## `0022_rls_engine_public_tables.sql`
+
+Liga RLS em `public.products`, `public.sources`, `public.publication_runs` e
+`public.publication_events`, sem políticas e sem FORCE. A produção já tem
+estas 4 tabelas assim (assinatura de schema de 04/10/2026), e `anon` e
+`authenticated` têm lá privilégios de tabela completos: é o RLS sem políticas
+que as protege. Nenhuma migração anterior o capturava (a `0020` cobre 7
+tabelas de `public` e 6 de `staging`). `service_role` ignora RLS
+(`BYPASSRLS`), por isso o Engine não é afectado.
+
+Idempotente por natureza (repetir `ENABLE ROW LEVEL SECURITY` não faz nada),
+sem `IF NOT EXISTS`. Em produção seria um no-op e não deve ser executada lá
+sem autorização própria. O rollback desliga o RLS e só serve para ambientes
+reconstruídos, nunca para produção.
 
 ## Contrato forward-only
 

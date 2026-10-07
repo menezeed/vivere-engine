@@ -41,6 +41,7 @@ $k = $null
    políticas, funções e trigger (a definir no gate da Phase E)
 4b 0021_venues_staging_geographic_status.sql (um Run) e validação da
    secção 3b
+4c 0022_rls_engine_public_tables.sql (um Run) e validação da secção 3c
 5  Expor o schema staging na Data API (secção 4) e smoke test (secção 5)
 6  Dados de referência (secção 6): PENDENTE, ver essa secção
 7  Security harness: privilégios temporários, correr, reverter (secção 7)
@@ -169,6 +170,45 @@ col geographic_status | text/text | nullable=YES | default=[] OK
 con venues_staging_geographic_status_check | CHECK (((geographic_status IS NULL) OR (geographic_status = ANY (ARRAY['inside_radius'::text, 'buffer_zone'::text, 'outside_region'::text])))) OK
 info (NAO BLOQUEANTE) ordinal_position=14
 info (NAO BLOQUEANTE) colunas de staging.venues_staging=14
+```
+
+### 3c. Validação da 0022 (só leitura)
+
+Depois da `0022`. **Critério PASS/FAIL:** as 5 linhas terminam em `OK`.
+Qualquer `MISMATCH` é FAIL. Cada uma das 4 tabelas tem de ter RLS ligado, sem
+FORCE e com zero políticas (o contrato da produção), e o total de tabelas com
+RLS em `public` e `staging` tem de ser 19.
+
+```sql
+select facto from (
+  select t.n as o,
+    'rls ' || t.rel || ' | relrowsecurity=' || coalesce(c.relrowsecurity::text, 'em falta')
+      || ' | force=' || coalesce(c.relforcerowsecurity::text, 'n/a')
+      || ' | policies=' || (select count(*) from pg_policies p
+                            where p.schemaname = 'public' and p.tablename = split_part(t.rel, '.', 2))
+      || case when c.relrowsecurity and not c.relforcerowsecurity
+               and (select count(*) from pg_policies p
+                    where p.schemaname = 'public' and p.tablename = split_part(t.rel, '.', 2)) = 0
+              then ' OK' else ' MISMATCH' end as facto
+  from (values ('public.products', 1), ('public.publication_events', 2),
+               ('public.publication_runs', 3), ('public.sources', 4)) as t(rel, n)
+  left join pg_class c on c.oid = to_regclass(t.rel)
+  union all
+  select 5, 'rls total em public e staging (esperado 19) | ' || count(*)
+    || case when count(*) = 19 then ' OK' else ' MISMATCH' end
+  from pg_class c join pg_namespace n on n.oid = c.relnamespace
+  where c.relkind = 'r' and n.nspname in ('public', 'staging') and c.relrowsecurity
+) q order by o;
+```
+
+Esperado, exatamente:
+
+```
+rls public.products | relrowsecurity=true | force=false | policies=0 OK
+rls public.publication_events | relrowsecurity=true | force=false | policies=0 OK
+rls public.publication_runs | relrowsecurity=true | force=false | policies=0 OK
+rls public.sources | relrowsecurity=true | force=false | policies=0 OK
+rls total em public e staging (esperado 19) | 19 OK
 ```
 
 ## 4. Expor o schema `staging` na Data API
