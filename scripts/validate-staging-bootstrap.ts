@@ -8,10 +8,37 @@
  * NUNCA correr isto contra o projecto Supabase de produção real —
  * destina-se exclusivamente a confirmar um bootstrap de staging.
  *
+ * SEC-O fase 2B: a confirmação deixou de ser manual. main() chama
+ * assertEnvironment() (src/lib/envGuard.ts) ANTES de criar o cliente ou
+ * de consultar o que quer que seja: exige VIVERE_ENV=staging, o
+ * SUPABASE_URL exacto do staging e uma SUPABASE_SERVICE_KEY de formato
+ * válido; a produção é bloqueada incondicionalmente. O URL usado é o
+ * canónico devolvido pela guarda.
+ *
  * Variáveis de ambiente necessárias (ambiente de STAGING, nunca
- * produção): SUPABASE_URL, SUPABASE_SERVICE_KEY.
+ * produção): VIVERE_ENV=staging, SUPABASE_URL, SUPABASE_SERVICE_KEY.
+ *
+ * LIMITAÇÕES PRÉ-EXISTENTES (NÃO resolvidas nesta fase; ver SEC-O 2B):
+ *  1. É um esqueleto: só executa UMA verificação (contagem de
+ *     activities < 1000). As listas EXPECTED_* abaixo (tabelas, views,
+ *     funções, trigger, colunas engine) estão declaradas mas NÃO são
+ *     usadas em nenhuma verificação.
+ *  2. O erro da contagem é ignorado: se a consulta falhar (sem rede,
+ *     sem privilégio), a contagem fica undefined e a verificação PASSA
+ *     (undefined ?? 0 < 1000). Um PASS não prova que a consulta correu.
+ *  3. A heurística "contagem pequena" não distingue staging de
+ *     produção (a produção também tem poucas linhas). Quem impede a
+ *     produção é a guarda, não esta verificação.
+ *  4. A consulta a information_schema.tables via PostgREST não é
+ *     acessível (schema não exposto): o resultado e o erro são
+ *     ignorados, por isso nada do catálogo é validado.
+ *  5. A frase "depois de 0000 → 0019 → 0020" está desactualizada: a
+ *     cadeia de migrações vai agora até à 0022.
+ * Para validar o schema a sério, usar as queries de catálogo do runbook
+ * (docs/runbooks/staging-bootstrap.md, secções 3, 3b e 3c).
  */
 import { createClient } from '@supabase/supabase-js';
+import { assertEnvironment } from '../src/lib/envGuard.js';
 
 const EXPECTED_PUBLIC_TABLES = [
   'activities', 'venues', 'favorites', 'activity_interests',
@@ -44,15 +71,14 @@ function check(name: string, pass: boolean, detail?: string) {
 }
 
 async function main(): Promise<void> {
-  const url = process.env['SUPABASE_URL'];
-  const key = process.env['SUPABASE_SERVICE_KEY'];
-  if (!url || !key) {
-    console.error('STOP: SUPABASE_URL/SUPABASE_SERVICE_KEY em falta.');
-    process.exit(1);
-  }
+  // SEC-O fase 2B: valida o ambiente ANTES de criar o cliente. Lança
+  // EnvGuardError (apanhado por main().catch) se não for exactamente o staging.
+  const env = process.env;
+  const { supabaseUrl: url, projectRef } = assertEnvironment(env);
+  const key = env['SUPABASE_SERVICE_KEY'] as string; // formato validado pela guarda
 
   console.log(`\n⚠ A validar: ${url}`);
-  console.log('⚠ CONFIRMA MANUALMENTE que isto é STAGING, nunca produção, antes de prosseguir.\n');
+  console.log(`✔ Ambiente validado pela guarda: staging (${projectRef}).\n`);
 
   const db = createClient(url, key, { auth: { persistSession: false } });
 
@@ -80,6 +106,9 @@ async function main(): Promise<void> {
   console.log('\nNOTA: este script é um esqueleto de verificação inicial,');
   console.log('a completar com acesso directo ao catálogo (claude_readonly,');
   console.log('Fase 16C) antes da execução real contra staging.');
+  console.log('LIMITAÇÕES: só 1 verificação é executada (contagem de activities); o erro dessa');
+  console.log('consulta é ignorado (um PASS não prova que correu); as listas EXPECTED_* e a consulta');
+  console.log('a information_schema não validam nada. Ver o cabeçalho deste ficheiro.');
   process.exit(anyFail ? 1 : 0);
 }
 
