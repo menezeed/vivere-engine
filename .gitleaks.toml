@@ -1,0 +1,9 @@
+# Configuração do gitleaks (SEC-O 2C-0).
+# Usa as regras por omissão; só ignora os valores sentinela dos testes da
+# guarda de ambiente, que são falsos por construção.
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Fixtures sentinela dos testes SEC-O"
+regexes = ['''SENTINEL''']
