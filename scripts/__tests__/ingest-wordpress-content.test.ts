@@ -104,5 +104,6 @@ describe('ingest-wordpress-content — execução directa pela CLI', () => {
     // main() nunca teria corrido, nunca teria impresso nada.
     expect(exitCode).toBe(1);
     expect(stdoutAndStderr).toContain('instância não encontrada');
-  });
+    // Arrancar npx + tsx demora 3-6s; o limite do teste acompanha o do processo filho.
+  }, 30_000);
 });
