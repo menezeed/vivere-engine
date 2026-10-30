@@ -8,3 +8,10 @@ dist/
 # Vari�veis de ambiente por modo (dev/prod), em qualquer subpasta
 **/.env.*
 !**/.env.example
+
+# Artefactos locais que não pertencem ao repositório (SEC-O 2C-0)
+*.tsbuildinfo
+Downloads/
+*-dry-run*.txt
+keys.txt
+*.backup
