@@ -27,7 +27,18 @@
  * como removida no fim, o processo termina com código de saída != 0
  * (FAIL), mesmo que todos os testes de autorização tenham passado.
  *
+ * SEC-O fase 2B: este harness cria e apaga fixtures com a service key,
+ * por isso só corre contra o STAGING. main() chama assertEnvironment()
+ * (src/lib/envGuard.ts) ANTES de criar qualquer cliente, autenticar,
+ * consultar ou escrever: exige VIVERE_ENV=staging, o SUPABASE_URL exacto
+ * do staging e uma SUPABASE_SERVICE_KEY de formato válido; a produção é
+ * bloqueada incondicionalmente. Os 4 clientes usam o URL canónico
+ * devolvido pela guarda. A guarda só valida a service key: da
+ * SUPABASE_ANON_KEY só se verifica o mínimo (presente, diferente da
+ * service key e não sb_secret_).
+ *
  * Variáveis de ambiente necessárias (.env):
+ *   VIVERE_ENV=staging
  *   SUPABASE_URL
  *   SUPABASE_ANON_KEY
  *   SUPABASE_SERVICE_KEY            — para criar/limpar fixtures
@@ -42,6 +53,7 @@
  * completa — só confirma presença/ausência das variáveis.
  */
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
+import { assertEnvironment } from '../src/lib/envGuard.js';
 
 const FIXTURE_MARKER = 'SECURITY_TEST_DO_NOT_PUBLISH';
 
@@ -60,12 +72,19 @@ function record(name: string, expected: 'ALLOWED' | 'DENIED', actual: 'ALLOWED' 
 }
 
 async function main(): Promise<void> {
-  const url = requireEnv('SUPABASE_URL');
+  // SEC-O fase 2B: ambiente e credenciais validados ANTES de criar qualquer
+  // cliente, autenticar, consultar ou escrever. Lança EnvGuardError (apanhado
+  // por main().catch) se o ambiente não for exactamente o staging.
+  const { supabaseUrl: url } = assertEnvironment();
   const anonKey = requireEnv('SUPABASE_ANON_KEY');
-  const serviceKey = requireEnv('SUPABASE_SERVICE_KEY');
+  const serviceKey = requireEnv('SUPABASE_SERVICE_KEY'); // formato validado pela guarda
 
-  const serviceClient = createClient(url, serviceKey, { auth: { persistSession: false } });
-  const anonClient = createClient(url, anonKey, { auth: { persistSession: false } });
+  // Verificação mínima (a guarda só valida a service key): a anon key não
+  // pode ser a service key nem uma chave sb_secret_.
+  if (anonKey === serviceKey || anonKey.startsWith('sb_secret_')) {
+    console.error('STOP: SUPABASE_ANON_KEY não pode ser uma chave de servidor (service/secret).');
+    process.exit(1);
+  }
 
   const testUserEmail = process.env['SECURITY_TEST_USER_EMAIL'];
   const testUserPassword = process.env['SECURITY_TEST_USER_PASSWORD'];
@@ -80,6 +99,9 @@ async function main(): Promise<void> {
     console.error('STOP: SECURITY_TEST_ADMIN_EMAIL / SECURITY_TEST_ADMIN_PASSWORD em falta.');
     process.exit(1);
   }
+
+  const serviceClient = createClient(url, serviceKey, { auth: { persistSession: false } });
+  const anonClient = createClient(url, anonKey, { auth: { persistSession: false } });
 
   const authedClient = createClient(url, anonKey, { auth: { persistSession: false } });
   const { error: authedLoginError } = await authedClient.auth.signInWithPassword({ email: testUserEmail, password: testUserPassword });
