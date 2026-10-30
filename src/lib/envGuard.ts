@@ -21,7 +21,9 @@
  * nova, e o formato é opaco). Esta fase não o verifica; o resultado di-lo
  * explicitamente (serviceKeyProjectBinding = 'unverified' e warnings).
  *
- * Ainda NÃO está ligada a getSupabaseClient(), à review-api nem a scripts.
+ * Integrada em getSupabaseClient() (fase 2A) e nos dois scripts que criam
+ * clientes directamente (fase 2B): scripts/security-rls-validation.ts e
+ * scripts/validate-staging-bootstrap.ts.
  */
 import { SUPABASE_PROJECT_REFS, supabaseUrlFor } from '../config/environments';
 
