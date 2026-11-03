@@ -1,5 +1,6 @@
 import { config } from '@/config';
 import type { AuthUser } from '@/types/review';
+import { parseUserRole } from './roles';
 
 interface SupabaseAuthResponse {
   access_token: string;
@@ -8,7 +9,7 @@ interface SupabaseAuthResponse {
   user: {
     id: string;
     email: string;
-    app_metadata: { role?: string };
+    app_metadata?: { role?: unknown };
   };
 }
 
@@ -38,7 +39,8 @@ export async function loginWithPassword(
   const user: AuthUser = {
     id:    data.user.id,
     email: data.user.email,
-    role:  (data.user.app_metadata.role as AuthUser['role']) ?? 'viewer',
+    // SEC-A: sem fallback para 'viewer'. Papel ausente/inválido → null.
+    role:  parseUserRole(data.user.app_metadata?.role),
   };
 
   return { token: data.access_token, user };

@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/components/ui/Toast';
 import type { ReviewAction } from '@/types/review';
+import { describeApiError } from '@/api/client';
 
 export interface ReviewMutationConfig {
   approve: (id: string) => Promise<void>;
@@ -48,7 +49,7 @@ export function useReviewMutation(config: ReviewMutationConfig) {
     },
     onError: (err) => {
       setActiveId(null);
-      error('Erro na acção', String(err));
+      error('Erro na acção', describeApiError(err));
     },
   });
 

@@ -1,6 +1,4 @@
-import { Hono } from 'hono';
-import { cors } from 'hono/cors';
-import { logger as honoLogger } from 'hono/logger';
+import type { Hono } from 'hono';
 import { getSupabaseClient } from '../persistence/client/supabase.js';
 import { VenueReviewRepository } from './repositories/VenueReviewRepository.js';
 import { ActivityReviewRepository } from './repositories/ActivityReviewRepository.js';
@@ -9,11 +7,7 @@ import { StatsRepository } from './repositories/StatsRepository.js';
 import { EntityResolutionReviewRepository } from './repositories/EntityResolutionReviewRepository.js';
 import { ReviewService } from './services/ReviewService.js';
 import { EntityResolutionService } from './services/EntityResolutionService.js';
-import { authMiddleware } from './middleware/auth.js';
-import { venueRoutes } from './routes/venues.js';
-import { activityRoutes } from './routes/activities.js';
-import { ingestionRunRoutes, statsRoutes } from './routes/ingestion-runs.js';
-import { entityResolutionRoutes } from './routes/entity-resolution.js';
+import { createApp } from './app.js';
 import { logger } from '../lib/logger.js';
 
 const PORT     = Number(process.env.REVIEW_API_PORT ?? 3001);
@@ -52,26 +46,8 @@ async function buildApp(): Promise<Hono> {
   const reviewService = new ReviewService(venueRepo, activityRepo);
   const erService     = new EntityResolutionService(erRepo);
 
-  const app = new Hono();
-
-  app.use('*', cors({ origin: corsOrigin }));
-  app.use('*', honoLogger());
-  app.use('/api/*', authMiddleware);
-
-  app.get('/health', (c) => c.json({
-    status:  'ok',
-    service: 'vivere-review-api',
-    version: '0.1.0',
-    env:     NODE_ENV,
-  }));
-
-  app.route('/api/venues',            venueRoutes(reviewService));
-  app.route('/api/activities',        activityRoutes(reviewService));
-  app.route('/api/ingestion-runs',    ingestionRunRoutes(runRepo));
-  app.route('/api/stats',             statsRoutes(statsRepo));
-  app.route('/api/entity-resolution', entityResolutionRoutes(erService));
-
-  return app;
+  // Rotas, autenticação e autorização (SEC-A) vivem em app.ts.
+  return createApp({ corsOrigin, reviewService, erService, runRepo, statsRepo });
 }
 
 const app = await buildApp();

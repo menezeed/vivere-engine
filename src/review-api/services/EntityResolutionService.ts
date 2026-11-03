@@ -13,7 +13,7 @@ import { NotFoundError, ForbiddenError } from './ReviewService.js';
 
 // ── RBAC para ER ─────────────────────────────────────────────────────────────
 
-const ER_ACTION_ROLES = {
+export const ER_ACTION_ROLES = {
   accept:      ['reviewer', 'admin'],
   override:    ['reviewer', 'admin'],
   proposeNew:  ['admin'],

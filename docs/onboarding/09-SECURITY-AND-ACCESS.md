@@ -9,16 +9,32 @@ Severity scale used: **High** (data exposure or unauthorized write plausible), *
 
 ---
 
-## SEC-A — Any Supabase Auth user gets `viewer` access to the Review API (High)
+## SEC-A — Any Supabase Auth user gets `viewer` access to the Review API (High → fixed locally, not yet merged or deployed)
 
-- **Current implementation:** `authMiddleware` accepts any valid Supabase JWT and assigns
-  `role = app_metadata.role ?? 'viewer'`. Read endpoints (`GET /api/venues`, `/api/activities` incl.
-  `raw_payload`, `/api/ingestion-runs`, `/api/stats`, `/api/entity-resolution/*`) have no role check.
-  ADR-0024 states the mobile app uses `supabase.auth.signUp()` against the same project.
-- **Risk:** any end-user account created via the app (if the Review API URL is reachable) can read all
-  unreviewed staging data and raw source payloads, bypassing the staging isolation intended by ADR-0019.
-- **Recommendation:** require an explicit role (`viewer|reviewer|admin`) in `app_metadata` and reject
-  tokens without it (use the existing but unused `requireRole`); optionally check `aud`/`iss`.
+> Updated by SEC-A-002. Original finding kept in git history.
+
+- **Original finding:** `authMiddleware` accepted any valid Supabase JWT and assigned
+  `role = app_metadata.role ?? 'viewer'`, so every read endpoint (`/api/venues`, `/api/activities` incl.
+  `raw_payload`, `/api/ingestion-runs`, `/api/stats`, `/api/entity-resolution/*`) was open to any
+  account in the project — including accounts created by the mobile app (`signUp()`, ADR-0024).
+- **Current:**
+  - `resolveAuthUser()` (`src/review-api/middleware/auth.ts`) accepts only an explicit
+    `app_metadata.role` of `viewer`, `reviewer` or `admin`. Missing or invalid roles, a role only in
+    `user_metadata`, and anonymous sessions (`is_anonymous: true`) are rejected. There is **no default role**.
+  - Missing/invalid/expired token, or a token without `exp` → **401**. Valid token without an
+    authorized role → **403**.
+  - `src/review-api/app.ts` applies `requireRole` centrally: `viewer+` on all of `/api/*`, and per-route
+    roles on every PATCH (`MUTATION_ROLE_MATRIX`, derived from the same `ACTION_ROLES` /
+    `ER_ACTION_ROLES` the services use). The services keep their own checks.
+  - A test fails if a new write route is added without an entry in the matrix.
+  - Admin Panel: no `viewer` fallback; a user without a role sees an "access denied" screen; a 403
+    shows a message and does **not** log the user out; 401/403 are not retried.
+- **Residual risk:**
+  - Accounts that used to rely on the implicit `viewer` lose access until a role is assigned.
+  - Role changes take effect only when the user's token is refreshed (≈ 1 h by default).
+  - JWT verification gaps (`kid`, `iss`/`aud`, JWKS refresh) are tracked separately in SEC-B.
+- **Operational follow-up (owner):** assign `app_metadata.role` to every Admin Panel user before
+  deploying; confirm whether anonymous sign-ins are enabled in the project.
 
 ## SEC-B — JWT verification details (Medium)
 
@@ -179,7 +195,7 @@ Severity scale used: **High** (data exposure or unauthorized write plausible), *
 |---|---|---|---|
 | Engine CLIs | service_role key | everything | staging (+ public via publishing) |
 | Review API | service_role key | everything | staging tables (review, ER) |
-| Admin Panel user | Supabase user JWT → Review API | staging via API (any authenticated user, SEC-A) | review transitions by role |
+| Admin Panel user | Supabase user JWT → Review API | staging via API, only with an explicit `app_metadata.role` (SEC-A) | review transitions by role |
 | Mobile app (anon/authenticated) | anon key + optional user JWT | public tables per RLS (incl. non-active engine rows, SEC-D) | `interested_count` (guarded), own favorites/interests, suggestions |
 | Supabase admin (`app_metadata.role='admin'`) via PostgREST | user JWT | public tables | ALL on activities, venues, categories, partners |
 | **Future AI Discovery Layer (PROPOSED)** | none of its own for DB; LLM provider key | source content | **nothing in DB directly** — hands `RawActivityItem[]` to the orchestrator |

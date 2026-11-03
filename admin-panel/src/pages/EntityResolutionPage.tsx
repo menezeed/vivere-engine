@@ -9,6 +9,7 @@ import { CandidateCard } from '@/components/er/CandidateCard';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { useToast } from '@/components/ui/Toast';
 import { useAuth } from '@/auth/AuthProvider';
+import { describeApiError } from '@/api/client';
 import {
   ER_STATUS_LABEL, ER_STATUS_COLOR, ER_STATUS_PRIORITY,
 } from '@/types/entityResolution';
@@ -63,7 +64,7 @@ function ActivityRow({
     mutationFn: ({ candidateId, notes }: { candidateId: string; notes?: string }) =>
       EntityResolutionService.accept(item.activityId, candidateId, notes),
     onSuccess: () => { success('Venue confirmado com sucesso'); invalidate(); },
-    onError:   (e) => error('Erro ao confirmar', String(e)),
+    onError:   (e) => error('Erro ao confirmar', describeApiError(e)),
   });
 
   // Mutation override
@@ -71,7 +72,7 @@ function ActivityRow({
     mutationFn: ({ candidateId, notes }: { candidateId: string; notes: string }) =>
       EntityResolutionService.override(item.activityId, candidateId, notes),
     onSuccess: () => { success('Override registado com sucesso'); setOverrideId(null); invalidate(); },
-    onError:   (e) => error('Erro ao fazer override', String(e)),
+    onError:   (e) => error('Erro ao fazer override', describeApiError(e)),
   });
 
   // Mutation propose-new
@@ -79,7 +80,7 @@ function ActivityRow({
     mutationFn: (notes: string) =>
       EntityResolutionService.proposeNew(item.activityId, notes || undefined),
     onSuccess: () => { success('Marcado como venue novo'); setProposeOpen(false); invalidate(); },
-    onError:   (e) => error('Erro ao propor venue novo', String(e)),
+    onError:   (e) => error('Erro ao propor venue novo', describeApiError(e)),
   });
 
   const isLoading = acceptMutation.isPending || overrideMutation.isPending || proposeNewMutation.isPending;
