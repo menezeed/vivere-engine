@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useCallback, type ReactNode } from 'react';
 import type { AuthUser } from '@/types/review';
 import { loginWithPassword } from './authClient';
+import { parseUserRole } from './roles';
 
 interface AuthContextValue {
   user: AuthUser | null;
@@ -15,7 +16,11 @@ const AuthContext = createContext<AuthContextValue | null>(null);
 function loadStoredUser(): AuthUser | null {
   try {
     const stored = localStorage.getItem('vivere_user');
-    return stored ? (JSON.parse(stored) as AuthUser) : null;
+    if (!stored) return null;
+    const parsed = JSON.parse(stored) as AuthUser;
+    // SEC-A: sessões guardadas antes da correcção podem ter 'viewer' por
+    // omissão ou um valor inválido; normaliza para o mesmo critério do login.
+    return { ...parsed, role: parseUserRole(parsed.role) };
   } catch {
     return null;
   }

@@ -3,7 +3,8 @@ import { useAuth } from '@/auth/AuthProvider';
 import { useQuery } from '@tanstack/react-query';
 import { StatsService } from '@/services/StatsService';
 import { LayoutDashboard, MapPin, Calendar, Activity, LogOut, ChevronDown, Settings, GitMerge } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { ACCESS_DENIED_EVENT, ACCESS_DENIED_MESSAGE } from '@/api/client';
 
 const PRODUCTS = [
   { key: 'vivere-60-mais', label: 'Vivere 60+' },
@@ -13,6 +14,14 @@ export function AppShell() {
   const { user, logout } = useAuth();
   const [selectedProduct, setSelectedProduct] = useState(PRODUCTS[0]);
   const [productOpen, setProductOpen] = useState(false);
+  // SEC-A: aviso quando o Review API responde 403 (sessão mantém-se).
+  const [accessDenied, setAccessDenied] = useState(false);
+
+  useEffect(() => {
+    const onDenied = () => setAccessDenied(true);
+    window.addEventListener(ACCESS_DENIED_EVENT, onDenied);
+    return () => window.removeEventListener(ACCESS_DENIED_EVENT, onDenied);
+  }, []);
 
   const { data: stats } = useQuery({
     queryKey: ['stats', selectedProduct.key],
@@ -93,7 +102,7 @@ export function AppShell() {
         {/* User */}
         <div className="px-3 py-4 border-t border-white/10">
           <p className="text-white/50 text-xs truncate mb-2">{user?.email}</p>
-          <p className="text-white/30 text-xs mb-3 capitalize">{user?.role}</p>
+          <p className="text-white/30 text-xs mb-3 capitalize">{user?.role ?? 'sem papel'}</p>
           <button
             onClick={logout}
             className="flex items-center gap-2 text-white/40 hover:text-white text-sm transition-colors"
@@ -105,6 +114,14 @@ export function AppShell() {
       </aside>
 
       <main className="flex-1 overflow-auto">
+        {accessDenied && (
+          <div role="alert" className="m-4 mb-0 flex items-start justify-between gap-4 rounded border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+            <span>{ACCESS_DENIED_MESSAGE}</span>
+            <button onClick={() => setAccessDenied(false)} className="text-red-500 hover:text-red-700 shrink-0">
+              Fechar
+            </button>
+          </div>
+        )}
         <Outlet context={{ productKey: selectedProduct.key }} />
       </main>
     </div>

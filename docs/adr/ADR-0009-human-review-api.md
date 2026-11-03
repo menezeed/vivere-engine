@@ -41,6 +41,13 @@ HMAC-SHA256 dos tokens emitidos pelo Supabase Auth.
 em `app_metadata.role` no Supabase Auth — sem tabela extra no banco. Suficiente para
 múltiplos revisores com rastreabilidade completa (reviewed_by + reviewed_at).
 
+> **Nota (SEC-A-002, 2026-11-03):** não existe papel por omissão. Um token válido
+> sem `app_metadata.role` igual a `viewer`, `reviewer` ou `admin` recebe **403**; a
+> leitura exige `viewer` explícito. Tokens anónimos e tokens sem `exp` são recusados.
+> A autorização é aplicada à entrada (`requireRole` em `src/review-api/app.ts`) e
+> mantida nos serviços. A verificação de JWT é ES256 via JWKS (não HMAC-SHA256 como
+> descrito acima); os ajustes de JWKS/`kid`/`iss`/`aud` ficam no SEC-B.
+
 ### Promoção fictícia (Opção A)
 
 A promoção não escreve em `public.venues` nem `public.activities`. Marca

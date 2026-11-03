@@ -5,5 +5,6 @@ export type ReviewAction = 'approve' | 'reject' | 'promote';
 export interface AuthUser {
   id: string;
   email: string;
-  role: UserRole;
+  /** SEC-A: null = conta sem papel atribuído (o Review API responde 403). */
+  role: UserRole | null;
 }

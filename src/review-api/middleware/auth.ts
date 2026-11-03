@@ -62,8 +62,9 @@ async function verifyJWT(token: string): Promise<Record<string, unknown> | null>
       atob(payloadB64.replace(/-/g, '+').replace(/_/g, '/'))
     );
 
-    // Verificar expiração
-    if (payload.exp && payload.exp < Math.floor(Date.now() / 1000)) return null;
+    // Verificar expiração. SEC-A: exp é obrigatório — um token sem
+    // expiração nunca é aceite.
+    if (typeof payload.exp !== 'number' || payload.exp < Math.floor(Date.now() / 1000)) return null;
 
     return payload;
   } catch {
@@ -84,17 +85,46 @@ export async function authMiddleware(c: Context, next: Next): Promise<Response |
     return c.json({ error: 'Token inválido ou expirado' }, 401);
   }
 
-  const appMeta = payload['app_metadata'] as Record<string, unknown> | undefined;
-  const role = (appMeta?.['role'] as UserRole) ?? 'viewer';
-
-  const user: AuthUser = {
-    id:    payload['sub'] as string,
-    email: payload['email'] as string,
-    role,
-  };
+  // SEC-A: token válido não basta — é preciso um papel explícito.
+  const user = resolveAuthUser(payload);
+  if (!user) {
+    return c.json({ error: 'Conta sem papel autorizado para o Review API' }, 403);
+  }
 
   c.set('user', user);
   await next();
+}
+
+/** Papéis aceites pelo Review API (ADR-0009). Não há papel por omissão. */
+export const VALID_ROLES: readonly UserRole[] = ['viewer', 'reviewer', 'admin'];
+
+function isUserRole(value: unknown): value is UserRole {
+  return typeof value === 'string' && (VALID_ROLES as readonly string[]).includes(value);
+}
+
+/**
+ * SEC-A: converte o payload de um JWT JÁ VERIFICADO no utilizador da API.
+ * Função pura. Devolve null (→ 403) quando:
+ *  - o papel não está em app_metadata.role (user_metadata é editável pelo
+ *    próprio utilizador e nunca é lido);
+ *  - o papel não é viewer, reviewer ou admin;
+ *  - o token é de uma sessão anónima (is_anonymous === true);
+ *  - falta o sub.
+ */
+export function resolveAuthUser(payload: Record<string, unknown>): AuthUser | null {
+  if (payload['is_anonymous'] === true) return null;
+
+  const sub = payload['sub'];
+  if (typeof sub !== 'string' || sub === '') return null;
+
+  const appMeta = payload['app_metadata'];
+  if (typeof appMeta !== 'object' || appMeta === null || Array.isArray(appMeta)) return null;
+
+  const role = (appMeta as Record<string, unknown>)['role'];
+  if (!isUserRole(role)) return null;
+
+  const email = payload['email'];
+  return { id: sub, email: typeof email === 'string' ? email : '', role };
 }
 
 export function requireRole(...roles: UserRole[]) {
