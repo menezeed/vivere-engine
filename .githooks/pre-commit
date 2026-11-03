@@ -1,0 +1,81 @@
+#!/bin/sh
+# Pre-commit: bloqueia credenciais antes de saírem da máquina (SEC-O 3-002).
+#
+# O repositório é público: um segredo commitado fica exposto no momento do
+# push, antes de o gitleaks do CI o apanhar. Este hook corre localmente.
+#
+# Activar (uma vez por clone):   npm run hooks:install
+# Dependência opcional:          gitleaks (https://github.com/gitleaks/gitleaks),
+#                                instalado pelo próprio developer; o hook não
+#                                instala nada.
+#
+# Comportamento:
+#   1. Bloqueia ficheiros proibidos no stage (.env*, *.backup, keys.txt,
+#      chaves privadas), mesmo quando adicionados com `git add -f`.
+#      `.env.example` é permitido.
+#   2. Se o gitleaks existir: corre-o sobre o stage com a configuração do
+#      repositório (.gitleaks.toml) e bloqueia se encontrar segredos.
+#   3. Se o gitleaks NÃO existir: avisa e corre uma verificação mínima
+#      (chaves Supabase sb_secret_, JWT, Google API key, chaves privadas)
+#      sobre as linhas adicionadas. Bloqueia se encontrar algo.
+#
+# O hook nunca imprime valores: só nomes de ficheiros. Variável opcional
+# GITLEAKS_BIN para apontar para outro executável (usada nos testes).
+# Contornar (só se for falso positivo confirmado): git commit --no-verify
+# — o gitleaks do CI continua a correr no PR.
+
+GITLEAKS_BIN="${GITLEAKS_BIN:-gitleaks}"
+
+fail() {
+  echo "" >&2
+  echo "✖ pre-commit (SEC-O): $1" >&2
+  echo "  Remova do stage (git restore --staged <ficheiro>) e use variáveis em .env (ignorado)." >&2
+  exit 1
+}
+
+staged_files=$(git diff --cached --name-only --diff-filter=ACMR)
+[ -z "$staged_files" ] && exit 0
+
+# 1. Ficheiros proibidos -------------------------------------------------------
+blocked=$(printf '%s\n' "$staged_files" \
+  | grep -E '(^|/)\.env($|\.)|(^|/)keys\.txt$|\.backup$|\.(pem|key|p12|pfx)$|(^|/)id_(rsa|ed25519)' \
+  | grep -vE '(^|/)\.env\.example$')
+if [ -n "$blocked" ]; then
+  echo "Ficheiros que nunca devem ser commitados:" >&2
+  printf '  %s\n' $blocked >&2
+  fail "ficheiro de ambiente ou de credenciais no stage."
+fi
+
+# 2. gitleaks ------------------------------------------------------------------
+if command -v "$GITLEAKS_BIN" >/dev/null 2>&1; then
+  config_args=""
+  [ -f .gitleaks.toml ] && config_args="--config .gitleaks.toml"
+  if "$GITLEAKS_BIN" git --help >/dev/null 2>&1; then
+    # gitleaks >= 8.19
+    "$GITLEAKS_BIN" git --pre-commit --staged --redact --no-banner $config_args
+  else
+    "$GITLEAKS_BIN" protect --staged --redact --no-banner $config_args
+  fi
+  [ $? -eq 0 ] || fail "o gitleaks encontrou possíveis segredos (valores omitidos acima)."
+  exit 0
+fi
+
+# 3. Verificação mínima sem gitleaks -------------------------------------------
+echo "⚠ pre-commit (SEC-O): gitleaks não encontrado — a usar verificação mínima." >&2
+echo "  Recomendado instalar o gitleaks localmente (ver docs/onboarding/08-LOCAL-DEVELOPMENT.md)." >&2
+
+pattern='sb_secret_[A-Za-z0-9_-]{16,}|AIza[0-9A-Za-z_-]{35}|-----BEGIN [A-Z ]*PRIVATE KEY-----|eyJ[A-Za-z0-9_-]{10,}\.eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}'
+hits=""
+for f in $staged_files; do
+  # Só linhas adicionadas; fixtures sentinela dos testes da guarda são ignoradas
+  # (mesma regra que o .gitleaks.toml).
+  if git diff --cached -U0 -- "$f" | grep -E '^\+' | grep -vE '^\+\+\+ ' | grep -v 'SENTINEL' | grep -qE "$pattern"; then
+    hits="$hits $f"
+  fi
+done
+if [ -n "$hits" ]; then
+  echo "Possíveis segredos nas linhas adicionadas de:" >&2
+  printf '  %s\n' $hits >&2
+  fail "possível segredo no stage (valores omitidos)."
+fi
+exit 0

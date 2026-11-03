@@ -5,7 +5,7 @@ dist/
 .env
 .env.local
 
-# Vari�veis de ambiente por modo (dev/prod), em qualquer subpasta
+# Variáveis de ambiente por modo (dev/prod), em qualquer subpasta
 **/.env.*
 !**/.env.example
 
@@ -15,3 +15,30 @@ Downloads/
 *-dry-run*.txt
 keys.txt
 *.backup
+
+# Credenciais e chaves que nunca devem ser commitadas (SEC-O 3-002)
+*.pem
+*.key
+*.p12
+*.pfx
+id_rsa*
+id_ed25519*
+*service-account*.json
+secrets*.json
+creds*.json
+credentials*.json
+
+# Backups e temporários de editores/ferramentas (podem conter cópias de .env)
+*.bak
+*.old
+*.orig
+*.tmp
+*.swp
+*.swo
+*~
+tmp/
+.tmp/
+
+# Lixo de sistema operativo
+.DS_Store
+Thumbs.db
