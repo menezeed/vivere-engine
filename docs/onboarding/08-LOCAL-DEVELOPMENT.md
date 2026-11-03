@@ -8,12 +8,18 @@
 > `dry-run-google-places.ts`, `ingest-google-places.ts` or `ingest-targeted-venues.ts` without explicit
 > authorization from the product owner.
 >
-> ⚠ **Environment warning.** The maintainer's local `.env` and the tracked
-> `admin-panel/.env.development` both point at the **production** Supabase project (project ref matches
-> the one the runbook names as production), and the `.env` holds a **service_role** key. Any non-dry-run
-> CLI — and any Review API started with that `.env` — reads and writes **production**. A new developer
-> must not reuse these files; create a separate staging project (`docs/runbooks/staging-bootstrap.md`)
-> and point both `.env` and `admin-panel/.env.development` at it.
+> ⚠ **Staging only (SEC-O).** Development and tests use **exclusively the staging Supabase project**.
+> This is enforced in code, not only by convention:
+> - Engine, Review API and the validation scripts call `assertEnvironment()` (`src/lib/envGuard.ts`)
+>   before creating any Supabase client. They require `VIVERE_ENV=staging` and the exact staging
+>   `SUPABASE_URL`; production is blocked unconditionally (`PRODUCTION_BLOCKED`), even with
+>   `VIVERE_PRODUCTION_CONFIRM`.
+> - The Admin Panel runs `assertAdminPanelEnv()` (`admin-panel/config/viteEnvGuard.ts`) from
+>   `vite.config.ts`, so `npm run dev` and `npm run build` refuse to start unless every `VITE_*`
+>   points at staging and no privileged key is present.
+>
+> Project refs live in `src/config/environments.ts`. Never ask for or use production credentials for
+> local work; see the credential policy in `09-SECURITY-AND-ACCESS.md`.
 
 ---
 
@@ -44,8 +50,9 @@ npm ci            # or: npm install
 
 | Variable | Required for | Notes |
 |---|---|---|
-| `SUPABASE_URL` | All DB access, Review API JWKS | |
-| `SUPABASE_SERVICE_KEY` | All DB access (service_role, bypasses RLS) | Never expose to browsers/mobile |
+| `VIVERE_ENV` | Everything that touches Supabase | Must be `staging`. Missing → `ENV_MISSING`; `production` → `PRODUCTION_BLOCKED` |
+| `SUPABASE_URL` | All DB access, Review API JWKS | Exactly the **staging** URL (`https://<staging-ref>.supabase.co`, no trailing slash) |
+| `SUPABASE_SERVICE_KEY` | All DB access (service_role, bypasses RLS) | **Staging** `sb_secret_…` (or legacy `service_role` JWT). Never expose to browsers/mobile |
 | `CORS_ORIGIN` | Review API in production | If unset and `NODE_ENV=production`, the API exits; in development it allows `localhost:5173/3000/4173` |
 | `GOOGLE_PLACES_API_KEY` | Google Places scripts | Paid |
 | `LOG_LEVEL` | optional | default `info` |
@@ -54,18 +61,22 @@ npm ci            # or: npm install
 | `SUPABASE_ANON_KEY` | security harness only | |
 | `SECURITY_TEST_USER_EMAIL`, `SECURITY_TEST_USER_PASSWORD`, `SECURITY_TEST_ADMIN_EMAIL`, `SECURITY_TEST_ADMIN_PASSWORD` | security harness only (`scripts/security-rls-validation.ts`) | Dedicated test accounts |
 
-`SUPABASE_JWT_SECRET` appears in the maintainer's local `.env` but is **not used by any code** and is
-not in `.env.example`.
+`SUPABASE_JWT_SECRET` is **not used by any code**; do not add it to `.env`.
 
-The engine does **not** use `dotenv`; pass `--env-file=.env` to `tsx`.
+The engine does **not** use `dotenv`; pass `--env-file=.env` to `tsx`. Variables already set in the
+shell **win** over `--env-file` (Node precedence); the guard checks the effective values, so a
+production URL exported in the shell is still blocked.
 
 ### Admin Panel — `admin-panel/.env.development` / `.env.production`
 
+Copy `admin-panel/.env.example`. These files are git-ignored; they were tracked until PR #4 and were
+removed from the index then (local copies are kept).
+
 | Variable | Notes |
 |---|---|
-| `VITE_API_BASE_URL` | Review API base URL (e.g. local `http://localhost:3001`) |
-| `VITE_SUPABASE_URL` | Supabase project URL |
-| `VITE_SUPABASE_ANON_KEY` | Public anon key (used only for Supabase Auth login) |
+| `VITE_API_BASE_URL` | Review API base URL (local `http://localhost:3001`; deployed: the staging API host) |
+| `VITE_SUPABASE_URL` | Exactly the **staging** URL — anything else stops Vite (`URL_NOT_STAGING` / `PRODUCTION_BLOCKED`) |
+| `VITE_SUPABASE_ANON_KEY` | **Staging** publishable/anon key. Every `VITE_*` is shipped to the browser: a `sb_secret_` or `service_role` value stops Vite with `PRIVILEGED_KEY_EXPOSED` |
 
 ## 4. Run the Review API
 
@@ -74,7 +85,8 @@ npx tsx --env-file=.env src/review-api/server.ts
 # → http://localhost:3001/health
 ```
 
-There is no npm script for this. Requires `SUPABASE_URL` and `SUPABASE_SERVICE_KEY`.
+There is no npm script for this. Requires `VIVERE_ENV=staging`, `SUPABASE_URL` and
+`SUPABASE_SERVICE_KEY` of the staging project.
 
 ## 5. Run the Admin Panel
 
@@ -116,18 +128,43 @@ Only one npm script exists at root: `npm run dry-run:google-places` (paid).
 
 ## 8. Tests
 
-- Framework: Vitest 4 (`devDependencies`). Test files live in `__tests__/` folders across `src/` and `scripts/`.
-- There is **no `test` script** and no Vitest config file at the root. Suggested invocation
-  (**To be confirmed**):
+- Framework: Vitest 4 (`devDependencies`). Test files live in `__tests__/` folders across `src/`,
+  `scripts/` and `admin-panel/config/`. There is no `test` script and no Vitest config file; run from
+  the repo root:
 
 ```bash
-npx vitest run                 # all tests
+npx vitest run                 # all tests (offline: Supabase client and fetch are mocked)
 npx vitest run src/publishing  # one area
 ```
 
 - Most tests use mocks via `RepositoryFactory.fromObject` and do not need a database. Integration
-  scripts (`scripts/validate-*.ts`, `scripts/security-rls-validation.ts`) hit a real Supabase project.
-- The Admin Panel has no test setup.
+  scripts (`scripts/validate-*.ts`, `scripts/security-rls-validation.ts`) hit a real Supabase project
+  — staging only, enforced by the guard.
+- Tests that spawn child processes (`envGuard`, `ingest-wordpress-content`, `pre-commit-hook`) carry
+  explicit timeouts; on a slow Windows machine they can take tens of seconds.
+- CI (`.github/workflows/ci.yml`) runs on every PR and push to `main`: Engine `tsc --noEmit` +
+  `vitest run`, Admin Panel `tsc -b`, and a gitleaks secret scan.
+
+## 8a. Pre-commit secret scan
+
+The repository is **public**: a committed secret is exposed the moment it is pushed, before CI can
+flag it. A versioned hook in `.githooks/pre-commit` checks the staged changes locally. Enable it once
+per clone:
+
+```bash
+npm run hooks:install          # = git config core.hooksPath .githooks
+```
+
+| Situation | Behaviour |
+|---|---|
+| Staged `.env*` (except `.env.example`), `*.backup`, `keys.txt`, `*.pem`/`*.key`/`*.p12`/`*.pfx`, `id_rsa*` — even with `git add -f` | **Blocked** |
+| `gitleaks` on `PATH` | Runs `gitleaks git --pre-commit --staged --redact` (or `protect --staged` on older versions) with `.gitleaks.toml`; blocks on findings |
+| `gitleaks` not installed | Warns and runs a minimal built-in check on added lines (`sb_secret_…`, JWTs, Google API keys, private-key headers); blocks on findings |
+
+The hook never prints secret values, only file names, and installs nothing. Installing `gitleaks` is
+recommended but optional and is the developer's choice: a binary from the official releases page
+(`github.com/gitleaks/gitleaks/releases`) or the OS package manager. `git commit --no-verify` skips the hook. Use it only for a confirmed false
+positive: the CI scan still runs on the PR.
 
 ## 9. Type-check and build
 
@@ -152,6 +189,10 @@ harness run. Never apply `0000` or any `*.rollback.sql` to production.
 | Symptom | Likely cause |
 |---|---|
 | `SUPABASE_URL e SUPABASE_SERVICE_KEY são obrigatórios…` | Missing `--env-file=.env` or vars |
+| `[envGuard:ENV_MISSING]` | `VIVERE_ENV=staging` missing from `.env` (older copies of `.env.example` lacked it) |
+| `[envGuard:PRODUCTION_BLOCKED]` / `URL_REF_MISMATCH` | `.env` (or a shell variable) points at production or another project — switch to staging |
+| `[adminEnvGuard:…]` when starting Vite | `admin-panel/.env.*` not pointing at staging, or a privileged key in a `VITE_*` variable |
+| Commit blocked by `pre-commit (SEC-O)` | A forbidden file or a secret-looking value is staged — unstage it; values belong in the ignored `.env` |
 | PostgREST error about schema `staging` not found/exposed | `staging` not exposed in Data API (runbook §4) |
 | `insert … violates foreign key … sources` / `products` | Reference rows missing in `public.sources` / `public.products` |
 | `permission denied for table …` with service key | Migration 0019 not applied on a fresh project |

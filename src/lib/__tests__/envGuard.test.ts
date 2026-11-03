@@ -327,7 +327,11 @@ describe('envGuard: variáveis conflitantes', () => {
   // EFECTIVO, por isso um SUPABASE_URL de produção no processo (ex: variável do Windows) é apanhado
   // mesmo que o ficheiro diga staging. Valores 100% falsos; o processo filho não herda o ambiente.
   const nodeSupportsEnvFile = nodeHasEnvFile();
-  describe.skipIf(!nodeSupportsEnvFile)('precedência processo vs --env-file (processo filho, sem rede)', () => {
+  // Arrancar um processo node filho pode passar dos 5 s por omissão do vitest numa máquina carregada.
+  // O filho tem o seu próprio limite, menor que o do teste, para falhar com status null e não por timeout.
+  const SUBPROCESS_TIMEOUT_MS = 15_000;
+  const SUBPROCESS_TEST_TIMEOUT_MS = 30_000;
+  describe.skipIf(!nodeSupportsEnvFile)('precedência processo vs --env-file (processo filho, sem rede)', { timeout: SUBPROCESS_TEST_TIMEOUT_MS }, () => {
     function effectiveEnv(fileLines: string[], processEnv: Record<string, string>): Env {
       const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'envguard-'));
       const file = path.join(dir, '.env.fake');
@@ -344,7 +348,7 @@ describe('envGuard: variáveis conflitantes', () => {
             'const o={};for(const n of k){if(process.env[n]!==undefined)o[n]=process.env[n];}' +
             'process.stdout.write(JSON.stringify(o));',
         ],
-        { env: childEnv, encoding: 'utf8' },
+        { env: childEnv, encoding: 'utf8', timeout: SUBPROCESS_TIMEOUT_MS },
       );
       fs.rmSync(dir, { recursive: true, force: true });
       expect(out.status).toBe(0);

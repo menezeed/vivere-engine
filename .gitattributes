@@ -1,0 +1,5 @@
+# Scripts de shell têm de manter LF em qualquer SO: com core.autocrlf=true
+# (Windows) um hook com CRLF falha no `sh` (SEC-O 3-002). Só estes ficheiros
+# são afectados; o resto do repositório mantém o comportamento actual.
+.githooks/* text eol=lf
+*.sh        text eol=lf

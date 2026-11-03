@@ -81,22 +81,40 @@ Severity scale used: **High** (data exposure or unauthorized write plausible), *
 - **Risk:** low. Note the API uses Bearer tokens (not cookies), so CORS is not the main control.
 - **Recommendation:** keep; document the production origin.
 
-## SEC-I — Tracked environment files and local secrets (Medium)
+## SEC-I — Tracked environment files and local secrets (Medium → partly remediated)
 
-- **Current:** `.env` is git-ignored (not tracked, verified from the git index). `admin-panel/.env.development`
-  and `admin-panel/.env.production` **are tracked** in git (added before the `**/.env.*` ignore rule).
-  They contain a Supabase URL, an API URL and a key (development: JWT `role=anon`, public by design;
-  production: non-JWT value of unidentified type — **To be confirmed**). The local root `.env` contains
-  a **production** service_role key (project ref matches the production ref in the runbook), a Google
-  API key, an unused `SUPABASE_JWT_SECRET`, and the security-harness credentials; `.env.example`
-  instructs to use the project's **real admin account** for the admin harness credentials.
-- **Risk:** low for the tracked files (anon key is public); high impact if the local `.env` leaks
-  (full DB access + admin login). Reusing the real admin password in a dev file increases blast radius.
-  Whether secrets were ever committed in git history was **not verified** (history objects not inspected).
-- **Recommendation:** `git rm --cached` the two admin-panel env files (owner decision); remove
-  `SUPABASE_JWT_SECRET` if unused; use a dedicated admin test account; run a secret scan over git history
-  (e.g. gitleaks) before sharing the repository with a new developer; give the new developer **staging**
-  credentials only.
+> Updated by SEC-O 2C-0 / 3-001 / 3-002 (2026-10-30/31). Original finding kept in git history.
+
+- **Current:**
+  - Only `.env.example` and `admin-panel/.env.example` are tracked. The two admin-panel env files were
+    removed from the index in PR #4 (they remain in **public** git history: an anon key, public by design).
+  - `.gitignore` covers `.env`, `**/.env.*`, `*.backup`, `keys.txt`, private keys (`*.pem`, `*.key`,
+    `*.p12`, `*.pfx`, `id_rsa*`), `*service-account*.json`, `secrets*.json`, `creds*.json`,
+    `credentials*.json` and editor backups/temp files.
+  - CI runs gitleaks on every PR/push; a versioned local pre-commit hook (`.githooks/pre-commit`,
+    `npm run hooks:install`) blocks env/key files and secret-looking values before they are committed.
+  - `.env.example` now declares `VIVERE_ENV=staging` and asks for a **dedicated staging test admin**.
+  - The root `.env` points at **staging**. Production credentials (`service_role`, JWT secret, admin
+    password, Google API key) exist only in a local, git-ignored backup file. **Rotation is pending**
+    (owner action; see the 3-001 report).
+  - A Google API key was committed in mid-2026 and removed by a history rewrite. It is not reachable from
+    any GitHub ref today, but it is still present in local `refs/original` / reflog objects.
+- **Risk:** high until the production credentials are rotated (full DB access, token forgery, admin
+  login, paid API usage). The repository is **public**, so any new leak is public on push.
+- **Recommendation (pending owner):** rotate production credentials (Supabase legacy keys + JWT secret,
+  admin password, Google key). Then delete the local backup and expire `refs/original`/reflog. Every
+  developer enables the pre-commit hook.
+
+### Credential policy (SEC-O)
+
+1. Development and tests use **only** the staging Supabase project. Code guards enforce this (`SEC-O` below).
+2. Production credentials are never placed in `.env`, docs, issues, PRs, chat or CI. They are held by
+   the owner only and are used from the Supabase/GCP consoles.
+3. Server keys (`sb_secret_…` / `service_role`) are never put in any `VITE_*` variable (the Vite guard
+   blocks it) nor shipped to mobile/browser clients.
+4. Test accounts are dedicated staging accounts. Never reuse a real admin account or a password used
+   elsewhere.
+5. A suspected leak is treated as real: rotate first, investigate after.
 
 ## SEC-J — Admin Panel token storage (Low)
 
@@ -125,16 +143,27 @@ Severity scale used: **High** (data exposure or unauthorized write plausible), *
 - **Risk:** an AI Discovery Layer with LLM calls would have no persistent spend cap.
 - **Recommendation:** persistent budget store before any paid LLM usage (see `07` §14).
 
-## SEC-O — Local development wired to production (High)
+## SEC-O — Local development wired to production (High → mitigated in code)
 
-- **Current:** the maintainer's `.env` (service_role) and the tracked `admin-panel/.env.development`
-  target the production Supabase project.
-- **Risk:** running tests/integration scripts, a local Review API, or AI Discovery experiments writes
-  to the production database; a new developer copying these files inherits production access.
-  The 2026-10-02 incident (`docs/incidents/`) shows accidental production deletes have already happened
-  and there are no backups on the current plan.
-- **Recommendation:** provision a staging project before onboarding; point dev env files at it; never
-  hand production keys to the AI Discovery developer.
+- **Original finding:** the maintainer's `.env` and the tracked `admin-panel/.env.development` targeted
+  the production Supabase project. The 2026-10-02 incident (`docs/incidents/`) showed that accidental
+  production deletes had already happened, and there are no backups on the current plan.
+- **Current (PRs #3, #4, #5):**
+  - `src/lib/envGuard.ts` runs before every Supabase client. It is used by `getSupabaseClient()` (Engine,
+    Review API, ER, publishing) and by the two scripts that create clients directly. It accepts only
+    `VIVERE_ENV=staging` + the exact staging URL + a valid server key, and blocks production
+    unconditionally, before any network call.
+  - `admin-panel/config/viteEnvGuard.ts` (called from `vite.config.ts`) blocks `vite` dev/build unless
+    the panel points at staging, and rejects privileged keys in any `VITE_*`.
+  - Local `admin-panel/.env.*` files that still target production are stopped by the guard
+    (`PRODUCTION_BLOCKED`).
+- **Residual risk:**
+  - Tools outside this code (Supabase CLI, `psql`, ad-hoc scripts) are not guarded.
+  - Checkouts of tags or branches older than PR #3 have no guard.
+  - A `sb_secret_` key cannot be bound to a project offline, so the guard reports `binding=unverified`.
+  - Where the deployed Review API/Admin Panel run, and against which project, is **To be confirmed**.
+- **Recommendation:** rotate production credentials (SEC-I). Redeploy the Review API and Admin Panel
+  against staging. Never hand production keys to the AI Discovery developer.
 
 ## SEC-N — Infrastructure identifiers in docs (Info)
 
@@ -157,6 +186,11 @@ Severity scale used: **High** (data exposure or unauthorized write plausible), *
 
 ## GitHub / secrets considerations
 
-- Remote: `github.com/menezeed/vivere-engine` (from `.git/config`). Visibility (public/private) **To be confirmed**.
-- No CI workflow files were found in the repository (no `.github/` path in the working tree listing nor in the git index) — tests are not enforced on PRs (**To be confirmed** against GitHub settings).
+- Remote: `github.com/menezeed/vivere-engine`. The repository is **public** (verified 2026-10-30): never
+  commit secrets, and treat anything pushed as published.
+- CI: `.github/workflows/ci.yml` runs Engine typecheck + tests, Admin Panel typecheck and a gitleaks
+  secret scan on every PR and push to `main`. Branch protection (required checks) is **To be confirmed**
+  in GitHub settings.
+- Local: `.githooks/pre-commit` (enable with `npm run hooks:install`) blocks secrets before they are
+  committed, with or without a local gitleaks install (see `08` §8a).
 - `docs/engineering/ai-development-workflow.md` describes AI agents working through GitHub issues/PRs; any automation with repository write access must not receive Supabase service keys or Google/LLM API keys unless explicitly decided.

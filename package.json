@@ -4,7 +4,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dry-run:google-places": "tsx scripts/dry-run-google-places.ts"
+    "dry-run:google-places": "tsx scripts/dry-run-google-places.ts",
+    "hooks:install": "git config core.hooksPath .githooks"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.110.0",

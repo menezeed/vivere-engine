@@ -75,13 +75,16 @@ The mobile app is in another repository (not reviewed here).
 
 ```bash
 npm ci && (cd admin-panel && npm ci)
-cp .env.example .env            # Windows: copy .env.example .env — fill with STAGING credentials only
-npx vitest run                  # To be confirmed: no npm test script exists
+npm run hooks:install           # pre-commit secret scan (08 §8a)
+cp .env.example .env            # Windows: copy .env.example .env — STAGING values only; keeps VIVERE_ENV=staging
+cp admin-panel/.env.example admin-panel/.env.development   # staging URL + staging anon key
+npx vitest run                  # offline; same suite as CI
 npx tsx --env-file=.env src/review-api/server.ts
 (cd admin-panel && npm run dev)
 ```
 
-Ask for a **staging** Supabase project and a reviewer account; do not use production keys.
+Ask for a **staging** Supabase project and a reviewer account; do not use production keys. The code
+refuses to start against production (`PRODUCTION_BLOCKED`); see the credential policy in `09` (SEC-I).
 Never run Google Places scripts (paid) without authorization. → `08-LOCAL-DEVELOPMENT.md`
 
 ## 8. Recommended reading order
