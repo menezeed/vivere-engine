@@ -3,7 +3,7 @@
 ## Ordem de execução
 
 ```
-0000 → 0001 → 0002 → ... → 0018 → 0019 → 0020 → 0021 → 0022
+0000 → 0001 → 0002 → ... → 0018 → 0019 → 0020 → 0021 → 0022 → 0023   (0024: BLOQUEADA, fora da cadeia aplicável)
 ```
 
 Numérica, estrita. Nenhum *runner* automatizado de migrações foi
@@ -116,6 +116,56 @@ Idempotente por natureza (repetir `ENABLE ROW LEVEL SECURITY` não faz nada),
 sem `IF NOT EXISTS`. Em produção seria um no-op e não deve ser executada lá
 sem autorização própria. O rollback desliga o RLS e só serve para ambientes
 reconstruídos, nunca para produção.
+
+## `0023_mobile_app_table_grants.sql` (APLICADA NO STAGING, SEC-O-020)
+
+**Estado por ambiente:**
+- **Staging** (`jvtcgomwbfojsttepcfc`): aplicada em 2026-11-07 pelo SQL Editor
+  ("Success. No rows returned"), ficheiro com SHA-256
+  `770fb028e4e256990d6128d175864b740ebbf2d5733536dbc5589de168465df6`. A
+  auditoria antes/depois (`db/audit/local/compare-audits.mjs`) deu 8/8:
+  exactamente 22 entradas de ACL novas, grantor `postgres`, nada removido,
+  políticas/RLS/funções/default ACL inalterados. Confirmada em SEC-O-021
+  (auditoria sem deriva, HTTP só leitura 13/13).
+- **Produção:** NÃO aplicada. Não executar em produção sem auditoria
+  específica e autorização Level 2.
+
+O ficheiro não deve ser alterado: o conteúdo tem de continuar igual ao
+que foi executado no staging. O SHA-256 acima é do conteúdo com fins de
+linha LF (como fica guardado no git). Num checkout Windows com
+`core.autocrlf=true` o ficheiro em disco tem CRLF e outro hash; para
+comparar: `git show HEAD:db/migrations/0023_mobile_app_table_grants.sql | sha256sum`.
+
+Concede a `anon` e `authenticated` só as operações que o app mobile faz
+em 5 tabelas legadas que a `0000` deixou sem GRANT explícito
+(`categories`, `venues`, `partners`, `favorites`, `suggestions`), com
+privilégios de coluna onde o app escreve um subconjunto conhecido. GRANT
+decide que operações se podem tentar; o RLS da `0020` continua a decidir
+em que linhas. Não toca em RLS, políticas, `service_role`, `activities`,
+`active_activities`, `users` nem `activity_interests`.
+
+Pré-condições, verificadas antes de qualquer GRANT (abortam tudo):
+- **P1:** RLS ligado e conjunto de políticas de cada tabela exactamente
+  igual ao da `0020` (número, nome, comando, tipo, papéis e expressões).
+- **P2:** estado limpo: nenhum dos privilégios a conceder já existe (de
+  tabela ou coluna, directo ou via PUBLIC). Se existir, aborta e a decisão
+  volta ao Level 2. Consequência: a 0023 **não é idempotente** (reaplicar
+  aborta).
+
+O rollback só retira o que a 0023 concedeu: confirma cada entrada de ACL
+(com grantor), aborta se houver privilégios extra nessas tabelas e
+confirma o estado final. Validado na simulação local (PostgreSQL 17.11 e
+PostgREST 14.18/16.5): caminho limpo, rollback, reaplicação, privilégios
+preexistentes, políticas adulteradas e privilégio extra antes do rollback.
+
+## `0024_activity_interests_grants.sql` (BLOQUEADA, SEC-O-016B)
+
+Não concede nada: executar o ficheiro só levanta uma excepção. A
+simulação local provou que o upsert do app (PostgREST `on_conflict` +
+`merge-duplicates`) exige INSERT, UPDATE e SELECT nas 3 colunas, incluindo
+`user_id`. Com as políticas actuais, isso não cumpre o critério de mínimo
+privilégio definido pelo Level 2 (SEC-O-016B). Até decisão Level 2, os interesses não persistem em
+staging e esse fluxo fica por validar. Opções no cabeçalho do ficheiro.
 
 ## Contrato forward-only
 

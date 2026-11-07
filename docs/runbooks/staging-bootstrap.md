@@ -42,6 +42,9 @@ $k = $null
 4b 0021_venues_staging_geographic_status.sql (um Run) e validação da
    secção 3b
 4c 0022_rls_engine_public_tables.sql (um Run) e validação da secção 3c
+4d Auditoria db/audit/grants-audit.readonly.sql (guardar o CSV ANTES da
+   0023), 0023_mobile_app_table_grants.sql (um Run) e validação da secção 3d.
+   A 0024 está BLOQUEADA: não a executar.
 5  Expor o schema staging na Data API (secção 4) e smoke test (secção 5)
 6  Dados de referência (secção 6): PENDENTE, ver essa secção
 7  Security harness: privilégios temporários, correr, reverter (secção 7)
@@ -211,6 +214,45 @@ rls public.sources | relrowsecurity=true | force=false | policies=0 OK
 rls total em public e staging (esperado 19) | 19 OK
 ```
 
+### 3d. Privilégios do app mobile (0023)
+
+**Estado no staging `jvtcgomwbfojsttepcfc`:** 0023 aplicada em 2026-11-07
+(SEC-O-020; auditoria antes/depois 8/8). Confirmada em SEC-O-021:
+auditoria só de leitura sem deriva (391/391) e verificações HTTP só
+GET/HEAD `TOTAL 13/13` (`db/audit/README.md` §3a). Interesses
+(`0024`) continuam bloqueados e os testes com contas/escrita por fazer.
+Para um ambiente novo, seguir os passos abaixo.
+
+**Bloqueio D1 (SEC-O-015):** sem a `0023`, `anon` e `authenticated` não têm
+privilégios em `categories`, `venues`, `partners`, `favorites`,
+`activity_interests` e `suggestions` (a `0000` não os define e o default
+ACL do SQL Editor não os dá). O app mobile de staging falha com 42501 e o RLS
+destas tabelas não pode ser testado. Nenhuma build mobile de staging antes
+de esta secção passar.
+
+A `0023` cobre 5 tabelas. `activity_interests` fica para a `0024`, que está
+**BLOQUEADA** (decisão Level 2): em staging, marcar interesse não persiste e
+esse fluxo **não fica validado**. O staging não pode ser declarado totalmente
+validado enquanto a 0024 estiver bloqueada.
+
+1. Antes da `0023`: correr `db/audit/grants-audit.readonly.sql` e guardar o
+   CSV (é a base do rollback; ver o cabeçalho de
+   `0023_mobile_app_table_grants.rollback.sql`).
+2. Aplicar a `0023` (um Run). Se abortar, PARAR e reportar a mensagem:
+   `(P1)` = RLS ou políticas diferentes da `0020`; `(P2)` = privilégios que
+   já existem (decisão Level 2; nunca forçar).
+3. Correr de novo a auditoria. **Critério:** secção `I desenho` sem nenhum
+   `FALTA` (`activity_interests` aparece como `PENDENTE`); secção `A rls` sem
+   `ATENCAO`; secção `E schema` com `staging` sem USAGE para
+   `anon`/`authenticated`.
+4. Correr `db/audit/mobile-access-tests.staging.sql` com duas contas de
+   teste. **Critério:** `0 FAIL de 49`.
+5. Rollback, só se necessário: `0023_mobile_app_table_grants.rollback.sql`,
+   com o mesmo papel que aplicou a 0023. Aborta sem retirar nada se houver
+   privilégios que a 0023 não concedeu.
+
+A query da secção 3 continua válida: a `0023` não toca em `service_role`.
+
 ## 4. Expor o schema `staging` na Data API
 
 Sem isto, o PostgREST responde `406 PGRST106` ("Invalid schema:
@@ -268,7 +310,8 @@ service_role: HTTP 200 com [] nas 7 primeiras (staging.* e public.venues,
   (controlo negativo de mínimo privilégio).
 anon: staging.ingestion_runs 401 com 42501 (sem USAGE no schema).
   public.activities 200 (controlo positivo da identidade anon).
-  public.venues 401 com 42501 (sem GRANT).
+  public.venues: 200 depois da 0023 (401 com 42501 antes da 0023,
+  que é o bloqueio D1 da secção 3d).
 ```
 
 A primeira escrita real acontece no Engine preview, com dados
@@ -304,13 +347,13 @@ Depois do harness: scripts/staging/harness-test-privileges.revert.sql
 ```
 
 Só no STAGING, nunca na produção. Se a reversão for esquecida, a
-validação da secção 3 acusa `MISMATCH`. Limitação conhecida: as 6 relações
-legadas sem GRANT para `anon` e `authenticated` (venues, favorites,
-activity_interests, suggestions, partners, categories) continuam por
-decidir, por isso alguns casos do harness (UPDATE em venues, partners e
-categories, DELETE em activities, admin UPDATE em venues) negam ou falham
-por falta de GRANT e não por RLS. Não os usar como evidência de RLS até
-essa decisão.
+validação da secção 3 acusa `MISMATCH`. Limitação conhecida: a `0023` (proposta) só concede o que o app mobile
+usa (leitura de venues, partners e categories; escrita em favorites,
+activity_interests e suggestions). Os casos do harness de UPDATE em venues,
+partners e categories, DELETE em activities e admin UPDATE em venues
+continuam a negar ou falhar por falta de GRANT e não por RLS; não os usar
+como evidência de RLS. Privilégios de escrita de administração por
+`authenticated` são uma decisão separada (fora do SEC-O-016).
 
 ## 8. Dívida de hardening registada
 
