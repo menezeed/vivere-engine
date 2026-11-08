@@ -1,0 +1,7 @@
+# Migrações aplicadas num ambiente remoto: conteúdo CONGELADO.
+# SHA-256 do conteúdo com fins de linha LF (como o git guarda).
+# Verificado na CI por scripts/check-migrations.mjs. Acrescentar uma linha
+# só depois de a migração ser aplicada (com evidência e REF Level 2).
+# Formato: <sha256>  <ficheiro>  <ambiente e referência>
+770fb028e4e256990d6128d175864b740ebbf2d5733536dbc5589de168465df6  0023_mobile_app_table_grants.sql  staging 2026-11-07 SEC-O-020
+001dac0c02b410711e2b994b06add540cd82674bc9db86a5ff7ff2041d6de95a  0023_mobile_app_table_grants.rollback.sql  rollback da 0023 aplicada (não executado; congelado com ela)

@@ -9,12 +9,21 @@
 -- contém só metadados (tabelas, papéis, privilégios, grantor, expressões
 -- de políticas, versão), sem dados pessoais nem credenciais.
 --
--- Validada na simulação local PostgreSQL 17.11 (SEC-O-016B).
+-- Validada na simulação local PostgreSQL 17.11 (SEC-O-016B; v2 no Lote 2).
+--
+-- VERSÃO 2 (Lote 2): o desenho passa a ser o pós-0024/0025. A v1
+-- (SEC-O-016..021, desenho com activity_interests PENDENTE) fica
+-- congelada nas evidências SEC-O; comparar só auditorias da mesma versão.
 --
 -- Colunas: sec | objeto | papel | detalhe | estado
---   estado: OK / FALTA / PENDENTE / EXTRA / INFO / ATENCAO
---   Secção I compara o real com o desenho (0023; activity_interests fica
---   PENDENTE até à 0024). Em produção, EXTRA é esperado e informativo:
+--   estado: OK / FALTA / EXTRA / INFO / ATENCAO
+--   Secção I compara o real com o desenho (0000 + 0023 + 0024):
+--   anon sem UPDATE em activities (authenticated mantém-no para o admin,
+--   política admin_role_all), só SELECT em active_activities e nada em
+--   activity_interests (os interesses passam pelas RPC da 0024). Linhas `I proibido` = ATENCAO se o privilégio
+--   existir (esperado ANTES da 0024). Secção F: as RPC da 0024/0025 com
+--   EXECUTE só para authenticated; increment_activity_interest sem EXECUTE
+--   para anon/authenticated. Em produção, EXTRA é esperado e informativo:
 --   NÃO assumir que produção e staging são iguais.
 -- ============================================================
 with
@@ -28,11 +37,12 @@ roles(rol) as (values ('anon'), ('authenticated'), ('service_role')),
 privs(p) as (values ('SELECT'), ('INSERT'), ('UPDATE'), ('DELETE'),
                     ('TRUNCATE'), ('REFERENCES'), ('TRIGGER')),
 -- O que o app mobile PRECISA (T = tabela, C = coluna). 0000 + 0023 + 0024.
+-- activity_interests: nada (só via RPC). activities: UPDATE só authenticated
+-- (painel admin, filtrado pelo RLS admin_role_all; 0024 retira o de anon).
 need(rel, rol, p, lvl, origem) as (values
   ('public.activities',         'anon',          'SELECT', 'T', '0000'),
   ('public.activities',         'authenticated', 'SELECT', 'T', '0000'),
-  ('public.activities',         'anon',          'UPDATE', 'C', '0000'),
-  ('public.activities',         'authenticated', 'UPDATE', 'C', '0000'),
+  ('public.activities',         'authenticated', 'UPDATE', 'T', '0000 admin'),
   ('public.active_activities',  'anon',          'SELECT', 'T', '0000'),
   ('public.active_activities',  'authenticated', 'SELECT', 'T', '0000'),
   ('public.categories',         'anon',          'SELECT', 'T', '0023'),
@@ -45,14 +55,20 @@ need(rel, rol, p, lvl, origem) as (values
   ('public.favorites',          'authenticated', 'INSERT', 'C', '0023'),
   ('public.favorites',          'authenticated', 'DELETE', 'T', '0023'),
   ('public.suggestions',        'anon',          'INSERT', 'C', '0023'),
-  ('public.suggestions',        'authenticated', 'INSERT', 'C', '0023'),
-  ('public.activity_interests', 'anon',          'INSERT', 'C', '0024'),
-  ('public.activity_interests', 'authenticated', 'INSERT', 'C', '0024'),
-  ('public.activity_interests', 'anon',          'UPDATE', 'C', '0024'),
-  ('public.activity_interests', 'authenticated', 'UPDATE', 'C', '0024'),
-  ('public.activity_interests', 'anon',          'SELECT', 'C', '0024'),
-  ('public.activity_interests', 'authenticated', 'SELECT', 'C', '0024'),
-  ('public.activity_interests', 'authenticated', 'DELETE', 'T', '0024')),
+  ('public.suggestions',        'authenticated', 'INSERT', 'C', '0023')),
+-- O que NÃO pode existir depois da 0024 (MAINTAIN: ver secção L)
+deny(rel, rol, p, origem) as (
+  select 'public.activities', 'anon', 'UPDATE', '0024'
+  union all
+  select d.rel, r.rol, d.p, '0024'
+  from (values ('public.active_activities', 'INSERT'), ('public.active_activities', 'UPDATE'),
+               ('public.active_activities', 'DELETE'), ('public.active_activities', 'TRUNCATE'),
+               ('public.active_activities', 'REFERENCES'), ('public.active_activities', 'TRIGGER'),
+               ('public.activity_interests', 'SELECT'), ('public.activity_interests', 'INSERT'),
+               ('public.activity_interests', 'UPDATE'), ('public.activity_interests', 'DELETE'),
+               ('public.activity_interests', 'TRUNCATE'), ('public.activity_interests', 'REFERENCES'),
+               ('public.activity_interests', 'TRIGGER')) d(rel, p)
+  cross join (values ('anon'), ('authenticated')) r(rol)),
 cls as (
   select r.rel, c.oid, c.relkind::text as relkind, c.relrowsecurity, c.relforcerowsecurity,
          c.reloptions, c.relacl, pg_catalog.pg_get_userbyid(c.relowner)::text as owner
@@ -161,11 +177,22 @@ out(ord, sec, objeto, papel, detalhe, estado) as (
       || ' secdef=' || f.prosecdef::text
       || ' config=' || coalesce(pg_catalog.array_to_string(f.proconfig, ','), '-'),
     case when n.nspname = 'auth' and not pg_catalog.has_function_privilege(r.rol, f.oid, 'EXECUTE') then 'FALTA'
+         -- RPC do Lote 2: só authenticated
+         when f.proname in ('set_activity_interest', 'get_my_interests', 'delete_my_account')
+              and r.rol in ('anon', 'service_role') and pg_catalog.has_function_privilege(r.rol, f.oid, 'EXECUTE') then 'ATENCAO'
+         when f.proname in ('set_activity_interest', 'get_my_interests', 'delete_my_account')
+              and r.rol = 'authenticated' and not pg_catalog.has_function_privilege(r.rol, f.oid, 'EXECUTE') then 'FALTA'
+         when f.proname in ('set_activity_interest', 'get_my_interests', 'delete_my_account')
+              and not (f.prosecdef and f.proconfig = array['search_path=""']) then 'ATENCAO'
+         -- 0024: a função antiga deixa de ser chamável pela API
+         when f.proname = 'increment_activity_interest' and r.rol <> 'service_role'
+              and pg_catalog.has_function_privilege(r.rol, f.oid, 'EXECUTE') then 'ATENCAO'
          else 'INFO' end
   from pg_catalog.pg_proc f
   join pg_catalog.pg_namespace n on n.oid = f.pronamespace
-  cross join (values ('anon'), ('authenticated')) r(rol)
-  where (n.nspname = 'public' and f.proname in ('guard_activities_update', 'increment_activity_interest'))
+  cross join (values ('anon'), ('authenticated'), ('service_role')) r(rol)
+  where (n.nspname = 'public' and f.proname in ('guard_activities_update', 'increment_activity_interest',
+                                                'set_activity_interest', 'get_my_interests', 'delete_my_account'))
      or (n.nspname = 'auth' and f.proname in ('uid', 'jwt', 'role'))
 
   -- G. Sequências em public (o desenho não precisa de nenhuma: PKs uuid)
@@ -191,7 +218,6 @@ out(ord, sec, objeto, papel, detalhe, estado) as (
   select 900, 'I desenho', n.rel, n.rol,
     n.p || ' precisa=' || n.lvl || ' real=' || coalesce(e.v, '?') || ' origem=' || n.origem,
     case when coalesce(e.v, '-') not in ('-', '?') then 'OK'
-         when n.origem = '0024' then 'PENDENTE'
          else 'FALTA' end
   from need n left join eff e on e.rel = n.rel and e.rol = n.rol and e.p = n.p
   union all
@@ -200,6 +226,13 @@ out(ord, sec, objeto, papel, detalhe, estado) as (
   from eff e
   where e.rol in ('anon', 'authenticated') and e.v in ('T', 'C')
     and not exists (select 1 from need n where n.rel = e.rel and n.rol = e.rol and n.p = e.p)
+    and not exists (select 1 from deny d where d.rel = e.rel and d.rol = e.rol and d.p = e.p)
+  union all
+  select 920, 'I proibido', d.rel, e.rol,
+    d.p || ' real=' || coalesce(e.v, '?') || ' origem=' || d.origem,
+    case when coalesce(e.v, '-') in ('T', 'C') then 'ATENCAO' else 'OK' end
+  from deny d
+  join eff e on e.rel = d.rel and e.p = d.p and e.rol = d.rol
 
   -- J. Default privileges (explica diferenças entre ambientes)
   union all
@@ -223,8 +256,14 @@ out(ord, sec, objeto, papel, detalhe, estado) as (
     ('0014', 'public.publication_runs', pg_catalog.to_regclass('public.publication_runs') is not null),
     ('0020', 'trigger guard_activities_update',
       exists (select 1 from pg_catalog.pg_trigger where tgname = 'guard_activities_update')),
-    ('0020', 'policy compat_interested_count_update',
-      exists (select 1 from pg_catalog.pg_policies where policyname = 'compat_interested_count_update')),
+    ('0024', 'policy compat_interested_count_update removida',
+      not exists (select 1 from pg_catalog.pg_policies where policyname = 'compat_interested_count_update')),
+    ('0024', 'public.set_activity_interest(uuid,boolean)',
+      pg_catalog.to_regprocedure('public.set_activity_interest(uuid, boolean)') is not null),
+    ('0024', 'public.get_my_interests(uuid[])',
+      pg_catalog.to_regprocedure('public.get_my_interests(uuid[])') is not null),
+    ('0025', 'public.delete_my_account()',
+      pg_catalog.to_regprocedure('public.delete_my_account()') is not null),
     ('0021', 'staging.venues_staging.geographic_status',
       exists (select 1 from information_schema.columns where table_schema = 'staging'
               and table_name = 'venues_staging' and column_name = 'geographic_status')),

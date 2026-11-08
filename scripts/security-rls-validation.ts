@@ -17,6 +17,15 @@
  * e só então classificam ALLOWED/DENIED pela mudança real observada —
  * nunca pelo código de resposta sozinho.
  *
+ * Lote 2 (0024): a escrita directa de interested_count deixou de existir.
+ * anon perdeu UPDATE em activities (GRANT) e a política
+ * compat_interested_count_update foi removida, por isso um authenticated
+ * comum já não actualiza nenhuma linha (RLS: 0 linhas, SEM erro); só o
+ * admin (política admin_role_all) edita. Os interesses passam pela RPC
+ * set_activity_interest. Por isso TODOS os testes de UPDATE em activities
+ * confirmam o estado real via serviceClient (como os de venues/partners/
+ * categories), nunca só pelo campo `error`.
+ *
  * NUNCA usa dados reais (nenhuma das 47 activities legacy, nenhuma
  * activity do Engine, nenhum venue/partner/category real) — cria
  * sempre uma fixture descartável própria por tabela testada,
@@ -167,14 +176,17 @@ async function main(): Promise<void> {
     await testSelect('anon SELECT fixture', anonClient, fixtureId);
     await testSelect('authenticated SELECT fixture', authedClient, fixtureId);
 
-    await testUpdateCount('authenticated interested_count +1', authedClient, fixtureId, 1, 'ALLOWED');
-    await testUpdateCount('authenticated interested_count -1 (volta a 0)', authedClient, fixtureId, -1, 'ALLOWED');
-    await testUpdateCount('authenticated interested_count +10 arbitrário', authedClient, fixtureId, 10, 'DENIED');
-    await testUpdateNull('authenticated interested_count NULL', authedClient, fixtureId);
+    // Lote 2 (0024): ±1 directo negado a anon e authenticated (só via RPC set_activity_interest)
+    await testUpdateCount('anon interested_count +1 (0024: negado)', anonClient, serviceClient, fixtureId, 1, 'DENIED');
+    await testUpdateCount('anon interested_count -1 (0024: negado)', anonClient, serviceClient, fixtureId, -1, 'DENIED');
+    await testUpdateCount('authenticated interested_count +1 (0024: negado)', authedClient, serviceClient, fixtureId, 1, 'DENIED');
+    await testUpdateCount('authenticated interested_count -1 (0024: negado)', authedClient, serviceClient, fixtureId, -1, 'DENIED');
+    await testUpdateCount('authenticated interested_count +10 arbitrário', authedClient, serviceClient, fixtureId, 10, 'DENIED');
+    await testUpdateNull('authenticated interested_count NULL', authedClient, serviceClient, fixtureId);
 
-    await testUpdateField('authenticated UPDATE title', authedClient, fixtureId, { title: 'HACKED' });
-    await testUpdateField('authenticated UPDATE product_key', authedClient, fixtureId, { product_key: 'vivere-60-mais' });
-    await testUpdateField('authenticated UPDATE recurrence_type', authedClient, fixtureId, { recurrence_type: 'weekly' });
+    await testUpdateField('authenticated UPDATE title', authedClient, serviceClient, fixtureId, { title: 'HACKED' });
+    await testUpdateField('authenticated UPDATE product_key', authedClient, serviceClient, fixtureId, { product_key: 'vivere-60-mais' });
+    await testUpdateField('authenticated UPDATE recurrence_type', authedClient, serviceClient, fixtureId, { recurrence_type: 'weekly' });
 
     await testInsert('authenticated INSERT activity', authedClient, serviceClient);
     await testInsert('anon INSERT activity', anonClient, serviceClient);
@@ -185,7 +197,7 @@ async function main(): Promise<void> {
     await testPrivilegedOnFixture('authenticated UPDATE categories (fixture, deve negar)', authedClient, serviceClient, 'categories', categoryFixtureId, 'label_pt');
 
     await testUpdateField(
-      'admin UPDATE title (deve permitir)', adminClient, fixtureId,
+      'admin UPDATE title (deve permitir)', adminClient, serviceClient, fixtureId,
       { title: `${FIXTURE_MARKER} — editado por admin` }, 'ALLOWED',
     );
     if (venueFixtureId) {
@@ -264,25 +276,47 @@ async function testSelect(name: string, client: SupabaseClient, id: string): Pro
   record(name, 'ALLOWED', error ? 'ERROR' : data ? 'ALLOWED' : 'DENIED', error?.message);
 }
 
-async function testUpdateCount(
-  name: string, client: SupabaseClient, id: string, delta: number, expected: 'ALLOWED' | 'DENIED',
+/**
+ * UPDATE em activities com confirmação do estado real via serviceClient:
+ * desde a 0024 um UPDATE de authenticated comum é filtrado pelo RLS
+ * (0 linhas, sem erro), por isso `error` sozinho não distingue nada.
+ * ALLOWED só se a linha passou mesmo a ter os valores pedidos.
+ */
+async function testActivitiesUpdate(
+  name: string, client: SupabaseClient, serviceClient: SupabaseClient, id: string,
+  patch: Record<string, unknown>, expected: 'ALLOWED' | 'DENIED',
 ): Promise<void> {
-  const { data: before } = await client.from('activities').select('interested_count').eq('id', id).single();
-  const { error } = await client.from('activities').update({ interested_count: (before?.interested_count ?? 0) + delta }).eq('id', id);
-  record(name, expected, error ? 'DENIED' : 'ALLOWED', error?.message);
+  const cols = Object.keys(patch).join(', ');
+  const { data: before } = await serviceClient.from('activities').select(cols).eq('id', id).single();
+  const { error } = await client.from('activities').update(patch).eq('id', id);
+  const { data: after } = await serviceClient.from('activities').select(cols).eq('id', id).single();
+  const b = (before ?? {}) as Record<string, unknown>;
+  const a = (after ?? {}) as Record<string, unknown>;
+  const keys = Object.keys(patch);
+  const didChange = after !== null && keys.every((k) => a[k] === patch[k]) && keys.some((k) => b[k] !== patch[k]);
+  record(name, expected, didChange ? 'ALLOWED' : 'DENIED',
+    error?.message ?? (didChange ? 'linha mudou (confirmado via service_role)' : 'linha inalterada (confirmado via service_role)'));
 }
 
-async function testUpdateNull(name: string, client: SupabaseClient, id: string): Promise<void> {
-  const { error } = await client.from('activities').update({ interested_count: null }).eq('id', id);
-  record(name, 'DENIED', error ? 'DENIED' : 'ALLOWED', error?.message);
+async function testUpdateCount(
+  name: string, client: SupabaseClient, serviceClient: SupabaseClient, id: string, delta: number,
+  expected: 'ALLOWED' | 'DENIED',
+): Promise<void> {
+  const { data: before } = await serviceClient.from('activities').select('interested_count').eq('id', id).single();
+  const current = ((before ?? {}) as Record<string, unknown>)['interested_count'];
+  const target = (typeof current === 'number' ? current : 0) + delta;
+  await testActivitiesUpdate(name, client, serviceClient, id, { interested_count: target }, expected);
+}
+
+async function testUpdateNull(name: string, client: SupabaseClient, serviceClient: SupabaseClient, id: string): Promise<void> {
+  await testActivitiesUpdate(name, client, serviceClient, id, { interested_count: null }, 'DENIED');
 }
 
 async function testUpdateField(
-  name: string, client: SupabaseClient, id: string, patch: Record<string, unknown>,
+  name: string, client: SupabaseClient, serviceClient: SupabaseClient, id: string, patch: Record<string, unknown>,
   expected: 'ALLOWED' | 'DENIED' = 'DENIED',
 ): Promise<void> {
-  const { error } = await client.from('activities').update(patch).eq('id', id);
-  record(name, expected, error ? 'DENIED' : 'ALLOWED', error?.message);
+  await testActivitiesUpdate(name, client, serviceClient, id, patch, expected);
 }
 
 async function testInsert(name: string, client: SupabaseClient, serviceClient: SupabaseClient): Promise<void> {

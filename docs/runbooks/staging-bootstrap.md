@@ -44,7 +44,8 @@ $k = $null
 4c 0022_rls_engine_public_tables.sql (um Run) e validação da secção 3c
 4d Auditoria db/audit/grants-audit.readonly.sql (guardar o CSV ANTES da
    0023), 0023_mobile_app_table_grants.sql (um Run) e validação da secção 3d.
-   A 0024 está BLOQUEADA: não a executar.
+4e 0024_activity_interests_rpc.sql e 0025_delete_my_account.sql (cada uma
+   um Run, só com REF próprio) e validação da secção 3d (Lote 2).
 5  Expor o schema staging na Data API (secção 4) e smoke test (secção 5)
 6  Dados de referência (secção 6): PENDENTE, ver essa secção
 7  Security harness: privilégios temporários, correr, reverter (secção 7)
@@ -219,9 +220,11 @@ rls total em public e staging (esperado 19) | 19 OK
 **Estado no staging `jvtcgomwbfojsttepcfc`:** 0023 aplicada em 2026-11-07
 (SEC-O-020; auditoria antes/depois 8/8). Confirmada em SEC-O-021:
 auditoria só de leitura sem deriva (391/391) e verificações HTTP só
-GET/HEAD `TOTAL 13/13` (`db/audit/README.md` §3a). Interesses
-(`0024`) continuam bloqueados e os testes com contas/escrita por fazer.
-Para um ambiente novo, seguir os passos abaixo.
+GET/HEAD `TOTAL 13/13` (`db/audit/README.md` §3a). A antiga `0024` de
+GRANT (bloqueada) foi substituída no Lote 2 pela `0024_activity_interests_rpc.sql`
+(RPC) e pela `0025_delete_my_account.sql`, **ainda não aplicadas no
+staging** (passos 6–9 abaixo, com REF próprio). Para um ambiente novo,
+seguir os passos abaixo.
 
 **Bloqueio D1 (SEC-O-015):** sem a `0023`, `anon` e `authenticated` não têm
 privilégios em `categories`, `venues`, `partners`, `favorites`,
@@ -230,10 +233,11 @@ ACL do SQL Editor não os dá). O app mobile de staging falha com 42501 e o RLS
 destas tabelas não pode ser testado. Nenhuma build mobile de staging antes
 de esta secção passar.
 
-A `0023` cobre 5 tabelas. `activity_interests` fica para a `0024`, que está
-**BLOQUEADA** (decisão Level 2): em staging, marcar interesse não persiste e
-esse fluxo **não fica validado**. O staging não pode ser declarado totalmente
-validado enquanto a 0024 estiver bloqueada.
+A `0023` cobre 5 tabelas. `activity_interests` não recebe GRANT: desde a
+`0024` (Lote 2) os interesses passam só pelas RPC `set_activity_interest` e
+`get_my_interests` (EXECUTE só `authenticated`). Até a `0024` estar
+aplicada no staging, marcar interesse não persiste e esse fluxo não fica
+validado.
 
 1. Antes da `0023`: correr `db/audit/grants-audit.readonly.sql` e guardar o
    CSV (é a base do rollback; ver o cabeçalho de
@@ -241,17 +245,52 @@ validado enquanto a 0024 estiver bloqueada.
 2. Aplicar a `0023` (um Run). Se abortar, PARAR e reportar a mensagem:
    `(P1)` = RLS ou políticas diferentes da `0020`; `(P2)` = privilégios que
    já existem (decisão Level 2; nunca forçar).
-3. Correr de novo a auditoria. **Critério:** secção `I desenho` sem nenhum
-   `FALTA` (`activity_interests` aparece como `PENDENTE`); secção `A rls` sem
-   `ATENCAO`; secção `E schema` com `staging` sem USAGE para
-   `anon`/`authenticated`.
-4. Correr `db/audit/mobile-access-tests.staging.sql` com duas contas de
-   teste. **Critério:** `0 FAIL de 49`.
-5. Rollback, só se necessário: `0023_mobile_app_table_grants.rollback.sql`,
-   com o mesmo papel que aplicou a 0023. Aborta sem retirar nada se houver
-   privilégios que a 0023 não concedeu.
+3. Correr de novo a auditoria (v2). Entre a `0023` e a `0024` é esperado:
+   `I desenho` sem `FALTA`; `I proibido` com `ATENCAO` em UPDATE de
+   `activities` e na escrita de `active_activities`; `F funcoes` com
+   `ATENCAO` em `increment_activity_interest`; `K cadeia` com `FALTA` só
+   nas linhas 0024/0025 (`authenticated` mantém UPDATE em `activities`,
+   para o admin). Secção `A rls` sem `ATENCAO`; `E schema` com
+   `staging` sem USAGE para `anon`/`authenticated`.
+4. Rollback da 0023, só se necessário:
+   `0023_mobile_app_table_grants.rollback.sql`, com o mesmo papel que
+   aplicou a 0023. Aborta sem retirar nada se houver privilégios que a 0023
+   não concedeu.
+5. **Pressuposto da 0025** (só leitura, antes de a aplicar): confirmar que
+   `postgres` tem SELECT em `auth.users` e `auth.sessions` e DELETE em
+   `auth.users` (`select has_table_privilege('postgres','auth.users','DELETE')`,
+   idem SELECT/`auth.sessions`), que `auth.sessions` tem `created_at` e
+   `not_after`, que `auth.users` tem `email_confirmed_at` e que nenhuma FK
+   fora do schema `auth` aponta para `auth.users` sem CASCADE/SET NULL
+   (a 0025 verifica-o e aborta). Se não, PARAR e reportar.
+6. Aplicar a `0024_activity_interests_rpc.sql` (um Run). Se abortar, PARAR e
+   reportar: `(P1)` = cadeia/políticas/trigger/funções diferentes do
+   esperado; `(P2)` = ACL de `activities`/`active_activities`/
+   `activity_interests`/`increment_activity_interest` diferente da
+   `0000`/`0020`/default ACL (em `activity_interests` a P2 espera
+   exactamente TRUNCATE/REFERENCES/TRIGGER/MAINTAIN para anon/authenticated,
+   como na auditoria SEC-O-017; decisão Level 2; nunca forçar).
+7. Aplicar a `0025_delete_my_account.sql` (um Run). Se abortar, PARAR.
+8. Correr a auditoria v2. **Critério:** nenhuma linha `FALTA` nem
+   `ATENCAO` em toda a saída (`I proibido` todo `OK`; RPC com
+   `execute=false` para `anon` e `true` para `authenticated`;
+   `K cadeia` toda `OK`).
+9. Correr `db/audit/mobile-access-tests.staging.sql` com duas contas de
+   teste (sem `app_metadata.role`). **Critério:** `0 FAIL de 61`. O teste
+   de `delete_my_account` só prova a recusa `28000` (sem `session_id`):
+   nunca apaga a conta.
+10. Rollback, só se necessário e por ordem inversa:
+    `0025_delete_my_account.rollback.sql` e depois
+    `0024_activity_interests_rpc.rollback.sql` (repõe a política compat e os
+    GRANT da `0000`/`0020`; aborta sem alterar nada se o estado não for o
+    deixado pela 0024). Dados (interesses, contador, contas apagadas) não são
+    revertidos.
 
-A query da secção 3 continua válida: a `0023` não toca em `service_role`.
+**Contador `interested_count`:** histórico preservado e **não auditado** (ver
+`db/migrations/README.md`, secção 0024).
+
+A query da secção 3 continua válida: a `0023`, a `0024` e a `0025` não tocam
+em `service_role`.
 
 ## 4. Expor o schema `staging` na Data API
 

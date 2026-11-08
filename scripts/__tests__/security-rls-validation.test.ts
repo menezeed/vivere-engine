@@ -125,7 +125,10 @@ function makeBackend() {
         const visible = role === 'service' || this.table === 'activities' ? rows.filter((r) => this.matches(r)) : [];
         return asResult(visible);
       }
-      if (role !== 'service') return { data: null, error: null }; // RLS: UPDATE/DELETE bloqueado não lança erro, não afecta linhas
+      // Lote 2: admin edita activities (política admin_role_all); restantes UPDATE/DELETE não-service
+      // são filtrados pelo RLS: não lançam erro, não afectam linhas.
+      const adminEdit = role === 'admin' && this.verb === 'update' && this.table === 'activities';
+      if (role !== 'service' && !adminEdit) return { data: null, error: null };
       if (this.verb === 'update') {
         for (const r of rows.filter((x) => this.matches(x))) Object.assign(r, this.payload);
         return { data: null, error: null };
@@ -213,7 +216,8 @@ afterEach(() => {
 const notCreated = () => expect(createClientMock).not.toHaveBeenCalled();
 const noBackendActivity = (b: Backend) => { expect(b.ops).toEqual([]); expect(b.authLog).toEqual([]); expect(b.created).toHaveLength(0); };
 
-// Sequência de operações do harness ORIGINAL (gerada contra o backend falso, antes da alteração).
+// Sequência de operações do harness (backend falso). Lote 2: os UPDATE em activities passam a
+// confirmar o estado real via service (select antes/depois) e há 2 testes novos de anon ±1.
 const GOLDEN_OPS: string[] = [
   'service insert activities [id, interested_count] {engine_status,interested_count,product_key,source_key,title}',
   'service insert venues [id] {engine_status,name,product_key,source_key}',
@@ -221,16 +225,38 @@ const GOLDEN_OPS: string[] = [
   'service insert categories [id] {emoji,key,label_en,label_pt}',
   'anon select activities [id] eq:id=#activities',
   'authed select activities [id] eq:id=#activities',
-  'authed select activities [interested_count] eq:id=#activities',
+  'service select activities [interested_count] eq:id=#activities',
+  'service select activities [interested_count] eq:id=#activities',
+  'anon update activities {interested_count} eq:id=#activities',
+  'service select activities [interested_count] eq:id=#activities',
+  'service select activities [interested_count] eq:id=#activities',
+  'service select activities [interested_count] eq:id=#activities',
+  'anon update activities {interested_count} eq:id=#activities',
+  'service select activities [interested_count] eq:id=#activities',
+  'service select activities [interested_count] eq:id=#activities',
+  'service select activities [interested_count] eq:id=#activities',
   'authed update activities {interested_count} eq:id=#activities',
-  'authed select activities [interested_count] eq:id=#activities',
+  'service select activities [interested_count] eq:id=#activities',
+  'service select activities [interested_count] eq:id=#activities',
+  'service select activities [interested_count] eq:id=#activities',
   'authed update activities {interested_count} eq:id=#activities',
-  'authed select activities [interested_count] eq:id=#activities',
+  'service select activities [interested_count] eq:id=#activities',
+  'service select activities [interested_count] eq:id=#activities',
+  'service select activities [interested_count] eq:id=#activities',
   'authed update activities {interested_count} eq:id=#activities',
+  'service select activities [interested_count] eq:id=#activities',
+  'service select activities [interested_count] eq:id=#activities',
   'authed update activities {interested_count} eq:id=#activities',
+  'service select activities [interested_count] eq:id=#activities',
+  'service select activities [title] eq:id=#activities',
   'authed update activities {title} eq:id=#activities',
+  'service select activities [title] eq:id=#activities',
+  'service select activities [product_key] eq:id=#activities',
   'authed update activities {product_key} eq:id=#activities',
+  'service select activities [product_key] eq:id=#activities',
+  'service select activities [recurrence_type] eq:id=#activities',
   'authed update activities {recurrence_type} eq:id=#activities',
+  'service select activities [recurrence_type] eq:id=#activities',
   'authed insert activities [id] {engine_status,product_key,source_key,title}',
   'anon insert activities [id] {engine_status,product_key,source_key,title}',
   'authed delete activities eq:id=#activities',
@@ -241,7 +267,9 @@ const GOLDEN_OPS: string[] = [
   'service select partners [name] eq:id=#partners',
   'authed update categories {label_pt} eq:id=#categories',
   'service select categories [label_pt] eq:id=#categories',
+  'service select activities [title] eq:id=#activities',
   'admin update activities {title} eq:id=#activities',
+  'service select activities [title] eq:id=#activities',
   'admin update venues {name} eq:id=#venues',
   'service select venues [name] eq:id=#venues',
   'service select activities [id, title, interested_count, product_key, recurrence_type] eq:id=#activities',
@@ -399,6 +427,20 @@ describe('security-rls-validation: comportamento preservado', () => {
     const writes = backend.ops.filter((o) => /^(anon|authed|admin) (insert|update|delete)/.test(o));
     expect(writes.length).toBeGreaterThan(0); // as tentativas existem...
     expect(Object.values(backend.store).flat()).toHaveLength(0); // ...mas o backend fica limpo
+  });
+  it('Lote 2 (0024): ±1 directo de anon/authenticated esperado DENIED (confirmado via service); admin UPDATE ALLOWED', async () => {
+    const { output } = await runHarness(VALID);
+    for (const name of ['anon interested_count +1 (0024: negado)', 'anon interested_count -1 (0024: negado)',
+      'authenticated interested_count +1 (0024: negado)', 'authenticated interested_count -1 (0024: negado)',
+      'authenticated interested_count +10 arbitrário', 'authenticated interested_count NULL', 'authenticated UPDATE title']) {
+      expect(output).toContain(`[PASS] ${name} — esperado DENIED, obtido DENIED`);
+    }
+    expect(output).toContain('[PASS] admin UPDATE title (deve permitir) — esperado ALLOWED, obtido ALLOWED');
+    expect(output).not.toContain('esperado ALLOWED, obtido ALLOWED (linha inalterada');
+  });
+  it('um UPDATE sem erro mas sem efeito (RLS) nunca conta como ALLOWED', async () => {
+    const { output } = await runHarness(VALID);
+    expect(output).toContain('[PASS] authenticated interested_count +1 (0024: negado) — esperado DENIED, obtido DENIED (linha inalterada');
   });
   it('imprime os resultados e sai com o mesmo código de saída que o original', async () => {
     const { exitCodes, output } = await runHarness(VALID);

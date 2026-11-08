@@ -222,6 +222,12 @@ describe('validate-staging-bootstrap: limitações pré-existentes documentadas'
       expect(src).toContain(marker);
     }
   });
+  it('EXPECTED_FUNCTIONS inclui as RPC do Lote 2 (0024/0025) e mantém as da 0020', () => {
+    const m = src.match(/const EXPECTED_FUNCTIONS = \[([\s\S]*?)\];/);
+    expect(m).not.toBeNull();
+    const names = [...(m?.[1] ?? '').matchAll(/'([a-z_]+)'/g)].map((x) => x[1]).sort();
+    expect(names).toEqual(['delete_my_account', 'get_my_interests', 'guard_activities_update', 'increment_activity_interest', 'set_activity_interest']);
+  });
   it('as listas EXPECTED_* continuam declaradas mas NÃO usadas em nenhuma verificação (limitação 1, ainda por resolver)', () => {
     for (const name of ['EXPECTED_PUBLIC_TABLES', 'EXPECTED_PUBLIC_VIEWS', 'EXPECTED_STAGING_TABLES', 'EXPECTED_FUNCTIONS', 'EXPECTED_TRIGGER', 'EXPECTED_ENGINE_COLUMNS_ACTIVITIES', 'EXPECTED_ENGINE_COLUMNS_VENUES']) {
       expect(src.match(new RegExp(`\\b${name}\\b`, 'g')) ?? []).toHaveLength(1);

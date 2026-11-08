@@ -3,7 +3,7 @@
 ## Ordem de execução
 
 ```
-0000 → 0001 → 0002 → ... → 0018 → 0019 → 0020 → 0021 → 0022 → 0023   (0024: BLOQUEADA, fora da cadeia aplicável)
+0000 → 0001 → 0002 → ... → 0018 → 0019 → 0020 → 0021 → 0022 → 0023 → 0024 → 0025   (0024/0025: propostas, só simulação local; staging com REF próprio)
 ```
 
 Numérica, estrita. Nenhum *runner* automatizado de migrações foi
@@ -158,14 +158,93 @@ confirma o estado final. Validado na simulação local (PostgreSQL 17.11 e
 PostgREST 14.18/16.5): caminho limpo, rollback, reaplicação, privilégios
 preexistentes, políticas adulteradas e privilégio extra antes do rollback.
 
-## `0024_activity_interests_grants.sql` (BLOQUEADA, SEC-O-016B)
+## `0024_activity_interests_rpc.sql` (PROPOSTA, Lote 2)
 
-Não concede nada: executar o ficheiro só levanta uma excepção. A
-simulação local provou que o upsert do app (PostgREST `on_conflict` +
-`merge-duplicates`) exige INSERT, UPDATE e SELECT nas 3 colunas, incluindo
-`user_id`. Com as políticas actuais, isso não cumpre o critério de mínimo
-privilégio definido pelo Level 2 (SEC-O-016B). Até decisão Level 2, os interesses não persistem em
-staging e esse fluxo fica por validar. Opções no cabeçalho do ficheiro.
+Substitui a antiga `0024_activity_interests_grants.sql` (BLOQUEADA no
+SEC-O-016B, removida do repositório; a decisão Level 2 foi a opção (c):
+RPC). **Estado:** não aplicada em nenhum Supabase; validada só na simulação
+local (PostgreSQL 17.11, PostgREST 14.18 e 16.5). Aplicação no staging com
+REF próprio, depois da auditoria v2 (`db/audit/grants-audit.readonly.sql`).
+
+O app deixa de escrever em `activity_interests` e em `activities`:
+- `set_activity_interest(p_activity_id uuid, p_interested boolean)` →
+  `table (interested boolean, interested_count integer)` (PostgREST: array
+  com 1 objecto);
+- `get_my_interests(p_activity_ids uuid[])` → `setof uuid` (máx. 500 ids).
+
+Ambas `SECURITY DEFINER`, dono `postgres`, `search_path = ''`, nomes
+qualificados, EXECUTE só para `authenticated` (revogado de PUBLIC, `anon`,
+`authenticated` e `service_role` antes do GRANT; robusto ao default ACL de
+funções do Supabase). Sessões anónimas do Supabase Auth (`is_anonymous`)
+são tratadas como sem sessão. `set_activity_interest` bloqueia a linha da
+actividade (`FOR UPDATE`); marcar exige que esteja em `active_activities`,
+desmarcar funciona também com a actividade inactiva; faz `INSERT ... ON
+CONFLICT (activity_id, user_id) DO NOTHING` ou `DELETE` e só ajusta o
+contador ±1 quando `ROW_COUNT = 1` (nunca abaixo de 0; repetir o mesmo
+estado não muda nada). O trigger `guard_activities_update` continua activo.
+
+Erros (contrato Mobile ⇄ Backend): `42501 not_authenticated` (inclui sessão anónima),
+`P0002 activity_not_found`, `22023 too_many_ids`, `22023 invalid_parameter`
+(`p_interested` nulo). O PostgREST 14/16 devolve HTTP 500 para `P0002`: a
+app decide pelo campo `code`.
+
+Privilégios, na mesma transacção: `drop policy compat_interested_count_update`;
+`revoke update` em `activities` só de `anon` (`authenticated` mantém-no
+para o painel admin, que edita com JWT admin pela política `admin_role_all`;
+um utilizador comum já não passa no RLS: 0 linhas); `active_activities` fica
+só com SELECT; `activity_interests` sem nenhum privilégio para
+`anon`/`authenticated` (DML verificado ausente; TRUNCATE/REFERENCES/TRIGGER/
+MAINTAIN do default ACL revogados); `increment_activity_interest` sem EXECUTE
+para `anon`/`authenticated` (a função fica). Pendências registadas, fora do
+âmbito: INSERT de `anon`/`authenticated` em `activities` (negado pelo RLS) e
+TRUNCATE em `suggestions` (default ACL, 0023). Pré-condições P1 (cadeia, políticas
+exactas de `activities`, trigger, funções ausentes) e P2 (ACL exacto da
+`0000`/`0020`, com grantor) como na `0023`; verificação final antes do
+`commit`. **Não é idempotente** (reaplicar aborta em P1).
+
+**Contador `interested_count`: histórico preservado e NÃO auditado.** O valor
+actual (incrementos anónimos e escritas directas anteriores) não é
+recalculado e pode não coincidir com as linhas de `activity_interests`. Daqui
+em diante só muda ±1 em mudança real feita pela RPC. Apagar uma conta
+(`0025`) apaga os interesses em cascata sem decrementar o contador.
+
+Rollback: verifica o estado deixado pela 0024 (aborta se diferente ou se a
+`0025` estiver aplicada), apaga as funções e repõe a política (texto igual
+ao da `0020`) e os GRANT (iguais aos da `0000`/`0020`). Validado: estado
+depois do rollback igual ao anterior (auditoria e instantâneo do catálogo).
+
+## `0025_delete_my_account.sql` (PROPOSTA, Lote 2)
+
+`public.delete_my_account() returns void`, `SECURITY DEFINER`, dono
+`postgres`, `search_path = ''`, EXECUTE só `authenticated` (revogado também
+de `service_role`). Do JWT só usa `auth.uid()`, `session_id` e
+`is_anonymous`. Ordem e erros:
+1. sem `auth.uid()` ou sessão anónima → `42501 not_authenticated`;
+2. sessão não recente → `28000 reauthentication_required` (verificada ANTES de
+   revelar se a conta existe ou é gerida): tem de existir `auth.sessions` com
+   `id = session_id`, `user_id = auth.uid()`, `not_after` nulo ou futuro e
+   `created_at` nos últimos 5 minutos (o refresh do token não muda
+   `created_at`; a app faz um login novo);
+3. sem linha em `auth.users` → `P0002 user_not_found` (na prática
+   inalcançável depois do passo 2);
+4. `auth.users.raw_app_meta_data->>'role'` definido → `42501 account_managed`;
+5. só se `auth.users.email_confirmed_at` não for nulo: anonimiza as sugestões
+   com `lower(email) = lower(auth.users.email)` (`email`, `phone`, `comment`
+   a null; o resto fica). Sugestões sem login, com outro e-mail ou com e-mail
+   não confirmado não são ligáveis;
+6. `delete from auth.users` → cascata em `favorites`, `activity_interests`
+   e tabelas do Auth. O contador não é decrementado (ver 0024).
+
+Pressuposto a confirmar no staging antes de aplicar: o `postgres` pode ler
+`auth.users`/`auth.sessions` e apagar de `auth.users`. Pré-condições: 0024
+aplicada, função ausente, colunas de `auth.users`/`auth.sessions`/
+`suggestions` presentes (incl. `email_confirmed_at`), FK de `favorites`/
+`activity_interests` com `ON DELETE CASCADE` e nenhuma FK para `auth.users`
+fora do schema `auth` com `ON DELETE` diferente de CASCADE/SET NULL. Rollback: apaga a
+função depois de verificar dono/ACL (contas já apagadas não voltam).
+
+Testes locais: `db/audit/local/lote2-rpc-tests.local.sql`,
+`lote2-concurrency.local.sh`, `lote2-http-e2e.local.mjs` (+ fixtures).
 
 ## Contrato forward-only
 

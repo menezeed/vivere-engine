@@ -9,12 +9,24 @@ executado em produção. Os testes de acesso SQL e os testes HTTP que
 escrevem dados **não** foram executados em nenhum Supabase. Cada execução
 remota precisa de um REF próprio do Level 2.
 
+Lote 2: a auditoria passou a **v2** (desenho pós-0024/0025: interesses só
+por RPC, sem UPDATE de `anon` em `activities` — `authenticated` mantém-no
+para o admin —, `active_activities` só SELECT, `activity_interests` sem
+nenhum privilégio) e os
+testes de acesso passaram a 61 (escrita directa negada + RPC). A v1 fica
+congelada nas evidências SEC-O; `local/compare-audits.mjs` continua a ser
+a ferramenta da 0023 sobre a v1 (espera `PENDENTE`=7). 0024/0025 só foram
+validadas na simulação local.
+
 | Ficheiro | Natureza | Onde |
 |---|---|---|
 | `grants-audit.readonly.sql` | Uma única instrução `SELECT` sobre o catálogo. Não lê linhas da aplicação nem escreve (provado numa sessão `default_transaction_read_only`). | Staging **e** produção, em separado |
-| `mobile-access-tests.staging.sql` | 49 testes positivos e negativos como `anon`/`authenticated`, com fixtures sintéticas. Termina sempre com `RAISE EXCEPTION`, que desfaz tudo. | **Só staging** |
-| `local/supabase-sim.sql` | Simulação mínima do Supabase (papéis, schema `auth`, default ACL). | **Só PostgreSQL local descartável** |
+| `mobile-access-tests.staging.sql` | 61 testes positivos e negativos como `anon`/`authenticated`, com fixtures sintéticas. Termina sempre com `RAISE EXCEPTION`, que desfaz tudo. | **Só staging** |
+| `local/supabase-sim.sql` | Simulação mínima do Supabase (papéis, schema `auth` com `users`, `sessions`, `identities`, `refresh_tokens` e FK em cascata, default ACL). | **Só PostgreSQL local descartável** |
 | `local/activity-interests-requirements.local.sql` | Experiência dos privilégios exigidos pelo upsert de interesses. Recusa correr fora da simulação. | **Só local** |
+| `local/lote2-rpc-tests.local.sql` | 79 testes das RPC 0024/0025 e do fecho da escrita directa (papéis + claims, incluindo sessão recente). Recusa correr fora da simulação; termina em ROLLBACK; falha com excepção se houver FAIL. | **Só local** |
+| `local/lote2-concurrency.local.sh` | Concorrência de `set_activity_interest` com processos psql paralelos (lock `FOR UPDATE`, +2/+20/+1 exactos). | **Só local** |
+| `local/lote2-http-e2e.local.mjs` + `local/lote2-http-e2e.fixtures.local.sql` | 35 pedidos ao PostgREST local (127.0.0.1) com JWT HS256 locais: RPC, negações de `anon`, erros do contrato. | **Só local** |
 | `http-readonly-checks.staging.mjs` | 13 pedidos **só GET/HEAD** à Data API do staging (positivos e negações). Host fixo do staging; chave publishable lida de variável, nunca impressa. | **Só staging** (ou auto-teste local) |
 | `local/analyze-audit.mjs`, `local/drift-audits.mjs`, `local/compare-audits.mjs` | Análise local dos CSV da auditoria: sanitização + P1/P2; deriva (mesmo estado); antes/depois da 0023 (8/8). Não ligam a nada. | Local |
 
@@ -55,9 +67,10 @@ a connection string em chats), forçando só leitura:
 | F funcoes | `EXECUTE` e `SECURITY DEFINER` (incl. `auth.uid/jwt/role`) |
 | G sequencias | Sequências em `public` (o desenho não precisa de nenhuma) |
 | H triggers | Triggers nas tabelas auditadas |
-| I desenho | Real vs. desenho: `FALTA` (0023 em falta), `PENDENTE` (0024 bloqueada), `EXTRA` (há, app não usa) |
+| I desenho | Real vs. desenho (v2): `FALTA` (0000/0023 em falta), `EXTRA` (há, app não usa) |
+| I proibido | v2: privilégios que não podem existir depois da 0024 (UPDATE de `anon` em `activities`, escrita em `active_activities`, qualquer privilégio em `activity_interests`): `ATENCAO` se existirem |
 | J default acl | Default privileges, que explicam diferenças entre ambientes |
-| K cadeia | Marcadores das migrações 0012–0023 aplicadas |
+| K cadeia | Marcadores das migrações 0012–0025 aplicadas |
 
 Fora do staging, `EXTRA` é informativo: **não** é ordem para retirar
 nada, nem prova de que os ambientes devem ser iguais.
@@ -81,14 +94,17 @@ Só depois da auditoria do staging e, para o resultado final, depois da
 4. Correr o ficheiro inteiro. O resultado aparece como **erro**: é de
    propósito, a excepção final garante o rollback.
 5. Guardar o texto do erro como `access-tests-staging-<AAAAMMDD>.txt`.
-6. Critério: `0 FAIL de 49`. Qualquer `FAIL` bloqueia a build.
+6. Critério: `0 FAIL de 61` (com 0023–0025 aplicadas). Qualquer `FAIL` bloqueia a build.
 
 Guardas: recusa sem `v_ref` do staging, recusa se `auth.users` tiver 20
 ou mais contas, e `lock_timeout` 2 s / `statement_timeout` 30 s. Qualquer
 erro, previsto ou não, desfaz tudo (provado localmente com um lock).
 
-As linhas `[0024]` esperam `deny_grant`: com a 0024 bloqueada, o fluxo de
-interesses **não fica validado** em staging.
+As linhas `[0024]`/`[0025]` testam o desenho do Lote 2: escrita directa em
+`activities`/`active_activities`/`activity_interests` negada por GRANT,
+RPC de interesses como `authenticated` (+1 uma vez, -1, só as próprias
+linhas) e `delete_my_account` recusada com `28000` sem sessão recente (o
+teste nunca apaga a conta). Antes da 0024/0025 estas linhas falham.
 
 ## 3. Prova ponta-a-ponta pela Data API
 
@@ -180,7 +196,10 @@ Lacunas conhecidas:
    remotamente.
 4. **Schema `auth`:** mínimo (`auth.users` com poucas colunas; `uid`,
    `jwt`, `role` com a lógica pública do Supabase). Sem GoTrue, sem
-   triggers do Auth, sem `supabase_auth_admin`.
+   triggers do Auth, sem `supabase_auth_admin`. Lote 2: `auth.sessions`,
+   `auth.identities` e `auth.refresh_tokens` mínimos com FK em cascata; o
+   `postgres` simulado tem SELECT/DELETE em `auth.users` e SELECT em
+   `auth.sessions` (pressuposto da 0025, a confirmar no staging).
 5. **Sem Kong/API gateway:** a chave `apikey` não é validada localmente; o
    papel vem só do JWT (anon sem token). No Supabase, a chave publishable
    é trocada pelo gateway.

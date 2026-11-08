@@ -1,6 +1,7 @@
 -- ============================================================
 -- Testes de acesso do app mobile — SÓ STAGING, ROLLBACK GARANTIDO
--- REF: VIVERE-SEC-O-016 (desenho). Executar só com REF próprio.
+-- REF: VIVERE-SEC-O-016 (desenho); actualizado no Lote 2 (0024/0025).
+-- Executar só com REF próprio.
 --
 -- O QUE FAZ
 -- Corre, dentro de UM bloco DO, as operações reais do app como `anon` e
@@ -27,10 +28,14 @@
 --
 -- PRÉ-REQUISITOS
 --  1. Dashboard no projecto vivere-staging, ref jvtcgomwbfojsttepcfc no URL.
---  2. 0000–0022 e 0023 aplicadas (antes da 0023, as linhas marcadas
---     [0023] devem falhar: é o diagnóstico D1). A 0024 está BLOQUEADA:
---     as linhas [0024] esperam deny_grant (interesses não persistem em
---     staging; o fluxo de interesses fica por validar).
+--  2. 0000–0025 aplicadas (antes da 0023, as linhas marcadas [0023]
+--     devem falhar: é o diagnóstico D1; antes da 0024/0025, as linhas
+--     [0024]/[0025] falham). Desde a 0024 os interesses só passam pelas
+--     RPC set_activity_interest/get_my_interests; a escrita directa em
+--     activities (anon), active_activities e activity_interests é negada
+--     por GRANT (deny_grant); authenticated mantém UPDATE em activities
+--     para o admin, mas sem a política compat o RLS filtra (rows=0). O teste de delete_my_account só prova a recusa
+--     sem sessão recente (28000): NUNCA apaga a conta de teste.
 --  3. Duas contas de teste de STAGING (A e B), sem app_metadata.role.
 --     Os UUID não são segredos. Nunca usar contas de testers.
 --
@@ -45,7 +50,7 @@
 --   deny_grant  42501 por falta de privilégio (GRANT)
 --   deny_rls    42501 por política RLS
 --   deny        qualquer negação (grant, RLS, ou 0 linhas)
---   err:XXXXX   outro SQLSTATE (P0001 = trigger guard_activities_update)
+--   err:XXXXX   outro SQLSTATE (28000 = reautenticação exigida pela 0025)
 -- ============================================================
 
 do $main$
@@ -143,15 +148,14 @@ begin
     'rows>=1');                                                                                                         -- [0023] embed venues(...)
   perform pg_temp.t('A-06', 'anon', null, format('select 1 from public.activities where id = %L', v_act), 'rows>=1');
 
-  -- ---------- anon: contador de interessados (trigger) ----------
-  perform pg_temp.t('A-07', 'anon', null, format('update public.activities set interested_count = 6 where id = %L', v_act), 'rows=1');
-  perform pg_temp.t('A-08', 'anon', null, format('update public.activities set interested_count = 20 where id = %L', v_act), 'err:P0001');
-  perform pg_temp.t('A-09', 'anon', null, format('update public.activities set title = ''x'' where id = %L', v_act), 'err:P0001');
+  -- ---------- anon: contador de interessados (0024: sem UPDATE directo) ----------
+  perform pg_temp.t('A-07', 'anon', null, format('update public.activities set interested_count = 6 where id = %L', v_act), 'deny_grant');      -- [0024]
+  perform pg_temp.t('A-08', 'anon', null, format('update public.activities set interested_count = 20 where id = %L', v_act), 'deny_grant');     -- [0024]
+  perform pg_temp.t('A-09', 'anon', null, format('update public.activities set title = ''x'' where id = %L', v_act), 'deny_grant');           -- [0024]
   perform pg_temp.t('A-10', 'anon', null, 'insert into public.activities(title) values (''SEC-O-016 nunca'')', 'deny_rls');
   perform pg_temp.t('A-11', 'anon', null, format('delete from public.activities where id = %L', v_act), 'deny');
 
-  -- ---------- anon: interesses (0024 BLOQUEADA: nada concedido) ----------
-  -- Requisitos reais do upsert: db/audit/local/activity-interests-requirements.local.sql
+  -- ---------- anon: interesses (0024: nada concedido na tabela; só RPC autenticada) ----------
   perform pg_temp.t('A-12', 'anon', null, format(
     'insert into public.activity_interests(activity_id, user_id, device_id) values (%L, null, %L) '
     'on conflict (activity_id, device_id) do update set activity_id = excluded.activity_id, '
@@ -184,8 +188,14 @@ begin
   perform pg_temp.t('A-27', 'anon', null, format('delete from public.partners where id = %L', v_par), 'deny_grant');
   perform pg_temp.t('A-28', 'anon', null, 'select 1 from staging.ingestion_runs limit 1', 'deny_grant');
   perform pg_temp.t('A-29', 'anon', null, 'select 1 from public.products limit 1', 'deny');      -- RLS sem políticas (0022)
-  perform pg_temp.t('A-30', 'anon', null, 'insert into public.active_activities(title) values (''SEC-O-016 nunca'')', 'deny');
-  perform pg_temp.t('A-31', 'anon', null, format('delete from public.active_activities where id = %L', v_act), 'deny');
+  perform pg_temp.t('A-30', 'anon', null, 'insert into public.active_activities(title) values (''SEC-O-016 nunca'')', 'deny_grant');  -- [0024]
+  perform pg_temp.t('A-31', 'anon', null, format('delete from public.active_activities where id = %L', v_act), 'deny_grant');         -- [0024]
+
+  -- ---------- anon: RPC (0024/0025: EXECUTE só authenticated) ----------
+  perform pg_temp.t('A-32', 'anon', null, format('select * from public.set_activity_interest(%L, true)', v_act), 'deny_grant');      -- [0024]
+  perform pg_temp.t('A-33', 'anon', null, format('select * from public.get_my_interests(array[%L]::uuid[])', v_act), 'deny_grant');  -- [0024]
+  perform pg_temp.t('A-34', 'anon', null, 'select public.delete_my_account()', 'deny_grant');                                        -- [0025]
+  perform pg_temp.t('A-35', 'anon', null, format('select public.increment_activity_interest(%L, 1::smallint)', v_act), 'deny_grant'); -- [0024]
 
   -- ---------- authenticated (conta A): favoritos ----------
   perform pg_temp.t('U-01', 'authenticated', v_user_a, format(
@@ -204,7 +214,7 @@ begin
   perform pg_temp.t('U-07', 'authenticated', v_user_a, format(
     'delete from public.favorites where user_id = %L and activity_id = %L', v_user_a, v_act), 'rows=1');              -- [0023]
 
-  -- ---------- authenticated: interesses (0024 BLOQUEADA) ----------
+  -- ---------- authenticated: interesses (escrita directa negada; 0024) ----------
   perform pg_temp.t('U-08', 'authenticated', v_user_a, format(
     'insert into public.activity_interests(activity_id, user_id, device_id) values (%L, %L, null) '
     'on conflict (activity_id, device_id) do update set activity_id = excluded.activity_id, '
@@ -221,12 +231,30 @@ begin
     'insert into public.suggestions(title, location, phone, comment, email, language) '
     'values (''SEC-O-016'', ''x'', ''x'', null, ''teste@example.invalid'', ''pt'')', 'rows=1');                      -- [0023]
   perform pg_temp.t('U-16', 'authenticated', v_user_a, format(
-    'update public.activities set interested_count = 6 where id = %L', v_act), 'rows=1');
+    'update public.activities set interested_count = 6 where id = %L', v_act), 'rows=0');                              -- [0024] UPDATE fica (admin); RLS filtra
   perform pg_temp.t('U-17', 'authenticated', v_user_a, format('update public.venues set name = ''x'' where id = %L', v_ven), 'deny_grant');
   perform pg_temp.t('U-18', 'authenticated', v_user_a, format('delete from public.categories where id = %L', v_cat), 'deny_grant');
   perform pg_temp.t('U-19', 'authenticated', v_user_a, 'select 1 from public.users limit 1', 'deny_grant');
   perform pg_temp.t('U-20', 'authenticated', v_user_a, 'select 1 from public.suggestions limit 1', 'deny_grant');
   perform pg_temp.t('U-21', 'authenticated', v_user_a, 'select 1 from staging.ingestion_runs limit 1', 'deny_grant');
+
+  -- ---------- authenticated: RPC de interesses (0024; fixture: contador 5, B interessado) ----------
+  perform pg_temp.t('U-22', 'authenticated', v_user_a, format(
+    'select 1 from public.set_activity_interest(%L, true) where interested and interested_count = 6', v_act), 'rows=1'); -- [0024]
+  perform pg_temp.t('U-23', 'authenticated', v_user_a, format(
+    'select 1 from public.set_activity_interest(%L, true) where interested and interested_count = 6', v_act), 'rows=1'); -- [0024] idempotente
+  perform pg_temp.t('U-24', 'authenticated', v_user_a, format(
+    'select 1 from public.get_my_interests(array[%L]::uuid[])', v_act), 'rows=1');                                    -- [0024]
+  perform pg_temp.t('U-25', 'authenticated', v_user_a, format(
+    'select 1 from public.set_activity_interest(%L, false) where not interested and interested_count = 5', v_act), 'rows=1'); -- [0024]
+  perform pg_temp.t('U-26', 'authenticated', v_user_a, format(
+    'select 1 from public.get_my_interests(array[%L]::uuid[])', v_act), 'rows=0');                                    -- [0024] a linha de B não aparece
+  perform pg_temp.t('U-27', 'authenticated', v_user_a, format(
+    'select public.increment_activity_interest(%L, 1::smallint)', v_act), 'deny_grant');                               -- [0024]
+  perform pg_temp.t('U-28', 'authenticated', v_user_a, format(
+    'update public.active_activities set interested_count = 9 where id = %L', v_act), 'deny_grant');                 -- [0024]
+  -- delete_my_account sem session_id no JWT: recusa 28000, NADA é apagado
+  perform pg_temp.t('U-29', 'authenticated', v_user_a, 'select public.delete_my_account()', 'err:28000');              -- [0025]
 
   -- ---------- relatório + rollback ----------
   select count(*) filter (where not ok),
