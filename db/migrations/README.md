@@ -3,7 +3,10 @@
 ## Ordem de execução
 
 ```
-0000 → 0001 → 0002 → ... → 0018 → 0019 → 0020 → 0021 → 0022 → 0023 → 0024 → 0025   (0024/0025: propostas, só simulação local; staging com REF próprio)
+0000 → 0001 → 0002 → ... → 0018 → 0019 → 0020 → 0021 → 0022 → 0023 → 0024 → 0025 → 0026 → 0027
+   (0024–0027: propostas, só simulação local; staging/produção com REF próprio)
+   (0026 é TRANSITÓRIA: na produção vai na mesma janela que 0023→0024→0025;
+    a 0027 só depois dos critérios de adopção — docs/runbooks/production-rollout.md)
 ```
 
 Numérica, estrita. Nenhum *runner* automatizado de migrações foi
@@ -245,6 +248,65 @@ função depois de verificar dono/ACL (contas já apagadas não voltam).
 
 Testes locais: `db/audit/local/lote2-rpc-tests.local.sql`,
 `lote2-concurrency.local.sh`, `lote2-http-e2e.local.mjs` (+ fixtures).
+
+## `0026_legacy_interest_compat.sql` (PROPOSTA, Lote 3 — TRANSITÓRIA)
+
+Decisão Level 2, estratégia (a): separar a criação das RPC (0024) da
+revogação do caminho legado, sem alterar 0000–0025 (congeladas). As versões
+da app já instaladas (mobile `main` c390c92 e anteriores, `handleToggleFav`)
+fazem `PATCH /activities?id=eq.X {interested_count: cache±1}` como `anon` ou
+`authenticated` e ignoram erros; com a 0024 esse PATCH deixa de funcionar
+(contador congelado, sem erro visível). As outras escritas do app antigo
+(upsert/delete em `activity_interests`) já falhavam antes da 0024 (a P2 da
+0024 exige que não haja DML para `anon`/`authenticated`) e nenhuma versão
+chamou `increment_activity_interest`: não são repostas.
+
+Repõe só o necessário ao PATCH: a política `compat_interested_count_update`
+(texto da 0020) com um `COMMENT` que a marca como transitória, e
+`GRANT UPDATE (interested_count)` de **coluna** a `anon` (mais estreito que o
+UPDATE de tabela da 0000; `authenticated` já tem UPDATE de tabela). O trigger
+`guard_activities_update` (0020) continua a limitar a ±1/0, só
+`interested_count`, nunca negativo. As RPC ficam intactas.
+
+Ordem: tem de vir **depois** da 0025 (a P1 da 0025 exige a política compat
+ausente). Na produção: 0023 → 0024 → 0025 → 0026 na mesma janela. Pré-condições
+P1 (RPC da 0024/0025 com dono/ACL, RLS, trigger guard igual ao da 0020 —
+tipo, função e MD5 do corpo normalizado —, políticas de `activities` exactas)
+e P2 (ACL de `activities` sem UPDATE de anon/PUBLIC e sem privilégios de
+coluna; `authenticated` com UPDATE de tabela; endurecimento da 0024 intacto).
+Verificação final antes do `commit`. Não idempotente. Cabeçalho declara
+`REVOGAÇÃO DEFINITIVA: 0027_revoke_legacy_interest.sql` (verificado por
+`scripts/check-migrations.mjs`).
+
+Risco aceite durante a transição (igual à exposição actual da produção, sem
+agravamento): qualquer pessoa com a chave anon faz ±1 por pedido em qualquer
+actividade; o contador deriva das linhas de `activity_interests` (marca legada
++1 sem linha; legado + RPC da mesma pessoa = 2; desmarcar na versão nova não
+retira o +1 legado; cache desactualizada pode dar -1 ao marcar). Ver
+`docs/runbooks/production-rollout.md`.
+
+Rollback (`0026_…rollback.sql`): verifica o estado exacto da 0026 e repõe o da
+0025 (efeito igual à 0027).
+
+## `0027_revoke_legacy_interest.sql` (PROPOSTA, Lote 3)
+
+Revogação diferida: `drop policy compat_interested_count_update` e
+`revoke update (interested_count) … from anon`. Pré-condições = estado exacto
+da 0026 (incluindo o comentário de transição); verificação final = estado
+exacto da 0025. Validado por instantâneo do catálogo
+(`db/audit/local/lote3-catalog-snapshot.local.sql`): uma base 0000→0027 tem
+**o mesmo catálogo de segurança** (ACL de tabela/coluna/função com grantor,
+políticas, RLS, triggers, comentários, default ACL) que uma base 0000→0025.
+Aplicar só depois dos critérios de adopção e com REF próprio. Rollback
+(`0027_…rollback.sql`): reabre o caminho legado (igual à 0026), só com REF.
+
+Nota: como o catálogo depois da 0027 é igual ao da 0025, correr de novo a
+0026 depois da 0027 não aborta e equivale ao rollback da 0027. A cadeia é
+manual (sem tabela de tracking): registar o que foi aplicado em cada ambiente.
+
+Testes locais: `db/audit/local/run-lote3-compat.sh` (cadeia, instantâneos,
+rollbacks, pré-condições adulteradas, cliente antigo × RPC, concorrência e
+suites do Lote 2 no estado final) e `lote3-compat-tests.local.sql`.
 
 ## Contrato forward-only
 

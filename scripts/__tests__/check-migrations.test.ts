@@ -46,6 +46,18 @@ describe('check-migrations', () => {
     expect(checkMigrations(d)).toContain('APPLIED.sha256 em falta');
     rmSync(d, { recursive: true });
   });
+  it('migração transitória exige a revogação diferida, posterior', () => {
+    const t = '-- REVOGAÇÃO DEFINITIVA: 0002_rev.sql.\nselect 1;\n';
+    const good = dirWith({ ...ok, '0001_b.sql': t, '0002_rev.sql': '', '0002_rev.rollback.sql': '', 'APPLIED.sha256': '' });
+    expect(checkMigrations(good)).toEqual([]);
+    rmSync(good, { recursive: true });
+    const missing = dirWith({ ...ok, '0001_b.sql': t, 'APPLIED.sha256': '' });
+    expect(checkMigrations(missing).join()).toMatch(/transitória mas a revogação 0002_rev\.sql não existe/);
+    rmSync(missing, { recursive: true });
+    const before = dirWith({ ...ok, '0001_b.sql': '-- REVOGAÇÃO DEFINITIVA: 0000_a.sql\n', 'APPLIED.sha256': '' });
+    expect(checkMigrations(before).join()).toMatch(/tem de vir depois/);
+    rmSync(before, { recursive: true });
+  });
   it('a cadeia real do repositório passa', () => {
     expect(checkMigrations(fileURLToPath(new URL('../../db/migrations', import.meta.url)))).toEqual([]);
   });

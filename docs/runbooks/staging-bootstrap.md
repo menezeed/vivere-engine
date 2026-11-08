@@ -46,6 +46,11 @@ $k = $null
    0023), 0023_mobile_app_table_grants.sql (um Run) e validação da secção 3d.
 4e 0024_activity_interests_rpc.sql e 0025_delete_my_account.sql (cada uma
    um Run, só com REF próprio) e validação da secção 3d (Lote 2).
+4f Ensaio do rollout de produção (Lote 3, só com REF próprio):
+   0026_legacy_interest_compat.sql logo a seguir à 0025 e, mais tarde,
+   0027_revoke_legacy_interest.sql. Produção: ver
+   docs/runbooks/production-rollout.md (este runbook NUNCA se aplica à
+   produção).
 5  Expor o schema staging na Data API (secção 4) e smoke test (secção 5)
 6  Dados de referência (secção 6): PENDENTE, ver essa secção
 7  Security harness: privilégios temporários, correr, reverter (secção 7)

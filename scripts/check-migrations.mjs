@@ -7,6 +7,10 @@
 //  3. Migrações já aplicadas num ambiente remoto estão congeladas: o SHA-256
 //     do conteúdo (fins de linha normalizados para LF, como o git guarda)
 //     tem de ser igual ao registado em db/migrations/APPLIED.sha256.
+//  4. Migrações transitórias (ex.: 0026, caminho legado aberto durante o
+//     rollout) declaram no cabeçalho `-- REVOGAÇÃO DEFINITIVA: NNNN_x.sql`;
+//     essa migração tem de existir e ter número maior (não se pode perder a
+//     revogação diferida).
 //
 // Uso: node scripts/check-migrations.mjs [pasta]   (default: db/migrations)
 import { createHash } from 'node:crypto';
@@ -39,6 +43,15 @@ export function checkMigrations(dir) {
   for (const base of migs.values()) if (!rbs.has(base)) problems.push(`sem rollback: ${base}.sql`);
   const bases = new Set(migs.values());
   for (const base of rbs) if (!bases.has(base)) problems.push(`rollback sem migração: ${base}.rollback.sql`);
+
+  for (const base of migs.values()) {
+    const text = readFileSync(join(dir, `${base}.sql`), 'utf8');
+    for (const m of text.matchAll(/^--\s*REVOGAÇÃO DEFINITIVA:\s*(\d{4})_([a-z0-9_]+)\.sql/gm)) {
+      const target = `${m[1]}_${m[2]}`;
+      if (!bases.has(target)) problems.push(`${base}.sql é transitória mas a revogação ${target}.sql não existe`);
+      else if (Number(m[1]) <= Number(base.slice(0, 4))) problems.push(`${base}.sql: a revogação ${target}.sql tem de vir depois`);
+    }
+  }
 
   const manifest = join(dir, 'APPLIED.sha256');
   if (!existsSync(manifest)) problems.push('APPLIED.sha256 em falta');
