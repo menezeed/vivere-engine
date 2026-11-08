@@ -222,8 +222,9 @@ rls total em public e staging (esperado 19) | 19 OK
 auditoria só de leitura sem deriva (391/391) e verificações HTTP só
 GET/HEAD `TOTAL 13/13` (`db/audit/README.md` §3a). A antiga `0024` de
 GRANT (bloqueada) foi substituída no Lote 2 pela `0024_activity_interests_rpc.sql`
-(RPC) e pela `0025_delete_my_account.sql`, **ainda não aplicadas no
-staging** (passos 6–9 abaixo, com REF próprio). Para um ambiente novo,
+(RPC) e pela `0025_delete_my_account.sql`, **aplicadas no staging em
+2026-11-08** (Lote 3: auditorias antes/depois IGUAIS à simulação; testes de
+acesso 0 FAIL de 61). Para um ambiente novo,
 seguir os passos abaixo.
 
 **Bloqueio D1 (SEC-O-015):** sem a `0023`, `anon` e `authenticated` não têm

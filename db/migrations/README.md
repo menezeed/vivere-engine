@@ -3,7 +3,7 @@
 ## Ordem de execução
 
 ```
-0000 → 0001 → 0002 → ... → 0018 → 0019 → 0020 → 0021 → 0022 → 0023 → 0024 → 0025   (0024/0025: propostas, só simulação local; staging com REF próprio)
+0000 → 0001 → 0002 → ... → 0018 → 0019 → 0020 → 0021 → 0022 → 0023 → 0024 → 0025   (0023–0025 aplicadas no staging; produção: ver docs/runbooks)
 ```
 
 Numérica, estrita. Nenhum *runner* automatizado de migrações foi
@@ -158,13 +158,21 @@ confirma o estado final. Validado na simulação local (PostgreSQL 17.11 e
 PostgREST 14.18/16.5): caminho limpo, rollback, reaplicação, privilégios
 preexistentes, políticas adulteradas e privilégio extra antes do rollback.
 
-## `0024_activity_interests_rpc.sql` (PROPOSTA, Lote 2)
+## `0024_activity_interests_rpc.sql` (APLICADA NO STAGING, Lote 3)
 
 Substitui a antiga `0024_activity_interests_grants.sql` (BLOQUEADA no
 SEC-O-016B, removida do repositório; a decisão Level 2 foi a opção (c):
-RPC). **Estado:** não aplicada em nenhum Supabase; validada só na simulação
-local (PostgreSQL 17.11, PostgREST 14.18 e 16.5). Aplicação no staging com
-REF próprio, depois da auditoria v2 (`db/audit/grants-audit.readonly.sql`).
+RPC). **Estado por ambiente:**
+- **Staging** (`jvtcgomwbfojsttepcfc`): aplicada em 2026-11-08 pelo SQL Editor
+  ("Success. No rows returned"), SHA-256 LF `a1da5ed3…93d44d`. Auditoria v2
+  antes IGUAL à simulação 0000–0023 (394/394) e depois IGUAL à simulação
+  0000–0024 (378/378), ignorando só os default ACL (diferença ambiental
+  constante). Corpos das funções iguais ao ficheiro (fins de linha CRLF do
+  colar no editor). Antes, um rollback colado por engano abortou nas
+  pré-condições R1 sem alterar nada (confirmado).
+- **Produção:** NÃO aplicada. Exige rollout compatível com as versões antigas
+  da app (proposta 0026/0027 na branch `lote3/rollout-compat`) e auditoria só
+  de leitura própria.
 
 O app deixa de escrever em `activity_interests` e em `activities`:
 - `set_activity_interest(p_activity_id uuid, p_interested boolean)` →
@@ -213,7 +221,12 @@ Rollback: verifica o estado deixado pela 0024 (aborta se diferente ou se a
 ao da `0020`) e os GRANT (iguais aos da `0000`/`0020`). Validado: estado
 depois do rollback igual ao anterior (auditoria e instantâneo do catálogo).
 
-## `0025_delete_my_account.sql` (PROPOSTA, Lote 2)
+## `0025_delete_my_account.sql` (APLICADA NO STAGING, Lote 3)
+
+**Estado por ambiente:** staging aplicada em 2026-11-08 (SHA-256 LF
+`298aba5b…5e1b9`; auditoria depois IGUAL à simulação 0000–0025, 381/381,
+sem nenhuma linha ATENCAO/FALTA; `mobile-access-tests.staging.sql`: 0 FAIL de
+61, com rollback). Produção: NÃO aplicada.
 
 `public.delete_my_account() returns void`, `SECURITY DEFINER`, dono
 `postgres`, `search_path = ''`, EXECUTE só `authenticated` (revogado também

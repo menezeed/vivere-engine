@@ -15,8 +15,14 @@ para o admin —, `active_activities` só SELECT, `activity_interests` sem
 nenhum privilégio) e os
 testes de acesso passaram a 61 (escrita directa negada + RPC). A v1 fica
 congelada nas evidências SEC-O; `local/compare-audits.mjs` continua a ser
-a ferramenta da 0023 sobre a v1 (espera `PENDENTE`=7). 0024/0025 só foram
-validadas na simulação local.
+a ferramenta da 0023 sobre a v1 (espera `PENDENTE`=7).
+
+Lote 3 (2026-11-08): 0024 e 0025 aplicadas no staging pelo SQL Editor.
+Auditoria v2 pelo MCP só de leitura antes e depois de cada uma, comparada
+com a simulação local da mesma cadeia: IGUAL (394/394, 378/378, 381/381;
+só a secção J default acl é ignorada). Testes de acesso no staging: 0 FAIL
+de 61 (rollback; contagens das tabelas da app continuam 0). Nada em
+produção. Evidências fora do repositório.
 
 | Ficheiro | Natureza | Onde |
 |---|---|---|

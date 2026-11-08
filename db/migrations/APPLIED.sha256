@@ -5,3 +5,7 @@
 # Formato: <sha256>  <ficheiro>  <ambiente e referência>
 770fb028e4e256990d6128d175864b740ebbf2d5733536dbc5589de168465df6  0023_mobile_app_table_grants.sql  staging 2026-11-07 SEC-O-020
 001dac0c02b410711e2b994b06add540cd82674bc9db86a5ff7ff2041d6de95a  0023_mobile_app_table_grants.rollback.sql  rollback da 0023 aplicada (não executado; congelado com ela)
+a1da5ed3059837b7d77d10a6a11a2bdafdd9d36f4d053ed95f4f65e6de93d44d  0024_activity_interests_rpc.sql  staging 2026-11-08 Lote 3 (auditoria pós IGUAL 378/378)
+2e1b5d70db02205ba833a3ece44ac73183fb49c47c2296b2542c915afae357a9  0024_activity_interests_rpc.rollback.sql  rollback da 0024 aplicada (não executado com efeito; congelado com ela)
+298aba5b83273956623f72f192779a511ee553d716068f53a6b54149e5e5f1b9  0025_delete_my_account.sql  staging 2026-11-08 Lote 3 (auditoria pós IGUAL 381/381; testes de acesso 0 FAIL de 61)
+c2f01e2b12fb8d3f7a409cb799fde99a608c1c10c3567a71de4825d750ca18ac  0025_delete_my_account.rollback.sql  rollback da 0025 aplicada (não executado; congelado com ela)
