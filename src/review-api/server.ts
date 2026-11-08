@@ -9,6 +9,7 @@ import { ReviewService } from './services/ReviewService.js';
 import { EntityResolutionService } from './services/EntityResolutionService.js';
 import { createApp } from './app.js';
 import { logger } from '../lib/logger.js';
+import { createJwtVerifier, resolveJwtEnvConfig, type JwtVerifier } from './middleware/jwtVerifier.js';
 
 const PORT     = Number(process.env.REVIEW_API_PORT ?? 3001);
 const NODE_ENV = process.env.NODE_ENV ?? 'development';
@@ -34,9 +35,29 @@ function resolveCorsOrigin(): string | string[] {
   return ['http://localhost:5173', 'http://localhost:3000', 'http://localhost:4173'];
 }
 
+// SEC-B — configuração JWT validada no arranque (como CORS_ORIGIN): sem
+// SUPABASE_URL https válido o processo não arranca.
+function buildJwtVerifier(): JwtVerifier {
+  try {
+    return createJwtVerifier(resolveJwtEnvConfig(process.env));
+  } catch (err) {
+    logger.error(
+      { err: err instanceof Error ? err.message : 'erro desconhecido' },
+      'SEC-B: configuração JWT inválida — a Review API não arranca',
+    );
+    process.exit(1);
+  }
+}
+
 async function buildApp(): Promise<Hono> {
-  const corsOrigin = resolveCorsOrigin();
-  const db         = getSupabaseClient();
+  const corsOrigin  = resolveCorsOrigin();
+  const db          = getSupabaseClient();
+  const jwtVerifier = buildJwtVerifier();
+
+  // Pré-aquecimento do JWKS: não bloqueia o arranque se falhar.
+  if (!(await jwtVerifier.warmUp())) {
+    logger.warn('SEC-B: JWKS indisponível no arranque — pedidos autenticados darão 401 até carregar');
+  }
 
   const venueRepo    = new VenueReviewRepository(db);
   const activityRepo = new ActivityReviewRepository(db);
@@ -47,7 +68,7 @@ async function buildApp(): Promise<Hono> {
   const erService     = new EntityResolutionService(erRepo);
 
   // Rotas, autenticação e autorização (SEC-A) vivem em app.ts.
-  return createApp({ corsOrigin, reviewService, erService, runRepo, statsRepo });
+  return createApp({ corsOrigin, reviewService, erService, runRepo, statsRepo, jwtVerifier });
 }
 
 const app = await buildApp();

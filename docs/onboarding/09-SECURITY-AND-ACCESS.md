@@ -43,6 +43,16 @@ Severity scale used: **High** (data exposure or unauthorized write plausible), *
 - **Risk:** key rotation breaks auth until restart; tokens for other audiences of the same project are
   accepted; mismatch with ADR-0009 (HS256) can mislead maintainers.
 - **Recommendation:** select key by `kid`, refresh JWKS on unknown `kid`, validate `iss`/`aud`; update ADR-0009 or add a note.
+- **SEC-B fix (local, not yet merged or deployed):** `src/review-api/middleware/jwtVerifier.ts` — `kid`
+  selection, explicit `alg` allowlist (ES256/RS256, alg derived from the JWK), JWKS TTL 10 min with
+  unknown-`kid` refresh limited to once per 30 s (cooldown), 3 s timeout, stale-while-error ≤ 1 h then
+  fail-closed, `iss`/`aud`/top-level `role`, `exp`/`nbf`/`iat` with 30 s skew, UTF-8 claims, canonical
+  base64url only. All verification failures return the same generic 401 body. Details and the rotation
+  procedure in `05-REVIEW-API-AND-ADMIN.md` §1.2. Residual: without a restart a revoked key is still
+  accepted for ≤ 10 min, or up to 1 h while the JWKS is unreachable; a new `kid` can wait up to 30 s
+  (cooldown) after a previous load attempt.
+  Before deploying, confirm on staging (decoding a real token, without logging it) that the header has
+  `kid` + `alg: ES256` and that `iss` is exactly `${SUPABASE_URL}/auth/v1`.
 
 ## SEC-C — `service_role` used by every engine process and the HTTP API (Medium)
 

@@ -1,99 +1,73 @@
 import type { Context, Next } from 'hono';
 import type { AuthUser, UserRole } from '../types/reviewTypes';
+import { logger } from '../../lib/logger.js';
+import { createJwtVerifier, resolveJwtEnvConfig, type JwtVerifier } from './jwtVerifier.js';
 
 /**
  * Middleware de autenticação via JWT do Supabase.
  *
- * O Supabase novo usa ES256 (assimétrico) em vez de HS256 (simétrico).
- * Obtemos a chave pública via JWKS endpoint e verificamos a assinatura.
- * A chave pública é cacheada em memória — buscada apenas uma vez por processo.
+ * SEC-B: a verificação (kid, allowlist de alg, JWKS com TTL/refresh, iss, aud,
+ * exp/nbf/iat com skew, role top-level) vive em jwtVerifier.ts. Aqui só se
+ * extrai o Bearer, se delega no verificador e se aplica o papel explícito
+ * (SEC-A). O motivo da rejeição vai para o log (warn), nunca para a resposta.
  */
 
-const SUPABASE_URL = process.env.SUPABASE_URL ?? '';
-let cachedPublicKey: CryptoKey | null = null;
+let defaultVerifier: JwtVerifier | null = null;
+let defaultVerifierErrorLogged = false;
 
-async function getPublicKey(): Promise<CryptoKey> {
-  if (cachedPublicKey) return cachedPublicKey;
-
-  const jwksUrl = `${SUPABASE_URL}/auth/v1/.well-known/jwks.json`;
-  const res = await fetch(jwksUrl);
-  if (!res.ok) throw new Error(`Falha ao buscar JWKS: ${res.status}`);
-
-  const jwks = await res.json() as { keys: JsonWebKey[] };
-  const jwk = jwks.keys[0];
-
-  cachedPublicKey = await crypto.subtle.importKey(
-    'jwk',
-    jwk,
-    { name: 'ECDSA', namedCurve: 'P-256' },
-    false,
-    ['verify'],
-  );
-
-  return cachedPublicKey;
-}
-
-function base64urlDecode(str: string): Uint8Array {
-  const base64 = str.replace(/-/g, '+').replace(/_/g, '/');
-  const padded = base64.padEnd(base64.length + (4 - base64.length % 4) % 4, '=');
-  return Uint8Array.from(atob(padded), c => c.charCodeAt(0));
-}
-
-async function verifyJWT(token: string): Promise<Record<string, unknown> | null> {
+/** Verificador por omissão, criado a partir do ambiente na primeira utilização. */
+function getDefaultVerifier(): JwtVerifier | null {
+  if (defaultVerifier) return defaultVerifier;
   try {
-    const [headerB64, payloadB64, signatureB64] = token.split('.');
-    if (!headerB64 || !payloadB64 || !signatureB64) return null;
-
-    const publicKey = await getPublicKey();
-
-    const data = new TextEncoder().encode(`${headerB64}.${payloadB64}`);
-    const signature = base64urlDecode(signatureB64);
-
-    const valid = await crypto.subtle.verify(
-      { name: 'ECDSA', hash: 'SHA-256' },
-      publicKey,
-      signature.buffer as ArrayBuffer,
-      data,
-    );
-
-    if (!valid) return null;
-
-    const payload = JSON.parse(
-      atob(payloadB64.replace(/-/g, '+').replace(/_/g, '/'))
-    );
-
-    // Verificar expiração. SEC-A: exp é obrigatório — um token sem
-    // expiração nunca é aceite.
-    if (typeof payload.exp !== 'number' || payload.exp < Math.floor(Date.now() / 1000)) return null;
-
-    return payload;
-  } catch {
-    return null;
+    defaultVerifier = createJwtVerifier(resolveJwtEnvConfig(process.env));
+    return defaultVerifier;
+  } catch (err) {
+    if (!defaultVerifierErrorLogged) {
+      defaultVerifierErrorLogged = true;
+      logger.error(
+        { err: err instanceof Error ? err.message : 'erro desconhecido' },
+        'SEC-B: configuração JWT inválida — todos os pedidos autenticados serão recusados (401)',
+      );
+    }
+    return null; // fail-closed
   }
 }
 
-export async function authMiddleware(c: Context, next: Next): Promise<Response | void> {
-  const authHeader = c.req.header('Authorization');
-  if (!authHeader?.startsWith('Bearer ')) {
-    return c.json({ error: 'Token de autenticação ausente' }, 401);
-  }
+/**
+ * Cria o middleware de autenticação. Sem `verifier`, usa o verificador por
+ * omissão (SUPABASE_URL / SUPABASE_JWT_ISSUER / SUPABASE_JWT_AUDIENCE).
+ */
+export function createAuthMiddleware(verifier?: JwtVerifier) {
+  return async function authMiddleware(c: Context, next: Next): Promise<Response | void> {
+    const authHeader = c.req.header('Authorization');
+    if (!authHeader?.startsWith('Bearer ')) {
+      return c.json({ error: 'Token de autenticação ausente' }, 401);
+    }
 
-  const token = authHeader.slice(7);
-  const payload = await verifyJWT(token);
+    const active = verifier ?? getDefaultVerifier();
+    const result = active
+      ? await active.verify(authHeader.slice(7))
+      : { ok: false as const, reason: 'jwks_unavailable' as const, kid: undefined };
 
-  if (!payload) {
-    return c.json({ error: 'Token inválido ou expirado' }, 401);
-  }
+    if (!result.ok) {
+      // Nunca registar o token, o payload nem o email.
+      logger.warn({ reason: result.reason, kid: result.kid }, 'SEC-B: JWT recusado');
+      return c.json({ error: 'Token inválido ou expirado' }, 401);
+    }
 
-  // SEC-A: token válido não basta — é preciso um papel explícito.
-  const user = resolveAuthUser(payload);
-  if (!user) {
-    return c.json({ error: 'Conta sem papel autorizado para o Review API' }, 403);
-  }
+    // SEC-A: token válido não basta — é preciso um papel explícito.
+    const user = resolveAuthUser(result.payload);
+    if (!user) {
+      return c.json({ error: 'Conta sem papel autorizado para o Review API' }, 403);
+    }
 
-  c.set('user', user);
-  await next();
+    c.set('user', user);
+    await next();
+  };
 }
+
+/** Middleware com o verificador por omissão (configurado por ambiente). */
+export const authMiddleware = createAuthMiddleware();
 
 /** Papéis aceites pelo Review API (ADR-0009). Não há papel por omissão. */
 export const VALID_ROLES: readonly UserRole[] = ['viewer', 'reviewer', 'admin'];

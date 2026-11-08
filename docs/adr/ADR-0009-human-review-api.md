@@ -48,6 +48,15 @@ múltiplos revisores com rastreabilidade completa (reviewed_by + reviewed_at).
 > mantida nos serviços. A verificação de JWT é ES256 via JWKS (não HMAC-SHA256 como
 > descrito acima); os ajustes de JWKS/`kid`/`iss`/`aud` ficam no SEC-B.
 
+> **Nota (SEC-B, 2026-11-08):** a verificação vive em
+> `src/review-api/middleware/jwtVerifier.ts`, ainda com WebCrypto e sem dependências:
+> chave escolhida por `kid` no JWKS (TTL 10 min; `kid` novo força refresh no
+> máximo 1 vez por 30 s), allowlist explícita ES256/RS256 (HS256 nunca é aceite),
+> `iss`, `aud`, `role` top-level, `exp`/`nbf`/`iat` com 30 s de tolerância. Sem
+> restart, uma chave revogada continua aceite até 10 min (até 1 h se o JWKS estiver
+> inacessível). Todas as falhas de verificação devolvem o mesmo 401 genérico.
+> Procedimento de rotação em `docs/onboarding/05-REVIEW-API-AND-ADMIN.md` §1.2.
+
 ### Promoção fictícia (Opção A)
 
 A promoção não escreve em `public.venues` nem `public.activities`. Marca

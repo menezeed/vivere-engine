@@ -2,10 +2,15 @@
  * SEC-A — autenticação e autorização do Review API, ponta a ponta na app
  * Hono, sem rede nem base de dados: o JWKS é servido por um fetch falso e
  * os tokens são assinados com um par ES256 gerado no próprio teste.
+ *
+ * SEC-B: os tokens imitam os do Supabase (header com kid, iss, aud e role
+ * top-level) e o verificador é injectado em createApp com fetch falso.
  */
 import { describe, it, expect, vi, beforeAll, afterAll, beforeEach } from 'vitest';
 import { createApp, MUTATION_ROLE_MATRIX } from '../app';
 import { resolveAuthUser } from '../middleware/auth';
+import { createJwtVerifier } from '../middleware/jwtVerifier';
+import { logger } from '../../lib/logger';
 import type { ReviewService } from '../services/ReviewService';
 import type { EntityResolutionService } from '../services/EntityResolutionService';
 import type { StatsRepository } from '../repositories/StatsRepository';
@@ -22,15 +27,25 @@ const b64url = (bytes: Uint8Array) => Buffer.from(bytes).toString('base64url');
 const b64urlJson = (v: unknown) => Buffer.from(JSON.stringify(v), 'utf8').toString('base64url');
 const nowSec = () => Math.floor(Date.now() / 1000);
 
-async function sign(claims: Record<string, unknown>, key: CryptoKey = signingKey): Promise<string> {
-  const head = b64urlJson({ alg: 'ES256', typ: 'JWT' });
+const SUPABASE_URL = 'https://test-project.supabase.co';
+const ISSUER = `${SUPABASE_URL}/auth/v1`;
+const KID = 'test-kid-es256';
+const silentLog = { warn: () => undefined, error: () => undefined };
+
+async function sign(
+  claims: Record<string, unknown>,
+  key: CryptoKey = signingKey,
+  header: Record<string, unknown> = { alg: 'ES256', typ: 'JWT', kid: KID },
+): Promise<string> {
+  const head = b64urlJson(header);
   const body = b64urlJson(claims);
   const sig = await crypto.subtle.sign({ name: 'ECDSA', hash: 'SHA-256' }, key, new TextEncoder().encode(`${head}.${body}`));
   return `${head}.${body}.${b64url(new Uint8Array(sig))}`;
 }
 
 const baseClaims = (extra: Record<string, unknown> = {}) => ({
-  sub: 'user-123', email: 'tester@example.test', aud: 'authenticated', exp: nowSec() + 3600, ...extra,
+  sub: 'user-123', email: 'tester@example.test', aud: 'authenticated', role: 'authenticated',
+  iss: ISSUER, iat: nowSec() - 5, exp: nowSec() + 3600, ...extra,
 });
 const tokenFor = (role: unknown) => sign(baseClaims({ app_metadata: { role } }));
 
@@ -56,13 +71,25 @@ const er = {
 const runRepo = { list: vi.fn(async () => []) };
 const statsRepo = { getPlatformStats: vi.fn(async () => ({})) };
 
-const app = createApp({
+let publicJwk: JsonWebKey;
+const jwksFetch = vi.fn(async (url: string | URL | Request) => {
+  if (String(url) === `${ISSUER}/.well-known/jwks.json`) {
+    return new Response(JSON.stringify({ keys: [{ ...publicJwk, kid: KID, alg: 'ES256', use: 'sig' }] }), { status: 200 });
+  }
+  throw new Error(`fetch inesperado no teste: ${String(url)}`);
+});
+
+const deps = {
   corsOrigin:    ['http://localhost:5173'],
   reviewService: svc as unknown as ReviewService,
   erService:     er as unknown as EntityResolutionService,
   runRepo:       runRepo as unknown as IIngestionRunReadRepository,
   statsRepo:     statsRepo as unknown as StatsRepository,
   requestLogging: false,
+};
+const app = createApp({
+  ...deps,
+  jwtVerifier: createJwtVerifier({ supabaseUrl: SUPABASE_URL, fetchImpl: jwksFetch as unknown as typeof fetch, logger: silentLog }),
 });
 
 async function call(method: string, path: string, token?: string, body?: unknown) {
@@ -79,15 +106,11 @@ beforeAll(async () => {
   const other = (await crypto.subtle.generateKey(ALG, true, ['sign', 'verify'])) as CryptoKeyPair;
   signingKey = pair.privateKey;
   foreignKey = other.privateKey;
-  const publicJwk = await crypto.subtle.exportKey('jwk', pair.publicKey);
-  vi.stubGlobal('fetch', vi.fn(async (url: string) => {
-    if (String(url).endsWith('/auth/v1/.well-known/jwks.json')) {
-      return new Response(JSON.stringify({ keys: [publicJwk] }), { status: 200 });
-    }
-    throw new Error(`fetch inesperado no teste: ${String(url)}`);
-  }));
+  publicJwk = await crypto.subtle.exportKey('jwk', pair.publicKey);
+  // Nenhum fetch real: o verificador usa jwksFetch; o global falha se for chamado.
+  vi.stubGlobal('fetch', vi.fn(async (url: string) => { throw new Error(`fetch global inesperado: ${String(url)}`); }));
 });
-afterAll(() => { vi.unstubAllGlobals(); });
+afterAll(() => { vi.unstubAllGlobals(); vi.unstubAllEnvs(); });
 beforeEach(() => { allServiceMocks().forEach((m) => m.mockClear()); });
 
 // ── resolveAuthUser (função pura) ───────────────────────────────────────────
@@ -156,7 +179,8 @@ describe('authMiddleware', () => {
   });
 
   it('token expirado → 401', async () => {
-    const t = await sign(baseClaims({ exp: nowSec() - 10, app_metadata: { role: 'admin' } }));
+    // SEC-B: há 30 s de tolerância de relógio; expirado há 60 s fica fora dela.
+    const t = await sign(baseClaims({ exp: nowSec() - 60, app_metadata: { role: 'admin' } }));
     expect((await call('GET', '/api/venues', t)).status).toBe(401);
   });
 
@@ -184,6 +208,85 @@ describe('authMiddleware', () => {
 
   it.each(['viewer', 'reviewer', 'admin'] as const)('papel %s lê /api/venues', async (role) => {
     expect((await call('GET', '/api/venues', await tokenFor(role))).status).toBe(200);
+  });
+});
+
+// ── SEC-B: claims do Supabase e resposta genérica ──────────────────────────
+
+describe('SEC-B — validação de JWT na app', () => {
+  const admin = { app_metadata: { role: 'admin' } };
+
+  it.each([
+    ['sem kid',                     () => sign(baseClaims(admin), signingKey, { alg: 'ES256', typ: 'JWT' })],
+    ['kid desconhecido',            () => sign(baseClaims(admin), signingKey, { alg: 'ES256', typ: 'JWT', kid: 'forjado' })],
+    ['alg none',                    async () => `${b64urlJson({ alg: 'none', kid: KID })}.${b64urlJson(baseClaims(admin))}.`],
+    ['iss de outro projecto',       () => sign(baseClaims({ ...admin, iss: 'https://outro.supabase.co/auth/v1' }))],
+    ['iss ausente',                 () => sign(baseClaims({ ...admin, iss: undefined }))],
+    ['aud anon',                    () => sign(baseClaims({ ...admin, aud: 'anon' }))],
+    ['aud ausente',                 () => sign(baseClaims({ ...admin, aud: undefined }))],
+    ['role top-level anon',         () => sign(baseClaims({ ...admin, role: 'anon' }))],
+    ['role top-level service_role', () => sign(baseClaims({ ...admin, role: 'service_role' }))],
+    ['nbf no futuro',               () => sign(baseClaims({ ...admin, nbf: nowSec() + 600 }))],
+  ])('%s → 401 com mensagem genérica, sem motivo no corpo', async (_label, make) => {
+    const res = await call('GET', '/api/venues', await make());
+    expect(res.status).toBe(401);
+    expect(await res.json()).toEqual({ error: 'Token inválido ou expirado' });
+    expect(svc.listVenues).not.toHaveBeenCalled();
+  });
+
+  it('nenhum fetch fora do JWKS do projecto', () => {
+    expect(jwksFetch).toHaveBeenCalled();
+    for (const [url] of jwksFetch.mock.calls) expect(String(url)).toBe(`${ISSUER}/.well-known/jwks.json`);
+    expect(globalThis.fetch).not.toHaveBeenCalled();
+  });
+
+  it('createApp sem verificador e sem SUPABASE_URL → recusa pela configuração (401, sem fetch, log error)', async () => {
+    vi.stubEnv('SUPABASE_URL', '');
+    const errorSpy = vi.spyOn(logger, 'error').mockImplementation(() => undefined);
+    const warnSpy = vi.spyOn(logger, 'warn').mockImplementation(() => undefined);
+    const fetchCallsBefore = (globalThis.fetch as unknown as ReturnType<typeof vi.fn>).mock.calls.length;
+    try {
+      const bare = createApp(deps);
+      const res = await bare.request('/api/venues', { headers: { Authorization: `Bearer ${await tokenFor('admin')}` } });
+      expect(res.status).toBe(401);
+      expect(await res.json()).toEqual({ error: 'Token inválido ou expirado' });
+      expect(svc.listVenues).not.toHaveBeenCalled();
+      // Prova o caminho de configuração: nenhum verificador foi criado (nenhum
+      // fetch de JWKS) e a falha de configuração foi registada.
+      expect((globalThis.fetch as unknown as ReturnType<typeof vi.fn>).mock.calls.length).toBe(fetchCallsBefore);
+      expect(errorSpy).toHaveBeenCalledTimes(1);
+      expect(String(errorSpy.mock.calls[0]?.[1])).toMatch(/configuração JWT inválida/);
+      expect(warnSpy).toHaveBeenCalledWith({ reason: 'jwks_unavailable', kid: undefined }, 'SEC-B: JWT recusado');
+    } finally {
+      errorSpy.mockRestore();
+      warnSpy.mockRestore();
+      vi.unstubAllEnvs();
+    }
+  });
+
+  it('log de rejeição contém só reason e kid (nunca token, claims ou email)', async () => {
+    const warnSpy = vi.spyOn(logger, 'warn').mockImplementation(() => undefined);
+    try {
+      const secretEmail = 'segredo.pessoal@example.test';
+      const tokens = [
+        await sign(baseClaims({ email: secretEmail, aud: 'anon', app_metadata: { role: 'admin' } })),
+        await sign(baseClaims({ email: secretEmail, app_metadata: { role: 'admin' } }), foreignKey),
+        await sign(baseClaims({ email: secretEmail, app_metadata: { role: 'admin' } }), signingKey, { alg: 'ES256', kid: 'forjado' }),
+      ];
+      for (const t of tokens) expect((await call('GET', '/api/venues', t)).status).toBe(401);
+      expect(warnSpy).toHaveBeenCalledTimes(tokens.length);
+      for (const [obj, msg] of warnSpy.mock.calls as unknown as Array<[Record<string, unknown>, string]>) {
+        expect(Object.keys(obj).sort()).toEqual(['kid', 'reason']);
+        expect(msg).toBe('SEC-B: JWT recusado');
+        const logged = JSON.stringify([obj, msg]);
+        expect(logged).not.toContain(secretEmail);
+        expect(logged).not.toContain('user-123');
+        for (const t of tokens) for (const seg of t.split('.')) expect(logged).not.toContain(seg);
+      }
+      expect(warnSpy.mock.calls.map(([o]) => (o as { reason: string }).reason)).toEqual(['aud', 'signature', 'kid']);
+    } finally {
+      warnSpy.mockRestore();
+    }
   });
 });
 

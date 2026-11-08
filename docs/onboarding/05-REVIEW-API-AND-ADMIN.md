@@ -51,17 +51,41 @@ There is **no endpoint to create, edit or delete** staging rows, and **no endpoi
 
 ### 1.2 Authentication
 
-`src/review-api/middleware/auth.ts`:
+`src/review-api/middleware/auth.ts` + `src/review-api/middleware/jwtVerifier.ts` (SEC-B):
 
 1. Reads `Authorization: Bearer`.
-2. Fetches `${SUPABASE_URL}/auth/v1/.well-known/jwks.json` once per process and caches **the first key**
-   (`jwks.keys[0]`), imported as ECDSA P-256.
-3. Verifies the ES256 signature with Web Crypto and checks `exp`.
-4. Role = `payload.app_metadata.role`, **defaulting to `viewer`** when absent.
-   *SEC-A fix (local, not yet merged or deployed):* no default — a missing or invalid role, a role only
-   in `user_metadata`, or `is_anonymous: true` → `403`; a token without `exp` → `401`.
+2. Header: `alg` must be in a fixed allowlist (`ES256`, `RS256`; `none`/`HS*`/others → 401), `kid` is
+   required, `crit` is rejected, `jku`/`x5u`/`jwk`/`x5c` are ignored (keys are never fetched from URLs
+   in the token).
+3. Key = JWK with that `kid` from `${SUPABASE_URL}/auth/v1/.well-known/jwks.json`; the verification
+   algorithm comes from the JWK (`EC P-256` → ES256, `RSA ≥ 2048` → RS256) and must match the header.
+   Private, symmetric (`oct`), `use≠sig` and duplicate-`kid` keys are discarded.
+4. JWKS cache: TTL 10 min, single-flight refresh, unknown `kid` forces a refresh at most once per 30 s
+   (shared cooldown, also consumed by failed loads and by tokens with random `kid`s), fetch timeout 3 s,
+   `redirect: 'error'`, body capped at 64 KB, stale-while-error up to 1 h, then fail-closed (401).
+   `SUPABASE_URL` is normalised to its origin (`new URL()`); a path, query, fragment or credentials
+   stop the server at boot.
+5. Claims (after the signature): `exp` required, `nbf`/`iat` if present, 30 s clock skew; `iss` exactly
+   `${SUPABASE_URL}/auth/v1` (override `SUPABASE_JWT_ISSUER`); `aud` contains `authenticated`
+   (override `SUPABASE_JWT_AUDIENCE`); top-level `role = authenticated`. Claims decoded as UTF-8.
+6. Role = `payload.app_metadata.role` (SEC-A): a missing or invalid role, a role only in
+   `user_metadata`, or `is_anonymous: true` → `403`.
 
-Not checked: `aud`, `iss`, `alg`/`kid` header, `nbf`. Key rotation requires a process restart.
+Response bodies: no `Authorization: Bearer` header → `401 {"error":"Token de autenticação ausente"}`;
+**every** token verification failure (signature, `kid`, `alg`, claims, JWKS unavailable, missing
+config) → the same `401 {"error":"Token inválido ou expirado"}`, without the reason; a valid token
+without an accepted `app_metadata.role` → `403`. The reason and the `kid` are logged at `warn` (never the
+token or claims). `server.ts` refuses to start without a valid `https` `SUPABASE_URL` and pre-warms the
+JWKS (warning only if it fails; a failed warm-up uses the 30 s cooldown, so the first requests may get
+401 until the next attempt).
+
+**Key rotation / revocation:** add the new signing key as standby (it appears in the JWKS) **well before**
+making it current, then revoke the old one. A new `kid` is picked up on the next allowed refresh: at most
+30 s after the previous JWKS load attempt (a token with an unknown `kid` within that cooldown gets 401),
+or at the latest at TTL expiry (10 min). A removed key stops being accepted within **≤ 10 min** while the
+JWKS is reachable, but up to **1 h** (stale-while-error) while the JWKS cannot be fetched. For an
+emergency revocation, revoke the key in Supabase and restart the Review API process(es). Each process
+has its own cache.
 
 > Docs drift: ADR-0009 describes HS256 verification with the Supabase JWT secret. The code uses
 > ES256 via JWKS. `SUPABASE_JWT_SECRET` is present in the local `.env` but **is not referenced by any
