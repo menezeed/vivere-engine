@@ -90,6 +90,22 @@ describe('regions — adicionar uma cidade = uma entrada', () => {
   });
 
   it('acrescentar uma cidade ao registo não altera as queries do piloto', () => {
+    // Revisão r0 (BAIXO): exercitar mesmo um registo AMPLIADO e comparar as
+    // queries completas do piloto (não só a contagem).
+    const nova: RegionDefinition = {
+      key: 'cidade_extra',
+      city_label: 'Cidade Extra RJ',
+      city: 'Cidade Extra',
+      state: 'RJ',
+      center: { lat: -22.7, lng: -41.95 },
+      radius_m: 8000,
+      sources: [GOOGLE_PLACES_SOURCE_KEY],
+    };
+    const ampliado = [...REGIONS, nova];
+    expect(() => validateRegions(ampliado)).not.toThrow();
+    const pilotoNoAmpliado = PILOT_REGION_KEYS.map((key) => getRegion(key, ampliado));
+    expect(buildPilotQueries(pilotoNoAmpliado)).toEqual(buildPilotQueries());
+    expect(buildPilotQueries(pilotoNoAmpliado).some((q) => q.region_key === 'cidade_extra')).toBe(false);
     expect(buildPilotQueries()).toHaveLength(PILOT_REGION_KEYS.length * 7);
   });
 });
