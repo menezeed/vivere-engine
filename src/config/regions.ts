@@ -34,8 +34,14 @@ export interface RegionDefinition {
   city: string;
   /** UF */
   state: string;
-  center: { lat: number; lng: number };
-  radius_m: number;
+  /**
+   * Centro e raio. `null` (ambos) = ainda SEM centro confirmado num mapa:
+   * a região só serve fontes de conteúdo (WordPress) e não pode ser usada
+   * em pesquisas geográficas (Google Places) — requireGeo() falha.
+   * Nunca inventar coordenadas para preencher estes campos.
+   */
+  center: { lat: number; lng: number } | null;
+  radius_m: number | null;
   /**
    * source_key das fontes que cobrem esta cidade (ex: 'google_places',
    * 'prefeitura_cabo_frio'). Fontes WordPress têm de existir no registo
@@ -169,7 +175,41 @@ export const REGIONS: readonly RegionDefinition[] = [
     radius_m: 2500,
     sources: [GOOGLE_PLACES_SOURCE_KEY],
   },
+  // E5 — cidades da Região dos Lagos com fonte WordPress confirmada no L1
+  // (14/11/2026), mas SEM centro confirmado num mapa: center/radius_m
+  // ficam null (nada inventado). Servem só a ingestão de conteúdo
+  // (scripts/ingest-region.ts); Google Places exige confirmar o centro.
+  {
+    key: 'buzios',
+    city_label: 'Armação dos Búzios RJ',
+    city: 'Armação dos Búzios',
+    state: 'RJ',
+    center: null,
+    radius_m: null,
+    sources: ['prefeitura_buzios'],
+  },
+  {
+    key: 'rio_das_ostras',
+    city_label: 'Rio das Ostras RJ',
+    city: 'Rio das Ostras',
+    state: 'RJ',
+    center: null,
+    radius_m: null,
+    sources: ['prefeitura_rio_das_ostras'],
+  },
 ];
+
+/**
+ * Centro e raio de uma região, exigidos por qualquer uso geográfico
+ * (Google Places, gate geográfico). Falha explicitamente para regiões
+ * sem centro confirmado.
+ */
+export function requireGeo(region: RegionDefinition): { center: { lat: number; lng: number }; radius_m: number } {
+  if (region.center === null || region.radius_m === null) {
+    throw new Error(`regions.ts: região "${region.key}" não tem centro confirmado — não pode ser usada em pesquisas geográficas`);
+  }
+  return { center: region.center, radius_m: region.radius_m };
+}
 
 /**
  * Validação estrutural de um registo de regiões. Função pura — os
@@ -188,12 +228,21 @@ export function validateRegions(regions: readonly RegionDefinition[]): void {
     if (r.city_label.trim() === '' || r.city.trim() === '' || r.state.trim() === '') {
       throw new Error(`regions.ts: "${r.key}" tem city_label, city ou state vazio`);
     }
-    const { lat, lng } = r.center;
-    if (!Number.isFinite(lat) || lat < -90 || lat > 90 || !Number.isFinite(lng) || lng < -180 || lng > 180) {
-      throw new Error(`regions.ts: "${r.key}" tem coordenadas fora do intervalo`);
+    if ((r.center === null) !== (r.radius_m === null)) {
+      throw new Error(`regions.ts: "${r.key}" tem center e radius_m inconsistentes (ambos ou nenhum)`);
     }
-    if (!Number.isInteger(r.radius_m) || r.radius_m <= 0 || r.radius_m > 50000) {
-      throw new Error(`regions.ts: "${r.key}" tem radius_m inválido (${r.radius_m})`);
+    if (r.center === null) {
+      if (r.sources.includes(GOOGLE_PLACES_SOURCE_KEY)) {
+        throw new Error(`regions.ts: "${r.key}" usa ${GOOGLE_PLACES_SOURCE_KEY} sem centro confirmado`);
+      }
+    } else {
+      const { lat, lng } = r.center;
+      if (!Number.isFinite(lat) || lat < -90 || lat > 90 || !Number.isFinite(lng) || lng < -180 || lng > 180) {
+        throw new Error(`regions.ts: "${r.key}" tem coordenadas fora do intervalo`);
+      }
+      if (!Number.isInteger(r.radius_m) || r.radius_m! <= 0 || r.radius_m! > 50000) {
+        throw new Error(`regions.ts: "${r.key}" tem radius_m inválido (${r.radius_m})`);
+      }
     }
     if (new Set(r.sources).size !== r.sources.length) {
       throw new Error(`regions.ts: "${r.key}" tem sources duplicadas`);

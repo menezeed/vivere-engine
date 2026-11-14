@@ -1,5 +1,5 @@
 ﻿import type { GooglePlacesProductConfig, GooglePlacesRegion } from './GooglePlacesProductConfig';
-import { getRegion, type RegionDefinition } from '../../../config/regions';
+import { getRegion, requireGeo, type RegionDefinition } from '../../../config/regions';
 
 /** Regiões do Vivere 60+ no Google Places, pela ordem histórica de execução. */
 export const VIVERE_60_MAIS_REGION_KEYS = [
@@ -14,12 +14,13 @@ export const VIVERE_60_MAIS_REGION_KEYS = [
 ] as const;
 
 export function toGooglePlacesRegion(region: RegionDefinition): GooglePlacesRegion {
+  const { center, radius_m } = requireGeo(region);
   return {
     key: region.key,
     display_label: region.city_label,
-    lat: region.center.lat,
-    lng: region.center.lng,
-    radius_m: region.radius_m,
+    lat: center.lat,
+    lng: center.lng,
+    radius_m,
   };
 }
 
