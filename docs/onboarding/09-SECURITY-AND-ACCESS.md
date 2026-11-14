@@ -9,9 +9,11 @@ Severity scale used: **High** (data exposure or unauthorized write plausible), *
 
 ---
 
-## SEC-A — Any Supabase Auth user gets `viewer` access to the Review API (High → fixed locally, not yet merged or deployed)
+## SEC-A — Any Supabase Auth user gets `viewer` access to the Review API (High → fixed in `main` by PR #7, not yet validated in a deployment)
 
 > Updated by SEC-A-002. Original finding kept in git history.
+> Status: merged into `main` by PR #7 (merge `7e71890`; commits `69e3329`, `6d7a143`). Not yet
+> validated in a deployment; prerequisite: `app_metadata.role` on the review accounts in the right project.
 
 - **Original finding:** `authMiddleware` accepted any valid Supabase JWT and assigned
   `role = app_metadata.role ?? 'viewer'`, so every read endpoint (`/api/venues`, `/api/activities` incl.
