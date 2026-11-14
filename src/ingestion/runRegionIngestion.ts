@@ -20,7 +20,7 @@
  *  - Uma fonte que falha não interrompe as outras; fica como execução
  *    'failed' no relatório E7.
  */
-import { getRegion, GOOGLE_PLACES_SOURCE_KEY, type RegionDefinition } from '../config/regions';
+import { getRegion, REGIONS, GOOGLE_PLACES_SOURCE_KEY, type RegionDefinition } from '../config/regions';
 import { getWordPressSourceConfigBySourceKey } from '../collectors/wordpress-content/config/registry';
 import type { WordPressContentSourceConfig } from '../collectors/wordpress-content/config/WordPressContentSourceConfig';
 import { WordPressContentCollector } from '../collectors/wordpress-content/WordPressContentCollector';
@@ -44,6 +44,8 @@ export interface RegionIngestionDeps {
   createApiClient: (baseUrl: string) => WordPressApiClient;
   /** ISO 8601. Relógio injectado (início/fim das execuções, relatórios). */
   now: () => string;
+  /** Registo de regiões; por omissão src/config/regions.ts (REGIONS). */
+  regions?: readonly RegionDefinition[];
 }
 
 export interface RegionIngestionOptions {
@@ -137,7 +139,7 @@ export async function runRegionIngestion(
 ): Promise<RegionIngestionResult> {
   let region: RegionDefinition;
   try {
-    region = getRegion(regionKey);
+    region = getRegion(regionKey, deps.regions ?? REGIONS);
   } catch (err) {
     throw new RegionIngestionError(err instanceof Error ? err.message : String(err));
   }
@@ -162,21 +164,24 @@ export async function runRegionIngestion(
 
   for (const { sourceKey, config } of planned) {
     lastPublishedAt[sourceKey] = null;
-    const client = recordingClient(deps.createApiClient(config.base_url), (id, iso) => {
-      publishedAt.set(`${sourceKey}:${id}`, iso);
-      const last = lastPublishedAt[sourceKey];
-      if (!last || iso > last) lastPublishedAt[sourceKey] = iso;
-    });
-    const collector = new WordPressContentCollector(client, config);
-    const collect = collector.collect.bind(collector);
-    collector.collect = async (opts) => {
-      const result = await collect(opts);
-      items.push(...result.items);
-      return result;
-    };
-
     const startedAt = deps.now();
+    // Isolamento por fonte (revisão r0 do #14): a criação do cliente e do
+    // collector fica DENTRO do try — uma falha na inicialização é um
+    // outcome failed desta fonte e as seguintes continuam.
     try {
+      const client = recordingClient(deps.createApiClient(config.base_url), (id, iso) => {
+        publishedAt.set(`${sourceKey}:${id}`, iso);
+        const last = lastPublishedAt[sourceKey];
+        if (!last || iso > last) lastPublishedAt[sourceKey] = iso;
+      });
+      const collector = new WordPressContentCollector(client, config);
+      const collect = collector.collect.bind(collector);
+      collector.collect = async (opts) => {
+        const result = await collect(opts);
+        items.push(...result.items);
+        return result;
+      };
+
       const summary = await orchestrator.runActivityIngestion(collector, config, {
         dryRun: options.dryRun,
         sinceDays: options.sinceDays,

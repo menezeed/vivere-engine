@@ -18,7 +18,7 @@ vi.mock('../../persistence/client/supabase', () => ({ getSupabaseClient: guards.
 vi.mock('@supabase/supabase-js', () => ({ createClient: guards.createClient }));
 
 import { runRegionIngestion, planRegionSources, RegionIngestionError, type RegionIngestionDeps } from '../runRegionIngestion';
-import { getRegion } from '../../config/regions';
+import { getRegion, type RegionDefinition } from '../../config/regions';
 import { AVAILABLE_INSTANCES } from '../../collectors/wordpress-content/config/registry';
 import type { WordPressApiClient, WordPressPost, FetchPostsResult } from '../../collectors/wordpress-content/WordPressApiClient';
 import type { IRepositorySet } from '../../persistence/types/repositoryInterfaces';
@@ -184,6 +184,56 @@ describe('runRegionIngestion', () => {
     expect(result.health.alerts.map((a) => a.code)).toEqual(['zero_items', 'run_failed']);
     expect(exitCodeFor(result)).toBe(1);
     expect(formatRegionResult(result)).toContain('prefeitura_buzios: FALHOU — WordPress REST API falhou (503)');
+  });
+
+  describe('isolamento por fonte (revisão r0 do #14)', () => {
+    const DUAS: RegionDefinition = {
+      key: 'duas_fontes',
+      city_label: 'Teste RJ',
+      city: 'Teste',
+      state: 'RJ',
+      center: null,
+      radius_m: null,
+      sources: ['prefeitura_cabo_frio', 'prefeitura_buzios'],
+    };
+
+    function depsWith(failing: 'init' | 'collect', failingBaseUrl: string) {
+      const base = makeDeps();
+      const ok = base.deps.createApiClient;
+      return makeDeps({
+        regions: [DUAS],
+        createApiClient: vi.fn((baseUrl: string) => {
+          if (baseUrl !== failingBaseUrl) return ok(baseUrl);
+          if (failing === 'init') throw new Error('falha a criar o cliente');
+          return { fetchPosts: async () => { throw new Error('falha na recolha'); } } as unknown as WordPressApiClient;
+        }),
+      });
+    }
+
+    it.each([['init'], ['collect']] as const)('fonte que falha em %s → outcome failed; a outra fonte corre e grava os seus itens', async (failing) => {
+      const caboFrioUrl = AVAILABLE_INSTANCES['cabo-frio']!.base_url;
+      const { deps, memory } = depsWith(failing, caboFrioUrl);
+      const result = await runRegionIngestion('duas_fontes', { dryRun: false, sinceDays: SINCE_DAYS }, deps);
+      const reason = failing === 'init' ? 'falha a criar o cliente' : 'falha na recolha';
+      expect(result.sources.map((s) => [s.source_key, s.status, s.error])).toEqual([
+        ['prefeitura_cabo_frio', 'failed', reason],
+        ['prefeitura_buzios', 'success', null],
+      ]);
+      expect(result.sources[1]!.summary).toMatchObject({ rawItemsCollected: 1, rawItemsPersisted: 1 });
+      expect(memory.raw.map((i) => i.source_key)).toEqual(['prefeitura_buzios']);
+      expect(result.quality.by_group.map((g) => [g.source_key, g.total_items])).toEqual([['prefeitura_buzios', 1]]);
+      const cf = result.health.sources.find((s) => s.source_key === 'prefeitura_cabo_frio')!;
+      expect(cf.alerts.map((a) => a.code)).toEqual(['zero_items', 'run_failed']);
+      expect(cf.alerts[1]!.data['error_message']).toBe(reason);
+      expect(exitCodeFor(result)).toBe(1);
+    });
+
+    it('a fonte que falha na inicialização pode ser a última: as anteriores já correram', async () => {
+      const { deps } = depsWith('init', AVAILABLE_INSTANCES['buzios']!.base_url);
+      const result = await runRegionIngestion('duas_fontes', { dryRun: true, sinceDays: SINCE_DAYS }, deps);
+      expect(result.sources.map((s) => s.status)).toEqual(['success', 'failed']);
+      expect(result.quality.totals.total_items).toBe(3);
+    });
   });
 
   it('relatório anterior fornecido → queda de volume avaliada', async () => {
