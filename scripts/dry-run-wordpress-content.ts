@@ -22,7 +22,16 @@ import { WordPressApiClient } from '../src/collectors/wordpress-content/WordPres
 import { WordPressContentCollector } from '../src/collectors/wordpress-content/WordPressContentCollector';
 // Revisão r0 (MÉDIO): a mesma lista de instâncias que a ingestão usa (registry),
 // em vez de um mapa local que ficava desactualizado (Búzios, Rio das Ostras).
-import { AVAILABLE_INSTANCES } from '../src/collectors/wordpress-content/config/registry';
+import { AVAILABLE_INSTANCES as REGISTRY_INSTANCES } from '../src/collectors/wordpress-content/config/registry';
+import { ARARUAMA_CONFIG } from '../src/collectors/wordpress-content/config/araruama';
+import type { WordPressContentSourceConfig } from '../src/collectors/wordpress-content/config/WordPressContentSourceConfig';
+
+// Revisão r1 (MÉDIO): Araruama (config placeholder, fora do registry da ingestão)
+// continua disponível SÓ no dry-run, como antes; não é activada na ingestão.
+const AVAILABLE_INSTANCES: Record<string, WordPressContentSourceConfig> = {
+  ...REGISTRY_INSTANCES,
+  araruama: ARARUAMA_CONFIG,
+};
 import type { MapReviewReason } from '../src/collectors/wordpress-content/mapToRawActivityItems';
 
 function parseArgValue(flag: string): string | undefined {
