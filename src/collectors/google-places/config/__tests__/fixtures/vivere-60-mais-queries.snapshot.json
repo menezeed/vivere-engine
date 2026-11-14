@@ -1,0 +1,454 @@
+{
+  "regions": [
+    {
+      "key": "cabo_frio",
+      "display_label": "Cabo Frio RJ",
+      "lat": -22.8894,
+      "lng": -42.0188,
+      "radius_m": 12000
+    },
+    {
+      "key": "araruama",
+      "display_label": "Araruama RJ",
+      "lat": -22.8717,
+      "lng": -42.3433,
+      "radius_m": 12000
+    },
+    {
+      "key": "sp_brooklin_pilot",
+      "display_label": "Brooklin, São Paulo",
+      "lat": -23.61011,
+      "lng": -46.686907,
+      "radius_m": 2500
+    },
+    {
+      "key": "campo_belo",
+      "display_label": "Campo Belo, São Paulo",
+      "lat": -23.593029,
+      "lng": -46.66948,
+      "radius_m": 2500
+    },
+    {
+      "key": "sao_pedro_da_aldeia",
+      "display_label": "São Pedro da Aldeia RJ",
+      "lat": -22.835174,
+      "lng": -42.098698,
+      "radius_m": 4000
+    },
+    {
+      "key": "iguaba_grande",
+      "display_label": "Iguaba Grande RJ",
+      "lat": -22.839561,
+      "lng": -42.220774,
+      "radius_m": 4000
+    },
+    {
+      "key": "moema",
+      "display_label": "Moema, São Paulo",
+      "lat": -23.60361,
+      "lng": -46.66194,
+      "radius_m": 2500
+    },
+    {
+      "key": "santo_amaro",
+      "display_label": "Santo Amaro, Sao Paulo",
+      "lat": -23.65171,
+      "lng": -46.70693,
+      "radius_m": 2500
+    }
+  ],
+  "queries": [
+    {
+      "region_key": "cabo_frio",
+      "region_label": "Cabo Frio RJ",
+      "category_key": "teatro",
+      "query_text": "teatro em Cabo Frio RJ",
+      "query_kind": "place_type"
+    },
+    {
+      "region_key": "cabo_frio",
+      "region_label": "Cabo Frio RJ",
+      "category_key": "centro_cultural",
+      "query_text": "centro cultural em Cabo Frio RJ",
+      "query_kind": "place_type"
+    },
+    {
+      "region_key": "cabo_frio",
+      "region_label": "Cabo Frio RJ",
+      "category_key": "museu",
+      "query_text": "museu em Cabo Frio RJ",
+      "query_kind": "place_type"
+    },
+    {
+      "region_key": "cabo_frio",
+      "region_label": "Cabo Frio RJ",
+      "category_key": "parque",
+      "query_text": "parque em Cabo Frio RJ",
+      "query_kind": "place_type"
+    },
+    {
+      "region_key": "cabo_frio",
+      "region_label": "Cabo Frio RJ",
+      "category_key": "biblioteca",
+      "query_text": "biblioteca em Cabo Frio RJ",
+      "query_kind": "place_type"
+    },
+    {
+      "region_key": "cabo_frio",
+      "region_label": "Cabo Frio RJ",
+      "category_key": "hidroginastica",
+      "query_text": "hidroginástica em Cabo Frio RJ",
+      "query_kind": "activity_intent"
+    },
+    {
+      "region_key": "cabo_frio",
+      "region_label": "Cabo Frio RJ",
+      "category_key": "danca_idosos",
+      "query_text": "dança para idosos em Cabo Frio RJ",
+      "query_kind": "activity_intent"
+    },
+    {
+      "region_key": "araruama",
+      "region_label": "Araruama RJ",
+      "category_key": "teatro",
+      "query_text": "teatro em Araruama RJ",
+      "query_kind": "place_type"
+    },
+    {
+      "region_key": "araruama",
+      "region_label": "Araruama RJ",
+      "category_key": "centro_cultural",
+      "query_text": "centro cultural em Araruama RJ",
+      "query_kind": "place_type"
+    },
+    {
+      "region_key": "araruama",
+      "region_label": "Araruama RJ",
+      "category_key": "museu",
+      "query_text": "museu em Araruama RJ",
+      "query_kind": "place_type"
+    },
+    {
+      "region_key": "araruama",
+      "region_label": "Araruama RJ",
+      "category_key": "parque",
+      "query_text": "parque em Araruama RJ",
+      "query_kind": "place_type"
+    },
+    {
+      "region_key": "araruama",
+      "region_label": "Araruama RJ",
+      "category_key": "biblioteca",
+      "query_text": "biblioteca em Araruama RJ",
+      "query_kind": "place_type"
+    },
+    {
+      "region_key": "araruama",
+      "region_label": "Araruama RJ",
+      "category_key": "hidroginastica",
+      "query_text": "hidroginástica em Araruama RJ",
+      "query_kind": "activity_intent"
+    },
+    {
+      "region_key": "araruama",
+      "region_label": "Araruama RJ",
+      "category_key": "danca_idosos",
+      "query_text": "dança para idosos em Araruama RJ",
+      "query_kind": "activity_intent"
+    },
+    {
+      "region_key": "sp_brooklin_pilot",
+      "region_label": "Brooklin, São Paulo",
+      "category_key": "teatro",
+      "query_text": "teatro em Brooklin, São Paulo",
+      "query_kind": "place_type"
+    },
+    {
+      "region_key": "sp_brooklin_pilot",
+      "region_label": "Brooklin, São Paulo",
+      "category_key": "centro_cultural",
+      "query_text": "centro cultural em Brooklin, São Paulo",
+      "query_kind": "place_type"
+    },
+    {
+      "region_key": "sp_brooklin_pilot",
+      "region_label": "Brooklin, São Paulo",
+      "category_key": "museu",
+      "query_text": "museu em Brooklin, São Paulo",
+      "query_kind": "place_type"
+    },
+    {
+      "region_key": "sp_brooklin_pilot",
+      "region_label": "Brooklin, São Paulo",
+      "category_key": "parque",
+      "query_text": "parque em Brooklin, São Paulo",
+      "query_kind": "place_type"
+    },
+    {
+      "region_key": "sp_brooklin_pilot",
+      "region_label": "Brooklin, São Paulo",
+      "category_key": "biblioteca",
+      "query_text": "biblioteca em Brooklin, São Paulo",
+      "query_kind": "place_type"
+    },
+    {
+      "region_key": "sp_brooklin_pilot",
+      "region_label": "Brooklin, São Paulo",
+      "category_key": "hidroginastica",
+      "query_text": "hidroginástica em Brooklin, São Paulo",
+      "query_kind": "activity_intent"
+    },
+    {
+      "region_key": "sp_brooklin_pilot",
+      "region_label": "Brooklin, São Paulo",
+      "category_key": "danca_idosos",
+      "query_text": "dança para idosos em Brooklin, São Paulo",
+      "query_kind": "activity_intent"
+    },
+    {
+      "region_key": "campo_belo",
+      "region_label": "Campo Belo, São Paulo",
+      "category_key": "teatro",
+      "query_text": "teatro em Campo Belo, São Paulo",
+      "query_kind": "place_type"
+    },
+    {
+      "region_key": "campo_belo",
+      "region_label": "Campo Belo, São Paulo",
+      "category_key": "centro_cultural",
+      "query_text": "centro cultural em Campo Belo, São Paulo",
+      "query_kind": "place_type"
+    },
+    {
+      "region_key": "campo_belo",
+      "region_label": "Campo Belo, São Paulo",
+      "category_key": "museu",
+      "query_text": "museu em Campo Belo, São Paulo",
+      "query_kind": "place_type"
+    },
+    {
+      "region_key": "campo_belo",
+      "region_label": "Campo Belo, São Paulo",
+      "category_key": "parque",
+      "query_text": "parque em Campo Belo, São Paulo",
+      "query_kind": "place_type"
+    },
+    {
+      "region_key": "campo_belo",
+      "region_label": "Campo Belo, São Paulo",
+      "category_key": "biblioteca",
+      "query_text": "biblioteca em Campo Belo, São Paulo",
+      "query_kind": "place_type"
+    },
+    {
+      "region_key": "campo_belo",
+      "region_label": "Campo Belo, São Paulo",
+      "category_key": "hidroginastica",
+      "query_text": "hidroginástica em Campo Belo, São Paulo",
+      "query_kind": "activity_intent"
+    },
+    {
+      "region_key": "campo_belo",
+      "region_label": "Campo Belo, São Paulo",
+      "category_key": "danca_idosos",
+      "query_text": "dança para idosos em Campo Belo, São Paulo",
+      "query_kind": "activity_intent"
+    },
+    {
+      "region_key": "sao_pedro_da_aldeia",
+      "region_label": "São Pedro da Aldeia RJ",
+      "category_key": "teatro",
+      "query_text": "teatro em São Pedro da Aldeia RJ",
+      "query_kind": "place_type"
+    },
+    {
+      "region_key": "sao_pedro_da_aldeia",
+      "region_label": "São Pedro da Aldeia RJ",
+      "category_key": "centro_cultural",
+      "query_text": "centro cultural em São Pedro da Aldeia RJ",
+      "query_kind": "place_type"
+    },
+    {
+      "region_key": "sao_pedro_da_aldeia",
+      "region_label": "São Pedro da Aldeia RJ",
+      "category_key": "museu",
+      "query_text": "museu em São Pedro da Aldeia RJ",
+      "query_kind": "place_type"
+    },
+    {
+      "region_key": "sao_pedro_da_aldeia",
+      "region_label": "São Pedro da Aldeia RJ",
+      "category_key": "parque",
+      "query_text": "parque em São Pedro da Aldeia RJ",
+      "query_kind": "place_type"
+    },
+    {
+      "region_key": "sao_pedro_da_aldeia",
+      "region_label": "São Pedro da Aldeia RJ",
+      "category_key": "biblioteca",
+      "query_text": "biblioteca em São Pedro da Aldeia RJ",
+      "query_kind": "place_type"
+    },
+    {
+      "region_key": "sao_pedro_da_aldeia",
+      "region_label": "São Pedro da Aldeia RJ",
+      "category_key": "hidroginastica",
+      "query_text": "hidroginástica em São Pedro da Aldeia RJ",
+      "query_kind": "activity_intent"
+    },
+    {
+      "region_key": "sao_pedro_da_aldeia",
+      "region_label": "São Pedro da Aldeia RJ",
+      "category_key": "danca_idosos",
+      "query_text": "dança para idosos em São Pedro da Aldeia RJ",
+      "query_kind": "activity_intent"
+    },
+    {
+      "region_key": "iguaba_grande",
+      "region_label": "Iguaba Grande RJ",
+      "category_key": "teatro",
+      "query_text": "teatro em Iguaba Grande RJ",
+      "query_kind": "place_type"
+    },
+    {
+      "region_key": "iguaba_grande",
+      "region_label": "Iguaba Grande RJ",
+      "category_key": "centro_cultural",
+      "query_text": "centro cultural em Iguaba Grande RJ",
+      "query_kind": "place_type"
+    },
+    {
+      "region_key": "iguaba_grande",
+      "region_label": "Iguaba Grande RJ",
+      "category_key": "museu",
+      "query_text": "museu em Iguaba Grande RJ",
+      "query_kind": "place_type"
+    },
+    {
+      "region_key": "iguaba_grande",
+      "region_label": "Iguaba Grande RJ",
+      "category_key": "parque",
+      "query_text": "parque em Iguaba Grande RJ",
+      "query_kind": "place_type"
+    },
+    {
+      "region_key": "iguaba_grande",
+      "region_label": "Iguaba Grande RJ",
+      "category_key": "biblioteca",
+      "query_text": "biblioteca em Iguaba Grande RJ",
+      "query_kind": "place_type"
+    },
+    {
+      "region_key": "iguaba_grande",
+      "region_label": "Iguaba Grande RJ",
+      "category_key": "hidroginastica",
+      "query_text": "hidroginástica em Iguaba Grande RJ",
+      "query_kind": "activity_intent"
+    },
+    {
+      "region_key": "iguaba_grande",
+      "region_label": "Iguaba Grande RJ",
+      "category_key": "danca_idosos",
+      "query_text": "dança para idosos em Iguaba Grande RJ",
+      "query_kind": "activity_intent"
+    },
+    {
+      "region_key": "moema",
+      "region_label": "Moema, São Paulo",
+      "category_key": "teatro",
+      "query_text": "teatro em Moema, São Paulo",
+      "query_kind": "place_type"
+    },
+    {
+      "region_key": "moema",
+      "region_label": "Moema, São Paulo",
+      "category_key": "centro_cultural",
+      "query_text": "centro cultural em Moema, São Paulo",
+      "query_kind": "place_type"
+    },
+    {
+      "region_key": "moema",
+      "region_label": "Moema, São Paulo",
+      "category_key": "museu",
+      "query_text": "museu em Moema, São Paulo",
+      "query_kind": "place_type"
+    },
+    {
+      "region_key": "moema",
+      "region_label": "Moema, São Paulo",
+      "category_key": "parque",
+      "query_text": "parque em Moema, São Paulo",
+      "query_kind": "place_type"
+    },
+    {
+      "region_key": "moema",
+      "region_label": "Moema, São Paulo",
+      "category_key": "biblioteca",
+      "query_text": "biblioteca em Moema, São Paulo",
+      "query_kind": "place_type"
+    },
+    {
+      "region_key": "moema",
+      "region_label": "Moema, São Paulo",
+      "category_key": "hidroginastica",
+      "query_text": "hidroginástica em Moema, São Paulo",
+      "query_kind": "activity_intent"
+    },
+    {
+      "region_key": "moema",
+      "region_label": "Moema, São Paulo",
+      "category_key": "danca_idosos",
+      "query_text": "dança para idosos em Moema, São Paulo",
+      "query_kind": "activity_intent"
+    },
+    {
+      "region_key": "santo_amaro",
+      "region_label": "Santo Amaro, Sao Paulo",
+      "category_key": "teatro",
+      "query_text": "teatro em Santo Amaro, Sao Paulo",
+      "query_kind": "place_type"
+    },
+    {
+      "region_key": "santo_amaro",
+      "region_label": "Santo Amaro, Sao Paulo",
+      "category_key": "centro_cultural",
+      "query_text": "centro cultural em Santo Amaro, Sao Paulo",
+      "query_kind": "place_type"
+    },
+    {
+      "region_key": "santo_amaro",
+      "region_label": "Santo Amaro, Sao Paulo",
+      "category_key": "museu",
+      "query_text": "museu em Santo Amaro, Sao Paulo",
+      "query_kind": "place_type"
+    },
+    {
+      "region_key": "santo_amaro",
+      "region_label": "Santo Amaro, Sao Paulo",
+      "category_key": "parque",
+      "query_text": "parque em Santo Amaro, Sao Paulo",
+      "query_kind": "place_type"
+    },
+    {
+      "region_key": "santo_amaro",
+      "region_label": "Santo Amaro, Sao Paulo",
+      "category_key": "biblioteca",
+      "query_text": "biblioteca em Santo Amaro, Sao Paulo",
+      "query_kind": "place_type"
+    },
+    {
+      "region_key": "santo_amaro",
+      "region_label": "Santo Amaro, Sao Paulo",
+      "category_key": "hidroginastica",
+      "query_text": "hidroginástica em Santo Amaro, Sao Paulo",
+      "query_kind": "activity_intent"
+    },
+    {
+      "region_key": "santo_amaro",
+      "region_label": "Santo Amaro, Sao Paulo",
+      "category_key": "danca_idosos",
+      "query_text": "dança para idosos em Santo Amaro, Sao Paulo",
+      "query_kind": "activity_intent"
+    }
+  ]
+}
