@@ -17,7 +17,7 @@
  * da BD; ficam fora deste teste. 00-filter-venue e 01-geographic-gate só
  * se aplicam a venues (Google Places), não a actividades.
  */
-import { describe, it, expect, vi, beforeAll, afterAll } from 'vitest';
+import { describe, it, expect, vi, beforeAll, afterAll, afterEach } from 'vitest';
 import { readFileSync } from 'node:fs';
 
 const supabaseGuards = vi.hoisted(() => ({
@@ -61,10 +61,23 @@ function fakeApiClient(posts: WordPressPost[]): WordPressApiClient {
   } as unknown as WordPressApiClient;
 }
 
-/** Repositórios em memória: registam o que SERIA gravado, sem BD. */
+/**
+ * Repositórios em memória: registam o que SERIA gravado, sem BD.
+ *
+ * Simulam a semântica de conflito dos repositórios reais (revisão r0):
+ *  - raw_activity_items: upsert com onConflict
+ *    (source_key, source_item_id, ingestion_run_id) e ignoreDuplicates —
+ *    só as linhas NOVAS são devolvidas (RawActivityItemRepository);
+ *  - activities_staging: upsert com onConflict raw_activity_item_id e
+ *    ignoreDuplicates; itens sem linha raw correspondente não são
+ *    gravados (ActivityStagingRepository).
+ * Limite: não simulam FKs, triggers, RLS nem erros da BD.
+ */
 function memoryRepos() {
   const raw: RawActivityItem[] = [];
+  const rawKeys = new Map<string, string>(); // chave de conflito → id
   const staged: RecurrenceDetectedItem[] = [];
+  const stagedRawIds = new Set<string>();
   const runs: Array<{ id: string; sourceKey: string; finished?: { itemsCollected: number; itemsErrored: number }; failed?: string }> = [];
   const forbidden = (name: string) => async () => {
     throw new Error(`L7: ${name} não pertence ao fluxo de actividades`);
@@ -86,15 +99,31 @@ function memoryRepos() {
     rawVenueItem: { insertBatch: forbidden('rawVenueItem.insertBatch') },
     venueStaging: { insertBatch: forbidden('venueStaging.insertBatch') },
     rawActivityItem: {
-      insertBatch: async (items) => {
-        raw.push(...items);
-        return items.map((i) => ({ id: `raw:${i.source_key}:${i.source_item_id}`, source_item_id: i.source_item_id }));
+      insertBatch: async (items, runId) => {
+        const inserted: Array<{ id: string; source_item_id: string }> = [];
+        for (const i of items) {
+          const key = `${i.source_key}|${i.source_item_id}|${runId}`;
+          if (rawKeys.has(key)) continue; // ignoreDuplicates
+          const id = `raw-${rawKeys.size + 1}`;
+          rawKeys.set(key, id);
+          raw.push(i);
+          inserted.push({ id, source_item_id: i.source_item_id });
+        }
+        return inserted;
       },
     },
     activityStaging: {
-      insertBatch: async (items) => {
-        staged.push(...items);
-        return items.length;
+      insertBatch: async (items, persistedRaw) => {
+        const rawIdBySourceItemId = new Map(persistedRaw.map((p) => [p.source_item_id, p.id]));
+        let count = 0;
+        for (const d of items) {
+          const rawId = rawIdBySourceItemId.get(d.item.source_item_id);
+          if (!rawId || stagedRawIds.has(rawId)) continue; // sem raw / ignoreDuplicates
+          stagedRawIds.add(rawId);
+          staged.push(d);
+          count++;
+        }
+        return count;
       },
     },
   };
@@ -154,6 +183,14 @@ describe('L7 — pipeline offline: fixtures → collector → orquestrador → f
 
   afterAll(() => {
     vi.useRealTimers();
+  });
+
+  // Revisão r0 (MEDIO): verificado depois de CADA teste — cobre as duas
+  // execuções do beforeAll e qualquer execução feita dentro de um teste
+  // (dry-run, duplicados), mesmo que a excepção do guarda seja engolida.
+  afterEach(() => {
+    expect(supabaseGuards.getSupabaseClient).not.toHaveBeenCalled();
+    expect(supabaseGuards.createClient).not.toHaveBeenCalled();
   });
 
   it('nenhum caminho cria cliente Supabase', () => {
@@ -233,8 +270,20 @@ describe('L7 — pipeline offline: fixtures → collector → orquestrador → f
     expect(second.raw.map((i) => `${i.source_key}:${i.source_item_id}`)).toEqual(ids);
   });
 
-  it('dry-run do orquestrador não toca em nenhum repositório', async () => {
-    const { repos, raw, staged, runs } = memoryRepos();
+  it('dry-run do orquestrador não toca em nenhum repositório (qualquer acesso falha e fica registado)', async () => {
+    const accesses: string[] = [];
+    const trap = (path: string): unknown =>
+      new Proxy(() => undefined, {
+        get: (_t, prop) => {
+          accesses.push(`${path}.${String(prop)}`);
+          throw new Error(`L7: dry-run acedeu a ${path}.${String(prop)}`);
+        },
+        apply: () => {
+          accesses.push(`${path}()`);
+          throw new Error(`L7: dry-run chamou ${path}()`);
+        },
+      });
+    const repos = trap('repos') as IRepositorySet;
     const config = AVAILABLE_INSTANCES['cabo-frio']!;
     const summary = await new IngestionOrchestrator(repos).runActivityIngestion(
       new WordPressContentCollector(fakeApiClient(loadPosts('cabo-frio')), config),
@@ -242,6 +291,32 @@ describe('L7 — pipeline offline: fixtures → collector → orquestrador → f
       { dryRun: true, sinceDays: SINCE_DAYS },
     );
     expect(summary).toMatchObject({ dryRun: true, ingestionRunId: null, rawItemsCollected: 3, rawItemsPersisted: 0, stagedItems: 0 });
-    expect([raw.length, staged.length, runs.length]).toEqual([0, 0, 0]);
+    expect(accesses).toEqual([]);
+  });
+
+  it('post repetido na mesma execução: a chave de conflito real grava-o uma só vez (raw e staging)', async () => {
+    const { repos, raw, staged } = memoryRepos();
+    const config = AVAILABLE_INSTANCES['cabo-frio']!;
+    const posts = loadPosts('cabo-frio');
+    const summary = await new IngestionOrchestrator(repos).runActivityIngestion(
+      new WordPressContentCollector(fakeApiClient([...posts, posts[0]!]), config),
+      config,
+      { sinceDays: SINCE_DAYS },
+    );
+    expect(summary).toMatchObject({ rawItemsCollected: 4, rawItemsPersisted: 3, stagedItems: 3 });
+    expect(raw).toHaveLength(3);
+    expect(staged).toHaveLength(3);
+  });
+
+  it('a mesma fonte em duas execuções (run ids distintos) grava as linhas de cada execução, como a chave real permite', async () => {
+    const { repos, raw, runs } = memoryRepos();
+    const config = AVAILABLE_INSTANCES['buzios']!;
+    const orchestrator = new IngestionOrchestrator(repos);
+    for (let n = 0; n < 2; n++) {
+      await orchestrator.runActivityIngestion(new WordPressContentCollector(fakeApiClient(loadPosts('buzios')), config), config, { sinceDays: SINCE_DAYS });
+    }
+    expect(runs.map((r) => r.id)).toEqual(['run-1', 'run-2']);
+    expect(raw).toHaveLength(2);
+    expect(raw[0]).toEqual(raw[1]);
   });
 });
