@@ -15,7 +15,7 @@ import { InMemoryBudgetRepo }             from '../src/lib/budgetGuard.js';
 import { TARGETED_VENUE_LOOKUP_CONFIG }   from '../src/collectors/google-places/config/targeted-venue-lookup.js';
 import { VIVERE_60_MAIS_VENUE_FILTER_RULES } from '../src/pipeline/stages/00-filter-venue/products/vivere-60-mais.js';
 import { IngestionOrchestrator }          from '../src/persistence/orchestration/IngestionOrchestrator.js';
-import { RepositoryFactory }              from '../src/persistence/orchestration/RepositoryFactory.js';
+import { reposForRun }                    from '../src/persistence/orchestration/reposForRun.js';
 import { logger }                         from '../src/lib/logger.js';
 
 const DRY_RUN       = process.argv.includes('--dry-run');
@@ -56,7 +56,8 @@ async function main() {
     TARGETED_VENUE_LOOKUP_CONFIG,
   );
 
-  const repos       = await RepositoryFactory.forSupabase();
+  // dry-run: sem cliente Supabase nem repositórios; modo real: forSupabase → envGuard.
+  const repos       = await reposForRun(DRY_RUN);
   const orchestrator = new IngestionOrchestrator(repos);
 
   const summary = await orchestrator.runVenueIngestion(

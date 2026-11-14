@@ -20,13 +20,13 @@ import { WordPressApiClient } from '../src/collectors/wordpress-content/WordPres
 import { WordPressContentCollector } from '../src/collectors/wordpress-content/WordPressContentCollector';
 import { AVAILABLE_INSTANCES } from '../src/collectors/wordpress-content/config/registry';
 import { IngestionOrchestrator } from '../src/persistence/orchestration/IngestionOrchestrator';
-import { RepositoryFactory } from '../src/persistence/orchestration/RepositoryFactory';
+import { reposForRun } from '../src/persistence/orchestration/reposForRun';
 import { logger } from '../src/lib/logger';
 
 export { AVAILABLE_INSTANCES };
 
-async function main() {
-  const instanceArg = process.argv.find((a) => a.startsWith('--instance='));
+export async function main(argv: readonly string[] = process.argv) {
+  const instanceArg = argv.find((a) => a.startsWith('--instance='));
   const instanceKey = instanceArg ? instanceArg.split('=')[1] : 'cabo-frio';
   const sourceConfig = AVAILABLE_INSTANCES[instanceKey];
 
@@ -35,17 +35,18 @@ async function main() {
     process.exit(1);
   }
 
-  const sinceDaysArg = process.argv.find((a) => a.startsWith('--since-days='));
+  const sinceDaysArg = argv.find((a) => a.startsWith('--since-days='));
   const sinceDays = sinceDaysArg ? Number(sinceDaysArg.split('=')[1]) : undefined;
 
-  const dryRun = process.argv.includes('--dry-run');
+  const dryRun = argv.includes('--dry-run');
 
   logger.info({ sourceKey: sourceConfig.source_key, dryRun, sinceDays }, 'iniciando script de ingestão WordPress');
 
   const apiClient = new WordPressApiClient(sourceConfig.base_url);
   const collector = new WordPressContentCollector(apiClient, sourceConfig);
 
-  const repos = await RepositoryFactory.forSupabase();
+  // dry-run: sem cliente Supabase nem repositórios; modo real: forSupabase → envGuard.
+  const repos = await reposForRun(dryRun);
   const orchestrator = new IngestionOrchestrator(repos);
 
   const summary = await orchestrator.runActivityIngestion(collector, sourceConfig, {
