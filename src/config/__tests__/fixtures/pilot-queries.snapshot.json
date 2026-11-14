@@ -1,0 +1,100 @@
+{
+  "regions": {
+    "cabo_frio": {
+      "lat": -22.8894,
+      "lng": -42.0188,
+      "radius_m": 12000
+    },
+    "araruama": {
+      "lat": -22.8717,
+      "lng": -42.3433,
+      "radius_m": 12000
+    }
+  },
+  "queries": [
+    {
+      "region_key": "cabo_frio",
+      "category_key": "teatro",
+      "query_text": "teatro em Cabo Frio RJ",
+      "query_kind": "place_type"
+    },
+    {
+      "region_key": "cabo_frio",
+      "category_key": "centro_cultural",
+      "query_text": "centro cultural em Cabo Frio RJ",
+      "query_kind": "place_type"
+    },
+    {
+      "region_key": "cabo_frio",
+      "category_key": "museu",
+      "query_text": "museu em Cabo Frio RJ",
+      "query_kind": "place_type"
+    },
+    {
+      "region_key": "cabo_frio",
+      "category_key": "parque",
+      "query_text": "parque em Cabo Frio RJ",
+      "query_kind": "place_type"
+    },
+    {
+      "region_key": "cabo_frio",
+      "category_key": "biblioteca",
+      "query_text": "biblioteca em Cabo Frio RJ",
+      "query_kind": "place_type"
+    },
+    {
+      "region_key": "cabo_frio",
+      "category_key": "hidroginastica",
+      "query_text": "hidroginástica em Cabo Frio RJ",
+      "query_kind": "activity_intent"
+    },
+    {
+      "region_key": "cabo_frio",
+      "category_key": "danca_idosos",
+      "query_text": "dança para idosos em Cabo Frio RJ",
+      "query_kind": "activity_intent"
+    },
+    {
+      "region_key": "araruama",
+      "category_key": "teatro",
+      "query_text": "teatro em Araruama RJ",
+      "query_kind": "place_type"
+    },
+    {
+      "region_key": "araruama",
+      "category_key": "centro_cultural",
+      "query_text": "centro cultural em Araruama RJ",
+      "query_kind": "place_type"
+    },
+    {
+      "region_key": "araruama",
+      "category_key": "museu",
+      "query_text": "museu em Araruama RJ",
+      "query_kind": "place_type"
+    },
+    {
+      "region_key": "araruama",
+      "category_key": "parque",
+      "query_text": "parque em Araruama RJ",
+      "query_kind": "place_type"
+    },
+    {
+      "region_key": "araruama",
+      "category_key": "biblioteca",
+      "query_text": "biblioteca em Araruama RJ",
+      "query_kind": "place_type"
+    },
+    {
+      "region_key": "araruama",
+      "category_key": "hidroginastica",
+      "query_text": "hidroginástica em Araruama RJ",
+      "query_kind": "activity_intent"
+    },
+    {
+      "region_key": "araruama",
+      "category_key": "danca_idosos",
+      "query_text": "dança para idosos em Araruama RJ",
+      "query_kind": "activity_intent"
+    }
+  ]
+}

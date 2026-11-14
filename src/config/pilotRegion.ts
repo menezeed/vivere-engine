@@ -16,19 +16,32 @@
  * é mais bem feito olhando o mapa do que recalculado aqui.
  */
 
+import { getRegion, type RegionDefinition } from './regions';
+
 export interface RegionCenter {
   lat: number;
   lng: number;
   radius_m: number;
 }
 
-export const PILOT_REGIONS: Record<string, RegionCenter> = {
-  cabo_frio: { lat: -22.8894, lng: -42.0188, radius_m: 12000 },
-  araruama: { lat: -22.8717, lng: -42.3433, radius_m: 12000 },
-};
+/**
+ * L3 — as regiões do piloto deixaram de estar codificadas aqui: vêm do
+ * registo declarativo src/config/regions.ts. Esta lista só escolhe
+ * QUAIS entradas do registo fazem parte do piloto (e por que ordem).
+ * Acrescentar uma cidade ao registo não muda o piloto.
+ */
+export const PILOT_REGION_KEYS = ['cabo_frio', 'araruama'] as const;
+
+function toRegionCenter(region: RegionDefinition): RegionCenter {
+  return { lat: region.center.lat, lng: region.center.lng, radius_m: region.radius_m };
+}
+
+export const PILOT_REGIONS: Record<string, RegionCenter> = Object.fromEntries(
+  PILOT_REGION_KEYS.map((key) => [key, toRegionCenter(getRegion(key))]),
+);
 
 export interface PlaceSearchQuery {
-  region_key: keyof typeof PILOT_REGIONS;
+  region_key: string;
   category_key: string;
   query_text: string;
   query_kind: 'place_type' | 'activity_intent';
@@ -54,17 +67,22 @@ const CATEGORIES: Array<{ key: string; text: string; kind: 'place_type' | 'activ
   { key: 'danca_idosos', text: 'dança para idosos', kind: 'activity_intent' },
 ];
 
-export function buildPilotQueries(): PlaceSearchQuery[] {
+/**
+ * Produto cartesiano regiões x categorias. Por omissão usa as regiões
+ * do piloto (PILOT_REGION_KEYS); aceita qualquer lista de regiões do
+ * registo, sem ramificar pelo nome da cidade.
+ */
+export function buildPilotQueries(
+  regions: readonly RegionDefinition[] = PILOT_REGION_KEYS.map((key) => getRegion(key)),
+): PlaceSearchQuery[] {
   const queries: PlaceSearchQuery[] = [];
 
-  for (const regionKey of Object.keys(PILOT_REGIONS) as Array<keyof typeof PILOT_REGIONS>) {
-    const cityLabel = regionKey === 'cabo_frio' ? 'Cabo Frio RJ' : 'Araruama RJ';
-
+  for (const region of regions) {
     for (const cat of CATEGORIES) {
       queries.push({
-        region_key: regionKey,
+        region_key: region.key,
         category_key: cat.key,
-        query_text: `${cat.text} em ${cityLabel}`,
+        query_text: `${cat.text} em ${region.city_label}`,
         query_kind: cat.kind,
       });
     }
