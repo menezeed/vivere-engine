@@ -261,3 +261,75 @@ describe('computeRunQualityMetrics — casos-limite', () => {
     expect(formatRunQualitySummary(report)).toContain('fora 1 (25.0%)');
   });
 });
+
+describe('computeRunQualityMetrics — revisão r0: caminhos de delayMetric e gate vazio', () => {
+  const NO_DELAY = { items_with_published_at: 0, mean_hours: null, median_hours: null, max_hours: null };
+
+  it('mediana com número PAR de atrasos é a média dos dois centrais', () => {
+    const published: Record<string, string> = {
+      a: '2026-11-14T11:00:00.000Z', // 1 h
+      b: '2026-11-14T09:00:00.000Z', // 3 h
+      c: '2026-11-14T07:00:00.000Z', // 5 h
+      d: '2026-11-13T12:00:00.000Z', // 24 h
+    };
+    const items = Object.keys(published).map((id) => syntheticItem({ source_item_id: id }));
+    const report = computeRunQualityMetrics(items, {
+      generatedAt: GENERATED_AT,
+      resolvePublishedAt: (i) => published[i.source_item_id] ?? null,
+    });
+    expect(report.totals.publication_delay).toEqual({
+      items_with_published_at: 4,
+      mean_hours: 8.3,
+      median_hours: 4,
+      max_hours: 24,
+    });
+  });
+
+  it('collected_at inválido exclui o item do atraso (mesmo com publicação válida)', () => {
+    const items = [
+      syntheticItem({ source_item_id: 'ok' }), // 2 h
+      syntheticItem({ source_item_id: 'mau', collected_at: 'nao-e-data' }),
+    ];
+    const report = computeRunQualityMetrics(items, {
+      generatedAt: GENERATED_AT,
+      resolvePublishedAt: () => '2026-11-14T10:00:00.000Z',
+    });
+    expect(report.totals.publication_delay).toEqual({
+      items_with_published_at: 1,
+      mean_hours: 2,
+      median_hours: 2,
+      max_hours: 2,
+    });
+  });
+
+  it('resolvePublishedAt fornecido mas sem nenhuma data válida → sem dados, e sem a nota de "não fornecido"', () => {
+    const items = [syntheticItem({ source_item_id: 'a' }), syntheticItem({ source_item_id: 'b', collected_at: 'x' })];
+    const report = computeRunQualityMetrics(items, {
+      generatedAt: GENERATED_AT,
+      resolvePublishedAt: (i) => (i.source_item_id === 'a' ? null : 'tambem-invalida'),
+    });
+    expect(report.totals.publication_delay).toEqual(NO_DELAY);
+    expect(report.by_group[0]!.publication_delay).toEqual(NO_DELAY);
+    expect(report.notes.some((n) => n.includes('atraso'))).toBe(false);
+    expect(formatRunQualitySummary(report)).toContain('atraso: sem dados');
+  });
+
+  it('sem resolvePublishedAt → nenhum atraso calculado, por grupo e no total', () => {
+    const report = computeRunQualityMetrics([syntheticItem({})], { generatedAt: GENERATED_AT });
+    expect(report.totals.publication_delay).toEqual(NO_DELAY);
+    expect(report.by_group[0]!.publication_delay).toEqual(NO_DELAY);
+  });
+
+  it('venueGateBuckets = [] → resumo com total 0 e percentagens null (sem denominador)', () => {
+    const report = computeRunQualityMetrics([], { generatedAt: GENERATED_AT, venueGateBuckets: [] });
+    expect(report.geographic_gate).toEqual({
+      total: 0,
+      inside_radius: { count: 0, pct: null },
+      buffer_zone: { count: 0, pct: null },
+      outside_region: { count: 0, pct: null },
+    });
+    expect(report.notes.some((n) => n.includes('gate geográfico'))).toBe(false);
+    const summary = formatRunQualitySummary(report);
+    expect(summary).toContain('Gate geográfico (venues): 0 — dentro 0 (—), margem 0 (—), fora 0 (—)');
+  });
+});
