@@ -159,6 +159,47 @@ describe('evaluateSourceHealth — casos-limite', () => {
     expect(h.alerts.map((x) => [x.source_key, x.code, x.data['no_date_pct']])).toEqual([['maioria', 'high_no_date_rate', 75]]);
   });
 
+  it('high_no_date_rate decide pelos counts, não pela % arredondada do L4 (revisão r0)', () => {
+    // 1001/2001 = 50,025% > 50 → alerta (o L4 arredonda para 50,0%).
+    // 1000/2001 = 49,975% < 50 → sem alerta (o L4 arredonda para 50,0%).
+    // 1000/2000 = 50% exacto → sem alerta.
+    const cur = syntheticReport({
+      acima: { total: 2001, withDate: 1000 },
+      abaixo: { total: 2001, withDate: 1001 },
+      exacto: { total: 2000, withDate: 1000 },
+    });
+    expect(cur.by_group.map((g) => g.with_date.pct)).toEqual([50, 50, 50]); // premissa: todos arredondam para 50
+    const h = evaluateSourceHealth({ current: cur, now: NOW });
+    expect(h.alerts.map((x) => [x.source_key, x.code, x.data['items_without_date']])).toEqual([['acima', 'high_no_date_rate', 1001]]);
+    expect(h.alerts[0]!.data['no_date_pct']).toBe(50); // só a mensagem/dado é arredondado
+  });
+
+  it('volume_drop decide pelos counts: imediatamente acima e abaixo de 50% com volumes grandes', () => {
+    const prev = syntheticReport({ acima: { total: 2001, withDate: 2001 }, abaixo: { total: 2001, withDate: 2001 } });
+    // acima: 2001 → 1000 = queda 50,025%; abaixo: 2001 → 1001 = queda 49,975%
+    const cur = syntheticReport({ acima: { total: 1000, withDate: 1000 }, abaixo: { total: 1001, withDate: 1001 } });
+    const h = evaluateSourceHealth({ current: cur, previous: prev, now: NOW });
+    expect(h.alerts.map((x) => [x.source_key, x.code])).toEqual([['acima', 'volume_drop']]);
+  });
+
+  it('run_open e stale_source decidem pelo valor exacto, não arredondado', () => {
+    const runs: SourceRunInfo[] = [
+      { source_key: 'acima', status: 'running', started_at: '2026-11-14T05:59:59.000Z', finished_at: null }, // 6h00m01s
+      { source_key: 'abaixo', status: 'running', started_at: '2026-11-14T06:00:01.000Z', finished_at: null }, // 5h59m59s
+    ];
+    const cur = syntheticReport({ acima: { total: 1, withDate: 1 }, abaixo: { total: 1, withDate: 1 } });
+    const h = evaluateSourceHealth({
+      current: cur,
+      runs,
+      lastPublishedAt: { acima: '2026-10-31T11:59:59.000Z', abaixo: '2026-10-31T12:00:01.000Z' }, // 14 dias ± 1 s
+      now: NOW,
+    });
+    expect(h.alerts.map((x) => [x.source_key, x.code])).toEqual([
+      ['acima', 'run_open'],
+      ['acima', 'stale_source'],
+    ]);
+  });
+
   it('execuções: failed → critical com mensagem; partial → warning; running antiga → run_open; running recente e success → nada', () => {
     const runs: SourceRunInfo[] = [
       { source_key: 'f', status: 'failed', started_at: '2026-11-14T10:00:00Z', finished_at: '2026-11-14T10:01:00Z', error_message: 'HTTP 503' },

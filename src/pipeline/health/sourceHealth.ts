@@ -168,12 +168,16 @@ export function evaluateSourceHealth(input: SourceHealthInput): SourceHealthRepo
     }
 
     // Qualidade: itens sem data
-    if (cur && cur.total_items >= t.minItemsForNoDate && cur.with_date.pct !== null) {
-      const noDatePct = round1(100 - cur.with_date.pct);
-      if (noDatePct > t.maxNoDatePct) {
+    // Decide pelo quociente dos counts; a % do L4 já vem arredondada a
+    // 1 casa e mudaria a decisão junto ao limiar (revisão r0 do #12).
+    if (cur && cur.total_items > 0 && cur.total_items >= t.minItemsForNoDate) {
+      const withoutDate = cur.total_items - cur.with_date.count;
+      const noDateExactPct = (withoutDate / cur.total_items) * 100;
+      if (noDateExactPct > t.maxNoDatePct) {
+        const noDatePct = round1(noDateExactPct); // só para mensagem e dados
         add('high_no_date_rate', 'warning', `${noDatePct}% dos itens sem data`, {
           items: cur.total_items,
-          items_without_date: cur.total_items - cur.with_date.count,
+          items_without_date: withoutDate,
           no_date_pct: noDatePct,
           threshold_pct: t.maxNoDatePct,
         });
