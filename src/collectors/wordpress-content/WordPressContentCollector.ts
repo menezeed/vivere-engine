@@ -1,4 +1,5 @@
 import { logger } from '../../lib/logger';
+import { parseWordPressGmtDate } from '../../lib/wordpressDates';
 import { WordPressApiClient, fetchPostsSince, type WordPressPost } from './WordPressApiClient';
 import { mapToRawActivityItems, type WordPressPostInput, type MapReviewReason } from './mapToRawActivityItems';
 import type { WordPressContentSourceConfig } from './config/WordPressContentSourceConfig';
@@ -22,7 +23,7 @@ export interface WordPressContentCollectorOptions {
 }
 
 function wordPressPostToInput(post: WordPressPost): WordPressPostInput {
-  const publishedDate = new Date(post.date_gmt);
+  const publishedDate = parseWordPressGmtDate(post.date_gmt);
   return {
     id: post.id,
     title: post.title.rendered,

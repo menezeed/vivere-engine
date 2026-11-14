@@ -224,7 +224,14 @@ function parseSubBlock(blockHtml: string): StructuredSubEvent {
 
   // Caminho rotulado (formato "Yoga no Forte")
   let date = dayLine ? parseExplicitDatePt(dayLine) : null;
-  let { time, endTime } = timeLine ? parseTimeRangePt(timeLine) : { time: null, endTime: null };
+  // O rótulo "Horário:" já delimita o campo, por isso o horário é lido
+  // só do VALOR depois do rótulo — assim um horário solto como
+  // "Horário: 17h" é reconhecido pelo mesmo fallback "bare" que o
+  // formato compacto já usa ("Título – Local – 16h"). Intervalos e
+  // preposições ("7h às 8h", "a partir das 19h") continuam iguais.
+  let { time, endTime } = timeLine
+    ? parseTimeRangePt(timeLine.replace(/^hor[áa]rio\s*:\s*/i, '').trim())
+    : { time: null, endTime: null };
   let venueName = localLine ? localLine.replace(/^local\s*:\s*/i, '').trim() || null : null;
 
   // Caminho compacto (formato "Arraiá"): local e hora vêm em texto
@@ -270,6 +277,58 @@ function parseSubBlock(blockHtml: string): StructuredSubEvent {
   };
 }
 
+const EVENTO_LABEL_PATTERN = /^evento\s*:\s*(.*)$/i;
+
+/**
+ * Formato "Evento:" (sem <strong> de título): cada linha
+ * "Evento: <nome>" abre um sub-evento, que vai até à próxima linha
+ * "Evento:" ou ao fim do bloco. O título é EXACTAMENTE o texto depois
+ * do rótulo — nada é inferido. Data, horário e local usam os mesmos
+ * rótulos fixos (Dia:/Data:, Horário:, Local:) e as mesmas funções do
+ * formato rotulado; o caminho compacto ("Título – Local – Hora") não
+ * se aplica aqui. Um "Evento:" vazio não gera sub-evento.
+ */
+function parseEventoLabeledSubEvents(afterMarkerHtml: string): StructuredSubEvent[] {
+  const lines = stripHtmlToText(afterMarkerHtml)
+    .split('\n')
+    .map((l) => l.trim())
+    .filter((l) => l.length > 0);
+
+  // TODAS as linhas "Evento:" são fronteiras de segmento, mesmo as de
+  // título vazio — senão os rótulos de um "Evento:" vazio seriam
+  // atribuídos ao evento anterior. Só depois de segmentar se descarta o
+  // segmento sem título (revisão r0 do PR #10).
+  const starts = lines
+    .map((line, idx) => ({ idx, match: line.match(EVENTO_LABEL_PATTERN) }))
+    .filter((s) => s.match !== null);
+
+  const segments = starts.map((start, i) => ({
+    title: start.match![1]!.trim(),
+    segment: lines.slice(start.idx, i + 1 < starts.length ? starts[i + 1]!.idx : lines.length),
+  }));
+
+  return segments.filter((s) => s.title.length > 0).map(({ title, segment }) => {
+
+    const dayLine = segment.find((l) => /^(dia|data)\s*:/i.test(l));
+    const timeLine = segment.find((l) => /^hor[áa]rio\s*:/i.test(l));
+    const localLine = segment.find((l) => /^local\s*:/i.test(l));
+
+    const { time, endTime } = timeLine
+      ? parseTimeRangePt(timeLine.replace(/^hor[áa]rio\s*:\s*/i, '').trim())
+      : { time: null, endTime: null };
+
+    return {
+      title,
+      date: dayLine ? parseExplicitDatePt(dayLine) : null,
+      time,
+      endTime,
+      venueName: localLine ? localLine.replace(/^local\s*:\s*/i, '').trim() || null : null,
+      rawBlockText: segment.join('\n'),
+      reviewReason: isOnlyTemporalGroupingMarker(title) ? 'schedule_grouping_detected' : null,
+    };
+  });
+}
+
 /**
  * Função principal. Recebe o HTML bruto do post (content.rendered da
  * WordPress REST API), a data de publicação (usada apenas como
@@ -292,8 +351,15 @@ export function parseStructuredBlock(
   const afterMarkerHtml = htmlContent.slice(markerMatch.index! + markerMatch[0].length);
   const subBlocksHtml = splitStructuredHtmlIntoSubBlocks(afterMarkerHtml);
 
-  const subEvents = subBlocksHtml
-    .map(parseSubBlock)
+  // Formato rotulado SEM título em negrito (caso real São Pedro da
+  // Aldeia, "Junho Violeta"): o nome do evento vem num rótulo literal
+  // "Evento:". Só é usado quando o bloco não tem nenhum sub-bloco com
+  // <strong> — nunca se mistura com os formatos já suportados.
+  const parsedSubEvents = subBlocksHtml.length > 0
+    ? subBlocksHtml.map(parseSubBlock)
+    : parseEventoLabeledSubEvents(afterMarkerHtml);
+
+  const subEvents = parsedSubEvents
     .filter((ev) => ev.title.length > 0)
     // Defesa adicional: mesmo após a fusão de rótulos em
     // splitStructuredHtmlIntoSubBlocks, um sub-evento cujo título
