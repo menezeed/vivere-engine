@@ -294,14 +294,20 @@ function parseEventoLabeledSubEvents(afterMarkerHtml: string): StructuredSubEven
     .map((l) => l.trim())
     .filter((l) => l.length > 0);
 
+  // TODAS as linhas "Evento:" são fronteiras de segmento, mesmo as de
+  // título vazio — senão os rótulos de um "Evento:" vazio seriam
+  // atribuídos ao evento anterior. Só depois de segmentar se descarta o
+  // segmento sem título (revisão r0 do PR #10).
   const starts = lines
     .map((line, idx) => ({ idx, match: line.match(EVENTO_LABEL_PATTERN) }))
-    .filter((s) => s.match !== null && s.match[1]!.trim().length > 0);
+    .filter((s) => s.match !== null);
 
-  return starts.map((start, i) => {
-    const end = i + 1 < starts.length ? starts[i + 1]!.idx : lines.length;
-    const segment = lines.slice(start.idx, end);
-    const title = start.match![1]!.trim();
+  const segments = starts.map((start, i) => ({
+    title: start.match![1]!.trim(),
+    segment: lines.slice(start.idx, i + 1 < starts.length ? starts[i + 1]!.idx : lines.length),
+  }));
+
+  return segments.filter((s) => s.title.length > 0).map(({ title, segment }) => {
 
     const dayLine = segment.find((l) => /^(dia|data)\s*:/i.test(l));
     const timeLine = segment.find((l) => /^hor[áa]rio\s*:/i.test(l));

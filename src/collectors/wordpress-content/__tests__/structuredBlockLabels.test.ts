@@ -92,6 +92,30 @@ describe('formato "Evento:" sem título em negrito (São Pedro da Aldeia, "Junho
     expect(parseStructuredBlock(empty, REF, MARKER).subEvents).toEqual([]);
   });
 
+  it('"Evento:" vazio continua a ser FRONTEIRA: os seus rótulos não contaminam o evento anterior (revisão r0)', () => {
+    const html =
+      '<p><strong>Serviço</strong></p>' +
+      '<p>Evento: Oficina A</p>' +
+      '<p>Evento:<br>Data: 27 de junho de 2026<br>Local: Biblioteca</p>';
+    const evs = parseStructuredBlock(html, REF, MARKER).subEvents;
+    expect(evs).toHaveLength(1);
+    expect(evs[0]).toMatchObject({ title: 'Oficina A', date: null, time: null, venueName: null });
+    expect(evs[0]!.rawBlockText).toBe('Evento: Oficina A');
+  });
+
+  it('"Evento:" vazio no meio: o evento seguinte fica só com os seus rótulos', () => {
+    const html =
+      '<p><strong>Serviço</strong></p>' +
+      '<p>Evento: Oficina A<br>Data: 20 de junho de 2026</p>' +
+      '<p>Evento:<br>Local: Biblioteca</p>' +
+      '<p>Evento: Oficina B<br>Horário: 14h</p>';
+    const evs = parseStructuredBlock(html, REF, MARKER).subEvents;
+    expect(evs.map((e) => [e.title, e.date, e.time, e.venueName])).toEqual([
+      ['Oficina A', '2026-06-20', null, null],
+      ['Oficina B', null, '14:00', null],
+    ]);
+  });
+
   it('não interfere quando o bloco tem títulos em negrito: "Evento:" dentro do sub-bloco é ignorado como antes', () => {
     const bold = '<p><strong>Serviço</strong></p><p><strong>Título em Negrito</strong><br>Evento: Outro Nome<br>Data: 20 de junho de 2026</p>';
     const evs = parseStructuredBlock(bold, REF, MARKER).subEvents;
