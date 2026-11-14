@@ -19,11 +19,16 @@
 
 import { CABO_FRIO_CONFIG } from './cabo-frio.js';
 import { SAO_PEDRO_DA_ALDEIA_CONFIG } from './sao-pedro-da-aldeia.js';
+import { BUZIOS_CONFIG } from './buzios.js';
+import { RIO_DAS_OSTRAS_CONFIG } from './rio-das-ostras.js';
 import type { WordPressContentSourceConfig } from './WordPressContentSourceConfig.js';
 
 export const AVAILABLE_INSTANCES: Record<string, WordPressContentSourceConfig> = {
   'cabo-frio': CABO_FRIO_CONFIG,
   'sao-pedro-da-aldeia': SAO_PEDRO_DA_ALDEIA_CONFIG,
+  // L1 14/11/2026 — categorias confirmadas, ainda sem dry-run real.
+  'buzios': BUZIOS_CONFIG,
+  'rio-das-ostras': RIO_DAS_OSTRAS_CONFIG,
 };
 
 /**
