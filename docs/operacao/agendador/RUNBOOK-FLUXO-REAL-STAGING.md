@@ -10,9 +10,15 @@
 | P1 | Commit do engine com os PRs de integração: arquivo (#20), gate G2 (#23) e datas (#24), se aprovados | `git log` no commit usado; árvore limpa |
 | P2 | Papéis nas contas de revisão (`scripts/staging/review-roles.staging.sql`) | E8 sem `(sem papel)` nas contas de revisão |
 | P3 | Rollback disponível (`scripts/staging/ingestion-run-rollback.staging.sql`) | testado localmente em PGlite: 10/10 |
+| P5 | Fontes em `public.sources` (`scripts/staging/sources-lagos.staging.sql`) | no STG faltavam `prefeitura_rio_das_ostras` e `prefeitura_buzios` a 15/11: sem elas a ingestão falha na FK. Cabo Frio já existe |
 | P4 | 0028 aplicada ou não | **não é necessária** para WordPress: as fontes pagas continuam recusadas |
 
-## 1. Ingestão real (uma região de cada vez; começar por `rio_das_ostras`)
+## 1. Ingestão real (uma região de cada vez; começar por `cabo_frio`)
+
+- **Porquê Cabo Frio (dry-run de 15/11, 60 dias):** é a única fonte com uma ocorrência **futura** real extraída (Corrida da Virada, 31/12, Novo Portinho), graças à categoria 4 (Secretaria de Eventos).
+- **Rio das Ostras:** tinha 0 futuras em 15. Só valida as etapas até à promoção.
+- Para Cabo Frio, substituir `rio_das_ostras` por `cabo_frio` e `--source prefeitura_cabo_frio` nos comandos abaixo; com 60 dias, cerca de 9 itens.
+
 1. Pré-voo (sem rede): `npx tsx --env-file=<ficheiro> scripts/run-assisted.ts --region rio_das_ostras --preflight`. Todas as linhas têm de dar `OK`.
 2. Dry-run: `npx tsx scripts/run-assisted.ts --region rio_das_ostras --dry-run --since-days=60`.
    - **Referência de 15/11:** cerca de 17 itens, 88% com data, 65% com hora (com o PR #24).

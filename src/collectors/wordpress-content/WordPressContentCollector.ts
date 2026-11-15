@@ -77,6 +77,7 @@ export class WordPressContentCollector {
 
     const pageGenerator = fetchPostsSince(this.apiClient, {
       categoryId: this.sourceConfig.category_id,
+      ...(this.sourceConfig.extra_category_ids?.length ? { extraCategoryIds: this.sourceConfig.extra_category_ids } : {}),
       sinceDate,
       perPage: this.sourceConfig.per_page,
       maxPages,

@@ -27,6 +27,12 @@ export interface WordPressPost {
 
 export interface FetchPostsParams {
   categoryId: number;
+  /**
+   * Categorias adicionais (15/11/2026). A REST API do WordPress trata
+   * `categories=a,b` como OU e devolve cada post uma só vez, por isso não há
+   * duplicados entre categorias.
+   */
+  extraCategoryIds?: readonly number[];
   page: number;
   perPage: number;
 }
@@ -45,7 +51,7 @@ export class WordPressApiClient {
 
   async fetchPosts(params: FetchPostsParams): Promise<FetchPostsResult> {
     const url = new URL(`${this.baseUrl}/wp-json/wp/v2/posts`);
-    url.searchParams.set('categories', String(params.categoryId));
+    url.searchParams.set('categories', [params.categoryId, ...(params.extraCategoryIds ?? [])].join(','));
     url.searchParams.set('page', String(params.page));
     url.searchParams.set('per_page', String(params.perPage));
 
@@ -81,7 +87,7 @@ export class WordPressApiClient {
  */
 export async function* fetchPostsSince(
   client: WordPressApiClient,
-  options: { categoryId: number; sinceDate: Date; perPage: number; maxPages: number; delayMsBetweenPages: number },
+  options: { categoryId: number; extraCategoryIds?: readonly number[]; sinceDate: Date; perPage: number; maxPages: number; delayMsBetweenPages: number },
 ): AsyncGenerator<WordPressPost[]> {
   let page = 1;
   let totalPages = 1;
@@ -89,6 +95,7 @@ export async function* fetchPostsSince(
   do {
     const { posts, totalPages: tp } = await client.fetchPosts({
       categoryId: options.categoryId,
+      ...(options.extraCategoryIds?.length ? { extraCategoryIds: options.extraCategoryIds } : {}),
       page,
       perPage: options.perPage,
     });
