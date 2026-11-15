@@ -58,12 +58,15 @@ describe('PublicActivityRepository.archive esconde a activity no app', () => {
   it('a vista do baseline continua a não filtrar engine_status (razão desta correcção)', () => {
     const sql = readFileSync(new URL('../../../db/migrations/0000_app_baseline.sql', import.meta.url), 'utf8');
     const view = sql.slice(sql.indexOf('create view public.active_activities'));
-    const where = view.slice(view.indexOf('where'), view.indexOf(';'));
-    expect(where).not.toMatch(/engine_status/);
-    expect(where).toMatch(/end_date is null or end_date >= current_date/);
+    const where = view.slice(view.indexOf('where'), view.indexOf(';')).replace(/\s+/g, ' ').trim();
+    // Expressão completa: um AND trocado por OR (ou outro filtro) muda o
+    // predicado reproduzido abaixo e tem de partir este teste.
+    expect(where).toBe(
+      "where (end_date is null or end_date >= current_date) and (recurrence_type is not null and recurrence_type <> 'none' or recurrence_type = 'none' and start_date >= current_date)",
+    );
   });
 
-  it('grava engine_status=archived e end_date no dia UTC anterior', async () => {
+  it('grava engine_status=archived e end_date dois dias UTC antes', async () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date('2026-11-15T23:30:00-03:00')); // 16/11 02:30 UTC
     try {
@@ -73,7 +76,7 @@ describe('PublicActivityRepository.archive esconde a activity no app', () => {
       expect(updates[0].table).toBe('activities');
       expect(updates[0].id).toBe(ID);
       expect(updates[0].payload['engine_status']).toBe('archived');
-      expect(updates[0].payload['end_date']).toBe('2026-11-15T00:00:00.000Z');
+      expect(updates[0].payload['end_date']).toBe('2026-11-14T00:00:00.000Z');
     } finally {
       vi.useRealTimers();
     }
@@ -90,6 +93,17 @@ describe('PublicActivityRepository.archive esconde a activity no app', () => {
       const archived = { ...row, end_date: archivedEndDate(now).toISOString() };
       expect(activeActivitiesPredicate(archived, now)).toBe(false);
     }
+  });
+
+  it('relógio do processo adiantado até 24 h em relação à base: continua invisível', () => {
+    const row = { start_date: null, end_date: null, recurrence_type: 'daily' };
+    // processo já em 16/11 00:00:05 UTC; base ainda em 15/11 23:59:59 UTC
+    const processNow = new Date('2026-11-16T00:00:05Z');
+    const dbNow = new Date('2026-11-15T23:59:59Z');
+    const archived = { ...row, end_date: archivedEndDate(processNow).toISOString() };
+    expect(activeActivitiesPredicate(archived, dbNow)).toBe(false);
+    const farAhead = new Date('2026-11-16T23:59:00Z');
+    expect(activeActivitiesPredicate({ ...row, end_date: archivedEndDate(farAhead).toISOString() }, dbNow)).toBe(false);
   });
 
   it('republicar (update) volta a marcar engine_status=active e repõe end_date', async () => {

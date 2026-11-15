@@ -32,12 +32,14 @@ import type {
 } from '../../types/domain.js';
 
 /**
- * end_date gravado ao arquivar: início do dia UTC anterior a `now`. Fica
- * antes de current_date na base (UTC no Supabase) mesmo que o relógio do
- * cliente esteja ligeiramente adiantado.
+ * end_date gravado ao arquivar: início do dia UTC de há DOIS dias. Com um
+ * só dia, um relógio do processo adiantado poucos segundos perto da
+ * meia-noite UTC gravaria um end_date igual ao current_date da base, que a
+ * vista ainda mostra (revisão r0). Dois dias toleram até 24 h de desvio.
  */
+export const ARCHIVE_END_DATE_DAYS_BACK = 2;
 export function archivedEndDate(now: Date): Date {
-  return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - 1));
+  return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - ARCHIVE_END_DATE_DAYS_BACK));
 }
 
 export class PublicActivityRepository implements IPublicActivityRepository {
@@ -109,7 +111,7 @@ export class PublicActivityRepository implements IPublicActivityRepository {
    * que o app lê, NÃO filtra engine_status: só end_date, start_date e
    * recurrence_type. Marcar só engine_status deixava a activity arquivada
    * visível no app (retirar conteúdo errado não tinha efeito). Sem
-   * migration: fecha-se também end_date no dia anterior (UTC), que a vista
+   * migration: fecha-se também end_date dois dias antes (UTC), que a vista
    * exclui por `end_date >= current_date` para qualquer recurrence_type.
    * Uma republicação posterior (update) repõe end_date e engine_status.
    */
