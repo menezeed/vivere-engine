@@ -20,7 +20,9 @@
 --      (trabalho de revisão — decidir primeiro com o PO);
 --   R4 activities ou candidatos de OUTRAS runs apontam para venues desta run;
 --   R5 há registos de gasto (staging.api_usage_log, 0028) ligados à run — o
---      registo de gasto é só de acréscimo e não se apaga.
+--      registo de gasto é só de acréscimo e não se apaga;
+--   R6 a run ainda está 'running' (ingestão a decorrer): bloqueia a linha
+--      da run (FOR UPDATE) e recusa.
 --
 -- Ordem (grafo de FKs do staging lido do catálogo a 15/11/2026):
 --   venue_resolution_candidates → activities_staging → venues_staging
@@ -35,14 +37,17 @@ declare
 
   n_raw_a int; n_raw_v int; n_act int; n_ven int; n_cand int;
   n_prom_a int; n_prom_v int; n_dec int; n_ext int; n_usage int := 0;
-  v_rel text;
+  v_rel text; v_status text;
 begin
   if v_confirm is distinct from 'staging' then
     raise exception 'RECUSA: v_confirm tem de ser staging (confirmar o projecto no URL do Dashboard)';
   end if;
 
-  perform 1 from staging.ingestion_runs where id = v_run;
+  select status into v_status from staging.ingestion_runs where id = v_run for update;
   if not found then raise exception 'RECUSA R1: ingestion_run % não existe', v_run; end if;
+  if v_status = 'running' then
+    raise exception 'RECUSA R6: a run % ainda está running (ingestão a decorrer ou interrompida) — esperar ou marcar como failed primeiro', v_run;
+  end if;
 
   create temp table _rb_raw_a on commit drop as
     select id from staging.raw_activity_items where ingestion_run_id = v_run;
