@@ -29,7 +29,8 @@
  * current_date em UTC. Entre as 21:00 e as 24:00 locais, um evento pontual
  * desse dia (gravado com a data local) já não satisfaz o filtro, mesmo que
  * o engine o considere futuro. Corrigir exige migration da vista (ex.:
- * current_date AT TIME ZONE 'America/Sao_Paulo'), decisão separada do PO.
+ * (CURRENT_TIMESTAMP AT TIME ZONE 'America/Sao_Paulo')::date em vez de
+ * current_date, com revisão própria), decisão separada do PO.
  * Fixado pelo teste "contrato com a vista" em occurrenceSelection.test.ts.
  */
 
