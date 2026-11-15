@@ -47,17 +47,79 @@ describe('acquireRegionLock', () => {
     b.release();
   });
 
-  it('lock obsoleto por idade (> staleAfterMs) é substituído mesmo com o pid vivo', () => {
+  it('lock antigo (> staleAfterMs) com o pid VIVO nunca é recuperado: exige intervenção manual', () => {
+    const old = acquireRegionLock({ dir, region: 'buzios', runId: 'old', pid: 111, nowMs: () => T0, isProcessAlive: alive });
+    const later = () => T0 + DEFAULT_LOCK_STALE_AFTER_MS + 1;
+    let caught: unknown;
+    try {
+      acquireRegionLock({ dir, region: 'buzios', runId: 'new', pid: 222, nowMs: later, isProcessAlive: alive });
+    } catch (err) {
+      caught = err;
+    }
+    expect(caught).toBeInstanceOf(RegionLockedError);
+    expect((caught as RegionLockedError).reason).toBe('old_live_owner');
+    expect((caught as RegionLockedError).message).toMatch(/continua VIVO.*Intervenção manual/);
+    expect(JSON.parse(fs.readFileSync(old.path, 'utf8')).run_id).toBe('old'); // intacto
+    old.release();
+  });
+
+  it('lock antigo com o pid morto é recuperado', () => {
     acquireRegionLock({ dir, region: 'buzios', runId: 'old', pid: 111, nowMs: () => T0, isProcessAlive: alive });
     const later = () => T0 + DEFAULT_LOCK_STALE_AFTER_MS + 1;
-    const b = acquireRegionLock({ dir, region: 'buzios', runId: 'new', pid: 222, nowMs: later, isProcessAlive: alive });
+    const b = acquireRegionLock({ dir, region: 'buzios', runId: 'new', pid: 222, nowMs: later, isProcessAlive: (p) => p !== 111 });
     expect(b.replacedStale?.run_id).toBe('old');
     b.release();
   });
 
   it('lock ilegível e recente conta como ocupado', () => {
     fs.writeFileSync(path.join(dir, 'buzios.lock'), '');
-    expect(() => acquireRegionLock({ dir, region: 'buzios', runId: 'x', nowMs: () => Date.now(), isProcessAlive: dead })).toThrow(/lock ilegível/);
+    expect(() => acquireRegionLock({ dir, region: 'buzios', runId: 'x', nowMs: () => Date.now(), isProcessAlive: dead })).toThrow(/ilegível/);
+  });
+
+  it('lock ilegível mais antigo do que staleAfterMs é recuperado', () => {
+    fs.writeFileSync(path.join(dir, 'buzios.lock'), '{corrompido');
+    const b = acquireRegionLock({ dir, region: 'buzios', runId: 'x', nowMs: () => Date.now() + DEFAULT_LOCK_STALE_AFTER_MS + 60_000, isProcessAlive: alive });
+    expect(b.replacedStale).toBeNull();
+    expect(JSON.parse(fs.readFileSync(b.path, 'utf8')).run_id).toBe('x');
+    b.release();
+  });
+
+  it('recuperação concorrente (B e C vêem o mesmo órfão): C nunca apaga o lock novo de B', () => {
+    const ORPHAN_PID = 111;
+    const isAlive = (pid: number) => pid !== ORPHAN_PID;
+    acquireRegionLock({ dir, region: 'buzios', runId: 'orfao', pid: ORPHAN_PID, nowMs: () => T0, isProcessAlive: alive }); // nunca libertado
+    let b: ReturnType<typeof acquireRegionLock> | undefined;
+    // C observa o órfão; antes de C o recuperar, B observa-o, recupera-o e cria o seu lock.
+    const c = () =>
+      acquireRegionLock({
+        dir,
+        region: 'buzios',
+        runId: 'C',
+        pid: 333,
+        nowMs: () => T0,
+        isProcessAlive: isAlive,
+        onStaleObserved: () => {
+          if (!b) b = acquireRegionLock({ dir, region: 'buzios', runId: 'B', pid: 222, nowMs: () => T0, isProcessAlive: isAlive });
+        },
+      });
+    expect(c).toThrow(RegionLockedError);
+    expect(b!.replacedStale?.run_id).toBe('orfao');
+    expect(JSON.parse(fs.readFileSync(b!.path, 'utf8')).run_id).toBe('B');
+    expect(fs.existsSync(`${b!.path}.recover`)).toBe(false);
+    b!.release();
+  });
+
+  it('recuperação de outro processo em curso (.recover presente) → recusado, nada apagado', () => {
+    acquireRegionLock({ dir, region: 'buzios', runId: 'orfao', pid: 111, nowMs: () => T0, isProcessAlive: alive });
+    fs.writeFileSync(path.join(dir, 'buzios.lock.recover'), '{}');
+    let caught: unknown;
+    try {
+      acquireRegionLock({ dir, region: 'buzios', runId: 'x', pid: 2, nowMs: () => T0, isProcessAlive: dead });
+    } catch (err) {
+      caught = err;
+    }
+    expect((caught as RegionLockedError).reason).toBe('recovery_in_progress');
+    expect(JSON.parse(fs.readFileSync(path.join(dir, 'buzios.lock'), 'utf8')).run_id).toBe('orfao');
   });
 
   it('release() não apaga o lock de outra execução', () => {

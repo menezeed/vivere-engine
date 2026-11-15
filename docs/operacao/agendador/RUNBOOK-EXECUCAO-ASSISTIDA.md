@@ -57,10 +57,10 @@ Ficheiro `runs/manifests/<run_id>.json`, um por execução (incluindo as **recus
 - `run_id` (`<início UTC>_<região>_<sufixo>`), `started_at` / `finished_at` (UTC);
 - `git.commit` e `git.dirty`;
 - `region`, `dry_run`, `since_days`, `target_environment` (**só o rótulo** `staging`, nunca o URL nem a chave);
-- `sources_attempted` e `sources[]` com `status` `ok` / `failed` / `skipped`, `error_class`, mensagem sanitizada, `retries`, contagens e `ingestion_run_id`;
+- `sources_attempted` e `sources[]` com `status` `ok` / `failed` / `skipped`, `error_class`, `http_status` e `error_host` (nunca a mensagem de erro nem o corpo da resposta), `retries`, contagens e `ingestion_run_id`;
 - `totals`, `quality` (L4), `health` (E7), `preflight` (checklist), `outcome`, `exit_code`, `reason`.
 
-Garantias: o manifesto nunca lê o ambiente. Todas as strings passam por um sanitizador (URLs reduzidos ao host; `sb_secret_…`, JWT, `apikey=`, `Bearer …` mascarados). Se algum padrão proibido sobreviver, o manifesto **não é gravado** (fail-closed).
+Garantias: o manifesto nunca lê o ambiente e nunca guarda mensagens de erro em bruto (só classe, estado HTTP e host; o mesmo nos alertas E7). O pré-voo é revalidado **depois** de adquirir o lock, e o manifesto final é gravado **antes** de o libertar. Como defesa adicional, todas as strings passam por um sanitizador (URLs reduzidos ao host; `sb_secret_…`, JWT, `Bearer …` e credenciais em qualquer forma — `apikey=x`, `"apikey":"x"`, `'secret': 'x'`, cabeçalhos `Authorization:` — mascarados). Se algum padrão proibido sobreviver, o manifesto **não é gravado** (fail-closed).
 
 ## 4. Idempotência — o que é e o que não é garantido
 
@@ -86,7 +86,7 @@ Por `error_class`:
 - `env_guard` — o ambiente não é o staging válido. **Nunca** contornar.
 - `persistence` — erro a gravar no staging; não repetir sem perceber a causa (a execução fica `failed` em `ingestion_runs`).
 
-**Lock ocupado:** se a mensagem disser que há uma execução em curso mas tem a certeza de que não há, confirme o `pid` indicado; o lock de um processo morto ou com mais de 6 h é substituído automaticamente. Em último caso, apague `runs/locks/<região>.lock`.
+**Lock ocupado:** só é recuperado automaticamente o lock de um processo **morto**, ou um lock ilegível com mais de 6 h; a recuperação é atómica (lock auxiliar `<região>.lock.recover`). Um lock cujo processo dono está **vivo** nunca é recuperado, por mais antigo que seja: confirme o `pid` indicado, termine essa execução se estiver pendurada e só então apague `runs/locks/<região>.lock`. Se ficar um `.recover` órfão (recuperação interrompida), apague-o à mão depois de confirmar que nada está a correr.
 
 ## 6. Evolução para GitHub Actions — checklist de activação
 

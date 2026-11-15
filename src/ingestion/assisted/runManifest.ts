@@ -28,8 +28,10 @@ export interface ManifestSourceEntry {
   status: ManifestSourceStatus;
   /** Só para failed. */
   error_class: IngestionErrorClass | null;
-  /** Mensagem já sanitizada (sem URLs completos nem segredos). */
-  error_message: string | null;
+  /** Estado HTTP do erro, se houver. Nunca a mensagem nem o corpo da resposta. */
+  http_status: number | null;
+  /** Host do pedido que falhou, se conhecido (nunca caminho nem query). */
+  error_host: string | null;
   /** Só para skipped. */
   skip_reason: string | null;
   /** Tentativas repetidas por erro transitório (retry). */
@@ -69,6 +71,27 @@ export interface RunManifest {
 
 const MAX_TEXT = 300;
 
+/** Nomes de parâmetros com aspecto de credencial (alternância regex). */
+const CREDENTIAL_NAMES =
+  'x-api-key|api[_-]?key|apikey|access[_-]?token|refresh[_-]?token|id[_-]?token|auth[_-]?token|client[_-]?secret|secret|password|passwd|authorization|token';
+
+/** Aspa opcional, possivelmente escapada uma ou mais vezes (JSON já serializado). */
+const Q = String.raw`(?:\\*["'])?`;
+
+/**
+ * nome (com ou sem aspas) + separador + valor: entre aspas duplas ou
+ * simples (escapadas ou não), "Bearer x"/"Basic x", ou valor simples.
+ * Cobre query strings, JSON, cabeçalhos HTTP e aspas simples.
+ */
+const CREDENTIAL_PARAM_RE = new RegExp(
+  String.raw`${Q}\b(?:${CREDENTIAL_NAMES}|key)${Q}\s*[=:]\s*` +
+    String.raw`(?:"[^"\\]*"|'[^'\\]*'|\\*["']?(?:(?:bearer|basic)\s+)?[^\s"'\\&,;}]+)`,
+  'gi',
+);
+
+/** Nome de credencial seguido de separador, em qualquer forma (verificação final). */
+const CREDENTIAL_PARAM_FORBIDDEN_RE = new RegExp(String.raw`\b(?:${CREDENTIAL_NAMES})${Q}\s*[=:]`, 'i');
+
 /**
  * Padrões que NUNCA podem aparecer num manifesto serializado. A presença
  * de qualquer um faz serializeRunManifest() lançar (fail-closed).
@@ -78,8 +101,9 @@ export const FORBIDDEN_MANIFEST_PATTERNS: ReadonlyArray<{ name: string; re: RegE
   { name: 'sb_publishable', re: /sb_publishable_/i },
   { name: 'jwt', re: /eyJ[A-Za-z0-9_-]{4,}/ },
   { name: 'service_role', re: /service_role/i },
-  { name: 'apikey=', re: /api[_-]?key\s*[=:]/i },
-  { name: 'bearer', re: /bearer\s+[A-Za-z0-9._-]{8,}/i },
+  // apikey=, "apikey":, 'secret' :, \"token\": … (qualquer forma, com ou sem aspas)
+  { name: 'credential_param', re: CREDENTIAL_PARAM_FORBIDDEN_RE },
+  { name: 'bearer', re: /\b(?:bearer|basic)\s+(?!<redacted)[A-Za-z0-9._~+/=-]{6,}/i },
   { name: 'supabase_url', re: /[a-z0-9]{20}\.supabase\.co/i },
   { name: 'env_var_assignment', re: /SUPABASE_SERVICE_KEY\s*=/ },
 ];
@@ -90,7 +114,7 @@ export function sanitizeText(input: string): string {
   // Segredos conhecidos primeiro (antes de reduzir URLs, que os poderiam conter).
   s = s.replace(/sb_(secret|publishable)_[A-Za-z0-9_-]*/gi, '<redacted>');
   s = s.replace(/eyJ[A-Za-z0-9_-]*(\.[A-Za-z0-9_-]*)*/g, '<redacted>');
-  s = s.replace(/\b(bearer)\s+\S+/gi, '$1 <redacted>');
+  s = s.replace(/\b(bearer|basic)\s+[^\s"',;}]+/gi, '$1 <redacted>');
   // URLs: só o host (nunca caminho, query ou credenciais).
   s = s.replace(/\b[a-z][a-z0-9+.-]*:\/\/[^\s"'<>]+/gi, (url) => {
     try {
@@ -102,7 +126,7 @@ export function sanitizeText(input: string): string {
   });
   s = s.replace(/[a-z0-9]{20}\.supabase\.co/gi, '<supabase-host>');
   // Parâmetros com aspecto de credencial fora de URLs (key=..., token: ...).
-  s = s.replace(/\b(api[_-]?key|apikey|access[_-]?token|token|secret|password|passwd|authorization|key)\s*[=:]\s*[^\s&,;]+/gi, '<redacted-param>');
+  s = s.replace(CREDENTIAL_PARAM_RE, '<redacted-param>');
   s = s.replace(/service_role/gi, '<role>');
   s = s.replace(/\s+/g, ' ').trim();
   return s.length > MAX_TEXT ? `${s.slice(0, MAX_TEXT)}…` : s;

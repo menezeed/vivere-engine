@@ -20,8 +20,9 @@ vi.mock('../../../persistence/client/supabase', () => ({ getSupabaseClient: guar
 vi.mock('@supabase/supabase-js', () => ({ createClient: guards.createClient }));
 
 import { runAssistedIngestion, makeRunId, EXIT_OK, EXIT_SOURCE_FAILED, EXIT_REFUSED, type AssistedRunArgs, type AssistedRunDeps } from '../runAssisted';
-import { readRunManifests, serializeRunManifest, sanitizeText, FORBIDDEN_MANIFEST_PATTERNS, UnsafeManifestError, type RunManifest } from '../runManifest';
+import { readRunManifests, writeRunManifest, serializeRunManifest, sanitizeText, FORBIDDEN_MANIFEST_PATTERNS, UnsafeManifestError, type RunManifest } from '../runManifest';
 import { acquireRegionLock } from '../runLock';
+import { runPreflight } from '../preflight';
 import { IngestionOrchestrator } from '../../../persistence/orchestration/IngestionOrchestrator';
 import { WordPressContentCollector } from '../../../collectors/wordpress-content/WordPressContentCollector';
 import { getWordPressSourceConfigBySourceKey, AVAILABLE_INSTANCES } from '../../../collectors/wordpress-content/config/registry';
@@ -208,13 +209,16 @@ describe('runAssistedIngestion — falhas e retry', () => {
     expect(sleep.mock.calls.map((c) => c[0])).toEqual([10, 20]);
     const m = readManifestFile(out.manifestPath);
     const cf = m.sources.find((s) => s.source_key === 'prefeitura_cabo_frio')!;
-    expect(cf).toMatchObject({ status: 'failed', error_class: 'http_transient', retries: 2, counts: null });
-    expect(cf.error_message).not.toMatch(/https?:\/\//);
-    expect(cf.error_message).not.toContain('categories=');
+    const host = new URL(caboFrioUrl).hostname;
+    expect(cf).toMatchObject({ status: 'failed', error_class: 'http_transient', http_status: 503, error_host: host, retries: 2, counts: null });
+    expect(cf).not.toHaveProperty('error_message');
+    const raw = fs.readFileSync(out.manifestPath!, 'utf8');
+    // Nem o corpo da resposta nem o caminho/query do pedido chegam ao manifesto (incluindo o E7).
+    for (const leak of ['<html>', 'erro</html>', 'categories=', '/wp-json', 'https://']) expect(raw).not.toContain(leak);
     expect(m.sources.find((s) => s.source_key === 'prefeitura_buzios')).toMatchObject({ status: 'ok' });
     expect(m.outcome).toBe('failed');
     expect([...memory.store.raw.values()].map((r) => r.item.source_key)).toEqual(['prefeitura_buzios']);
-    expect(out.text).toContain('FALHOU  prefeitura_cabo_frio: [http_transient]');
+    expect(out.text).toContain(`FALHOU  prefeitura_cabo_frio: [http_transient] HTTP 503 @ ${host}`);
   });
 
   it('503 transitório seguido de sucesso: fonte ok com retries contados', async () => {
@@ -278,6 +282,48 @@ describe('idempotência', () => {
     expect(second.manifest!.preflight.find((c) => c.id === 'rerun_window')).toMatchObject({ status: 'fail', detail: expect.stringContaining(first.manifest!.run_id) });
   });
 
+  it('interleaving: B passa o pré-voo enquanto A corre; A termina; B adquire o lock → recusado na revalidação', async () => {
+    const { deps, memory } = makeDeps();
+    const realPrevious = deps.preflight.previousManifests;
+    let calls = 0;
+    // 1.ª leitura de B = antes de A terminar (nenhum manifesto ainda); as seguintes já vêem o de A.
+    const depsB: AssistedRunDeps = { ...deps, preflight: { ...deps.preflight, previousManifests: () => (++calls === 1 ? [] : realPrevious()) } };
+    const preB = runPreflight({ region: 'cabo_frio', dryRun: false, allowPaid: false, forceRerun: false }, { ...depsB.preflight });
+    expect(preB.ok).toBe(true); // B passaria o pré-voo inicial
+    calls = 0;
+
+    const a = await runAssistedIngestion(args(), deps);
+    expect(a.exitCode).toBe(EXIT_OK);
+    const rawAfterA = new Map(memory.store.raw);
+    (deps.ingestion.createRepos as ReturnType<typeof vi.fn>).mockClear();
+
+    const b = await runAssistedIngestion(args(), depsB);
+    expect(calls).toBeGreaterThanOrEqual(2); // pré-voo inicial (vazio) + revalidação sob lock
+    expect(b.exitCode).toBe(EXIT_REFUSED);
+    expect(deps.ingestion.createRepos).not.toHaveBeenCalled();
+    expect(memory.store.raw).toEqual(rawAfterA);
+    expect(b.manifest).toMatchObject({ outcome: 'refused', reason: expect.stringContaining('revalidação com o lock detido') });
+    expect(b.manifest!.preflight.find((c) => c.id === 'rerun_window')).toMatchObject({ status: 'fail', detail: expect.stringContaining(a.manifest!.run_id) });
+    expect(fs.readdirSync(deps.locksDir)).toEqual([]);
+  });
+
+  it('o manifesto final é gravado ANTES de libertar o lock (ok e erro)', async () => {
+    for (const failRepos of [false, true]) {
+      const { deps } = makeDeps();
+      const lockFile = path.join(deps.locksDir, 'cabo_frio.lock');
+      const lockHeldAtWrite: boolean[] = [];
+      deps.writeManifest = (dir, m) => {
+        lockHeldAtWrite.push(fs.existsSync(lockFile));
+        return writeRunManifest(dir, m);
+      };
+      if (failRepos) deps.ingestion.createRepos = () => { throw new Error('falha inesperada'); };
+      // forceRerun: a 1.ª iteração deixou um manifesto real no mesmo directório.
+      await runAssistedIngestion(args({ forceRerun: true }), deps);
+      expect(lockHeldAtWrite).toEqual([true]);
+      expect(fs.existsSync(lockFile)).toBe(false);
+    }
+  });
+
   it('limite documentado: com --force-rerun, um ingestion_run novo grava linhas novas (Camada A append-only por execução)', async () => {
     const { deps, memory } = makeDeps();
     await runAssistedIngestion(args(), deps);
@@ -323,6 +369,48 @@ describe('manifesto sem segredos', () => {
   it('serializeRunManifest falha fechado se um padrão proibido sobreviver (por exemplo numa chave)', () => {
     const m = { run_id: 'x', quality: { [`sb_secret_${'A'.repeat(20)}`]: 1 } } as unknown as RunManifest;
     expect(() => serializeRunManifest(m)).toThrow(UnsafeManifestError);
+  });
+
+  // Formas com aspas (JSON, cabeçalhos, aspas simples) — valores construídos em runtime.
+  const QUOTED_FORMS: Array<[string, string]> = [
+    ['JSON compacto', JSON.stringify({ apikey: TOKEN })],
+    ['JSON com espaços', `{ "token": "${TOKEN}" }`],
+    ['JSON com espaço antes dos dois pontos', `"apikey" : "${TOKEN}"`],
+    ['aspas simples', `{'secret': '${TOKEN}'}`],
+    ['valor entre aspas com espaços', `"password": "${TOKEN} mais texto"`],
+    ['cabeçalho Authorization', `Authorization: Bearer ${TOKEN}`],
+    ['cabeçalho JSON', JSON.stringify({ Authorization: `Bearer ${TOKEN}` })],
+    ['x-api-key', `x-api-key: ${TOKEN}`],
+    ['client_secret=', `client_secret=${TOKEN}`],
+    ['JSON escapado (já serializado)', JSON.stringify(JSON.stringify({ access_token: TOKEN }))],
+  ];
+
+  it.each(QUOTED_FORMS)('sanitizeText mascara credenciais: %s', (_label, input) => {
+    const out = sanitizeText(`corpo: ${input} fim`);
+    expect(out).not.toContain(TOKEN);
+    for (const p of FORBIDDEN_MANIFEST_PATTERNS) expect(out).not.toMatch(p.re);
+  });
+
+  it.each(QUOTED_FORMS)('a verificação final reconhece a forma em bruto (fail-closed): %s', (_label, input) => {
+    expect(FORBIDDEN_MANIFEST_PATTERNS.some((p) => p.re.test(input))).toBe(true);
+    // Numa chave de objecto (que o sanitizador não altera), a serialização falha.
+    const m = { run_id: 'x', quality: { [input]: 1 } } as unknown as RunManifest;
+    expect(() => serializeRunManifest(m)).toThrow(UnsafeManifestError);
+  });
+
+  it('corpo de resposta JSON com credenciais: nada do corpo chega ao manifesto', async () => {
+    const { deps } = makeDeps();
+    deps.ingestion.createApiClient = vi.fn(() => ({
+      fetchPosts: async () => {
+        throw new Error(`WordPress REST API falhou (403) em https://exemplo.gov.br/wp-json/wp/v2/posts: ${QUOTED_FORMS.map((f) => f[1]).join(' ')}`);
+      },
+    }) as unknown as WordPressApiClient);
+    const out = await runAssistedIngestion(args(), deps);
+    const raw = fs.readFileSync(out.manifestPath!, 'utf8');
+    expect(raw).not.toContain(TOKEN);
+    expect(raw).not.toContain('wp-json');
+    expect(out.manifest!.sources[0]).toMatchObject({ status: 'failed', error_class: 'http_permanent', http_status: 403, error_host: 'exemplo.gov.br' });
+    expect(out.text).not.toContain(TOKEN);
   });
 
   it('sanitizeText: URL → host; segredos mascarados; texto truncado', () => {

@@ -93,6 +93,36 @@ export function classifyIngestionError(err: unknown): IngestionErrorClass {
   return 'unknown';
 }
 
+export interface IngestionErrorSummary {
+  error_class: IngestionErrorClass;
+  http_status: number | null;
+  /** Host do primeiro URL da mensagem (nunca caminho, query ou credenciais). */
+  host: string | null;
+}
+
+/**
+ * Resumo SEGURO de um erro, para registos auditáveis: só classe, estado
+ * HTTP e host. Nunca a mensagem em bruto (o WordPressApiClient inclui o
+ * corpo da resposta, que pode conter qualquer coisa).
+ */
+export function summarizeIngestionError(err: unknown): IngestionErrorSummary {
+  let host: string | null = null;
+  const url = /\bhttps?:\/\/[^\s"'<>]+/i.exec(messageOf(err))?.[0];
+  if (url) {
+    try {
+      const h = new URL(url).hostname;
+      host = /\.supabase\.co$/i.test(h) ? 'supabase' : h;
+    } catch {
+      host = null;
+    }
+  }
+  return { error_class: classifyIngestionError(err), http_status: httpStatusOf(err), host };
+}
+
+export function formatErrorSummary(s: IngestionErrorSummary): string {
+  return `[${s.error_class}]${s.http_status !== null ? ` HTTP ${s.http_status}` : ''}${s.host ? ` @ ${s.host}` : ''}`;
+}
+
 export function isTransient(cls: IngestionErrorClass): boolean {
   return cls === 'http_transient' || cls === 'network_transient';
 }
