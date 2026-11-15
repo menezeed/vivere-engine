@@ -29,7 +29,8 @@
 -- abrir o link OSM e confirmar o ponto; v_verificado_por := 'PO' (sem nomes).
 -- Correr com v_aplicar := false (simulação), depois true.
 -- Reverter: v_reverter := true (apaga só as linhas desta curadoria; recusa se
--- o venue já tiver sido promovido para public.venues ou tiver candidatos ER).
+-- o venue já tiver sido promovido para public.venues, tiver candidatos ER ou
+-- houver uma publicação em curso). Correr sem publicações em paralelo.
 -- ============================================================================
 do $venue$
 declare
@@ -54,6 +55,16 @@ begin
   end if;
 
   if v_reverter then
+    -- Revisão r0: exclusão com o publisher (mesmo padrão do rollback de
+    -- ingestão). Toda a publicação começa por INSERT em publication_runs:
+    -- SHARE MODE faz publicações novas esperarem; uma em curso é recusada.
+    -- Pré-condição: nenhuma publicação fora do PublishingEngine.
+    if pg_catalog.to_regclass('public.publication_runs') is not null then
+      lock table public.publication_runs in share mode;
+      if exists (select 1 from public.publication_runs where status = 'running') then
+        raise exception 'RECUSA: há uma publication run em running — esperar (ou marcar restos como failed) e repetir';
+      end if;
+    end if;
     select id, promoted_venue_id into v_ven, v_prom from staging.venues_staging
       where source_key = 'curadoria_manual' and source_item_id = c_item_id for update;
     if not found then raise exception 'RECUSA: venue curado não existe'; end if;
