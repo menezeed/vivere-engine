@@ -55,3 +55,14 @@ describe('archive-activity', () => {
     expect((r as any).run.finish).not.toHaveBeenCalled();
   });
 });
+
+describe('archive-activity — fecho da run', () => {
+  it('fecho da run falha depois do arquivo: marca a run como falhada e propaga', async () => {
+    const r = repos({ publicActivityId: 'pub-1', lastPublishedAt: new Date(), engineStatus: 'active' });
+    (r as any).run.finish.mockRejectedValue(new Error('db'));
+    const archive = vi.fn().mockResolvedValue(undefined);
+    await expect(runArchive(r, archive, { productKey: 'p', engineActivityId: ID, confirm: true })).rejects.toThrow('db');
+    expect(archive).toHaveBeenCalledTimes(1);
+    expect((r as any).run.markFailed.mock.calls[0][1]).toMatch(/arquivo feito/);
+  });
+});

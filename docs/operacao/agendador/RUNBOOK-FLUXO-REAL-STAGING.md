@@ -26,7 +26,12 @@
    ```
    - **Critério:** `status` = `success` e contagens iguais às do resumo da execução.
 
-**Rollback** (antes de publicar): `ingestion-run-rollback.staging.sql`, primeiro em simulação e depois com `v_aplicar := true`. A recusa R2 aparece se algo já tiver sido promovido; nesse caso usar o arquivo do publishing.
+**Rollback** (antes de publicar): `ingestion-run-rollback.staging.sql`, primeiro em simulação e depois com `v_aplicar := true`.
+- A recusa R2 aparece se algo já tiver sido promovido; nesse caso usar o arquivo do publishing.
+- Correr **sem** publicação, Entity Resolution ou ingestão da mesma região a decorrer. O script bloqueia as linhas da run, e uma publicação concorrente fica à espera e falha depois, mas isto evita surpresas.
+- A confirmação `v_confirm` é manual: **confirmar o projecto STAGING no URL do Dashboard** é indispensável.
+
+**Arquivo manual (§4):** a escrita do arquivo e o fecho da publication run não são atómicos. Se o fecho falhar, a actividade fica arquivada e a run fica marcada como falhada; voltar a correr dá `Já arquivada`.
 
 ## 2. Revisão humana
 1. Review API local contra o STAGING: `npx tsx --env-file=<ficheiro> src/review-api/server.ts`, com `CORS_ORIGIN` do admin-panel local.

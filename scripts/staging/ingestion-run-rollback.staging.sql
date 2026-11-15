@@ -53,6 +53,19 @@ begin
     select id from staging.raw_activity_items where ingestion_run_id = v_run;
   create temp table _rb_raw_v on commit drop as
     select id from staging.raw_venue_items where ingestion_run_id = v_run;
+  -- Revisão r0 (concorrência): bloquear as linhas-alvo ANTES de as ler e de
+  -- verificar R2–R4. FOR UPDATE nas activities/venues da run:
+  --  - uma publicação que queira gravar promoted_*_id espera por nós (R2);
+  --  - um INSERT de candidato/decisão/activity que referencie estas linhas
+  --    precisa de FOR KEY SHARE nelas e também espera (R3/R4), por isso as
+  --    contagens abaixo continuam válidas até ao fim da transacção.
+  perform 1 from staging.raw_activity_items where id in (select id from _rb_raw_a) for update;
+  perform 1 from staging.raw_venue_items    where id in (select id from _rb_raw_v) for update;
+  perform 1 from staging.activities_staging
+    where raw_activity_item_id in (select id from _rb_raw_a) for update;
+  perform 1 from staging.venues_staging
+    where raw_venue_item_id in (select id from _rb_raw_v) for update;
+
   create temp table _rb_act on commit drop as
     select id, promoted_activity_id from staging.activities_staging
     where raw_activity_item_id in (select id from _rb_raw_a);
@@ -93,9 +106,11 @@ begin
     raise exception 'RECUSA R5: % registos de gasto (api_usage_log) ligados a esta run', n_usage;
   end if;
 
+  -- Só candidatos das activities desta run (revisão r0). Candidatos de outras
+  -- runs que apontem para venues desta run foram recusados em R4 e não podem
+  -- surgir depois (FOR KEY SHARE bloqueado pelos locks acima).
   delete from staging.venue_resolution_candidates
-   where activity_staging_id in (select id from _rb_act)
-      or candidate_venue_id  in (select id from _rb_ven);
+   where activity_staging_id in (select id from _rb_act);
   get diagnostics n_cand = row_count;
   delete from staging.activities_staging where id in (select id from _rb_act);
   delete from staging.venues_staging     where id in (select id from _rb_ven);

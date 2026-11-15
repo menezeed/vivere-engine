@@ -42,8 +42,16 @@ begin
     ('revisor@example.invalid',          'reviewer')
   ) v(e, r);
 
-  if exists (select 1 from _alvos where papel not in ('viewer', 'reviewer', 'admin')) then
-    raise exception 'RECUSA: papel inválido (só viewer, reviewer, admin)';
+  -- Revisão r0: papel NULL passava pelo NOT IN; e-mail repetido tornava o
+  -- papel indeterminado no UPDATE … FROM.
+  if exists (select 1 from _alvos where papel is null or papel not in ('viewer', 'reviewer', 'admin')) then
+    raise exception 'RECUSA: papel inválido ou vazio (só viewer, reviewer, admin)';
+  end if;
+  if exists (select 1 from _alvos where email is null or email = '') then
+    raise exception 'RECUSA: e-mail vazio na lista de alvos';
+  end if;
+  if (select count(*) from _alvos) <> (select count(distinct email) from _alvos) then
+    raise exception 'RECUSA: e-mail repetido na lista de alvos (um papel por conta)';
   end if;
 
   select count(*) into n_alvos from _alvos;
@@ -64,8 +72,14 @@ begin
   end if;
   get diagnostics n_alteradas = row_count;
 
+  -- Só papéis da allowlist aparecem pelo nome; qualquer outro valor existente
+  -- fica agrupado sem ser impresso (pode conter texto arbitrário).
   select string_agg(papel || '=' || n, ', ' order by papel) into v_resumo from (
-    select coalesce(u.raw_app_meta_data ->> 'role', '(sem papel)') as papel, count(*) as n
+    select case
+             when u.raw_app_meta_data ->> 'role' is null then '(sem papel)'
+             when u.raw_app_meta_data ->> 'role' in ('viewer', 'reviewer', 'admin') then u.raw_app_meta_data ->> 'role'
+             else '(outro valor)'
+           end as papel, count(*) as n
     from auth.users u group by 1) t;
 
   if not v_aplicar then

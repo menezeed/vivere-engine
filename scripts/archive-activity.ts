@@ -70,7 +70,14 @@ export async function runArchive(repos: Repos, archive: Archiver, args: ArchiveA
     activitiesPublished: 0, activitiesUpdated: 0, activitiesSkipped: 0, activitiesArchived: 1,
     errors: 0, durationMs: now() - started,
   };
-  await repos.run.finish(runId, metrics);
+  try {
+    await repos.run.finish(runId, metrics);
+  } catch (err) {
+    // A actividade JÁ está arquivada; só a auditoria falhou. Marca a run e
+    // propaga, para o operador saber (repetir dá 'already_archived').
+    await repos.run.markFailed(runId, `arquivo feito; fecho da run falhou: ${err instanceof Error ? err.message : String(err)}`);
+    throw err;
+  }
   return { kind: 'archived', publicActivityId: state.publicActivityId, runId };
 }
 
