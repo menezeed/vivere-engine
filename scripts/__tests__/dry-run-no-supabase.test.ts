@@ -97,4 +97,19 @@ describe('ingest-google-places', () => {
     expect(m.forSupabase).toHaveBeenCalledTimes(1);
     expect(m.textSearch).not.toHaveBeenCalled();
   });
+
+  it('--budget=persistent usa o cliente único (getSupabaseClient) antes de qualquer chamada paga', async () => {
+    await expect(
+      ingestGooglePlaces(['node', 'ingest-google-places.ts', '--region=cabo_frio', '--limit=1', '--budget=persistent']),
+    ).rejects.toThrow(/getSupabaseClient\(\) chamado/);
+    expect(m.getSupabaseClient).toHaveBeenCalledTimes(1);
+    expect(m.createClient).not.toHaveBeenCalled();
+    expect(m.textSearch).not.toHaveBeenCalled();
+  });
+
+  it('--dry-run com orçamento por omissão (memory) não toca no Supabase nem no orçamento persistente', async () => {
+    await ingestGooglePlaces(['node', 'ingest-google-places.ts', '--region=cabo_frio', '--limit=1', '--dry-run', '--budget=memory']);
+    expect(m.getSupabaseClient).not.toHaveBeenCalled();
+    expect(m.createClient).not.toHaveBeenCalled();
+  });
 });

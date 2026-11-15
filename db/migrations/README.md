@@ -3,12 +3,12 @@
 ## Ordem de execução
 
 ```
-0000 → 0001 → 0002 → ... → 0018 → 0019 → 0020 → 0021 → 0022 → 0023 → 0024 → 0025 → 0026 → 0027 → 0029
+0000 → 0001 → 0002 → ... → 0018 → 0019 → 0020 → 0021 → 0022 → 0023 → 0024 → 0025 → 0026 → 0027 → 0028 → 0029
    (0023–0025: aplicadas no staging, hashes congelados em APPLIED.sha256; produção: ver docs/runbooks)
    (0026/0027: propostas, só simulação local; staging/produção com REF próprio)
    (0029: proposta — active_activities pela data local de America/Sao_Paulo; testes em
     db/audit/active-activities-local-date-tests.staging.sql; não aplicada em nenhum ambiente.
-    0028 (orçamento L5) vive no PR próprio e é independente)
+    0028 = orçamento L5 (PR próprio), independente da 0029)
    (0026 é TRANSITÓRIA: na produção vai na mesma janela que 0023→0024→0025;
     a 0027 só depois dos critérios de adopção — docs/runbooks/production-rollout.md)
 ```
@@ -325,9 +325,46 @@ Testes locais: `db/audit/local/run-lote3-compat.sh` (cadeia, instantâneos,
 rollbacks, pré-condições adulteradas, cliente antigo × RPC, concorrência e
 suites do Lote 2 no estado final) e `lote3-compat-tests.local.sql`.
 
+## `0028_api_budget.sql` (PROPOSTA, não aplicada)
+
+L5: orçamento persistente das APIs pagas. Cria `staging.api_budget_config`
+(tectos por fornecedor, escritos só pelo operador/PO; o Engine só lê) e
+`staging.api_usage_log` (append-only: cada chamada nasce `reserved` e só
+pode passar a `spent` ou `released`, imposto por trigger; DELETE e
+TRUNCATE recusados), mais as RPC `reserve_api_budget` (advisory lock por
+fornecedor; recusa antes da chamada se `hard_stop_enabled` e um tecto
+mensal, diário ou por execução seria excedido; sem config → recusa),
+`confirm_api_spend` e `release_api_budget`. RLS sem políticas; só
+`service_role` tem privilégios. Mês e dia de orçamento em **UTC**.
+
+As 0023–0027 vivem noutras branches (0023–0025 já aplicadas no staging; 0026 e 0027 em lote3/rollout-compat); a 0028 é a
+seguinte. Sem dados: os valores dos tectos são decisão do PO (exemplo em
+`scripts/staging/api_budget_config.seed.example.sql`). Testes SQL (só
+staging, rollback garantido): `db/audit/api-budget-tests.staging.sql`. O
+Engine só usa estas tabelas com `--budget=persistent` nos scripts
+`ingest-*`. O rollback apaga o histórico de gasto.
+
+Regra de liquidação (Engine): cada tentativa HTTP paga tem a sua reserva;
+só é libertada quando é certo que o pedido não chegou ao fornecedor (falha
+na fase de ligação); respostas recebidas (qualquer status) e falhas
+incertas contam como gasto. Os alertas 50/80/100% são deduplicados por
+processo: execuções diferentes podem repetir o mesmo alerta mensal/diário.
+
 ## Contrato forward-only
 
 Migrações são sempre avançadas, nunca reaplicadas. `IF NOT EXISTS`/
 `IF EXISTS` são usados **só** onde a incerteza é genuína por desenho
 (ex: `CREATE SCHEMA IF NOT EXISTS staging` em `0001`) — nunca como
 atalho para esconder um erro real de ordem ou de execução duplicada.
+
+## `0029_active_activities_local_date.sql` (PROPOSTA, não aplicada)
+
+`public.active_activities` passa a filtrar pela **data civil de America/Sao_Paulo**
+(`(CURRENT_TIMESTAMP AT TIME ZONE 'America/Sao_Paulo')::date`) em vez de
+`CURRENT_DATE` (UTC). Corrige o desaparecimento, entre as 21:00 e as 24:00
+locais, dos eventos pontuais do próprio dia e das actividades com `end_date` hoje.
+Filtro novo é superconjunto do antigo (data local ≤ data UTC); colunas,
+`security_invoker` e ACL preservados (CREATE OR REPLACE VIEW). P1 aborta se a
+vista divergir do baseline 0000 (produção foi criada à mão). Testes só staging:
+`db/audit/active-activities-local-date-tests.staging.sql` (colar com a migração,
+termina sempre em RAISE → nada persiste). Rollback repõe o filtro com CURRENT_DATE.
