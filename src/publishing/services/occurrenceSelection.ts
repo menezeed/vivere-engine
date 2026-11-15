@@ -23,6 +23,14 @@
  *    start_date.slice(0,10) e a vista active_activities compara a data com
  *    current_date; gravar o instante UTC real mudaria a data de eventos
  *    depois das 21:00 locais. Não alterado aqui de propósito.
+ *
+ * LIMITAÇÃO CONHECIDA (revisão r0, fora do engine): a vista
+ * public.active_activities filtra `start_date >= current_date` com
+ * current_date em UTC. Entre as 21:00 e as 24:00 locais, um evento pontual
+ * desse dia (gravado com a data local) já não satisfaz o filtro, mesmo que
+ * o engine o considere futuro. Corrigir exige migration da vista (ex.:
+ * current_date AT TIME ZONE 'America/Sao_Paulo'), decisão separada do PO.
+ * Fixado pelo teste "contrato com a vista" em occurrenceSelection.test.ts.
  */
 
 import type { ActivityOccurrence } from '../types/domain.js';
@@ -35,9 +43,13 @@ export const SOURCE_LOCAL_UTC_OFFSET = '-03:00';
  * com asOf). Com hora: início local. Só data: fim do dia local.
  */
 export function occurrenceComparisonInstant(occurrence: ActivityOccurrence): Date {
-  return occurrence.time === null
-    ? new Date(`${occurrence.date}T23:59:59${SOURCE_LOCAL_UTC_OFFSET}`)
-    : new Date(`${occurrence.date}T${occurrence.time}:00${SOURCE_LOCAL_UTC_OFFSET}`);
+  if (occurrence.time === null) {
+    // Último milissegundo do dia local (revisão r0: 23:59:59.000 deixava
+    // de fora os 999 ms finais). Equivale a "antes da meia-noite seguinte".
+    const startOfDay = new Date(`${occurrence.date}T00:00:00${SOURCE_LOCAL_UTC_OFFSET}`).getTime();
+    return new Date(startOfDay + 24 * 60 * 60 * 1000 - 1);
+  }
+  return new Date(`${occurrence.date}T${occurrence.time}:00${SOURCE_LOCAL_UTC_OFFSET}`);
 }
 
 /**

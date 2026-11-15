@@ -129,8 +129,9 @@ describe('occurrenceSelection — hora local (America/Sao_Paulo, UTC−3)', () =
     expect(selectNextOccurrence([soData], new Date('2026-12-24T00:30:00Z'))).toEqual(soData); // 23/12 21:30 locais
     expect(selectNextOccurrence([soData], new Date('2026-12-24T23:00:00Z'))).toEqual(soData); // 24/12 20:00 locais
     expect(selectNextOccurrence([soData], new Date('2026-12-25T02:59:00Z'))).toEqual(soData); // 24/12 23:59 locais
-    expect(selectNextOccurrence([soData], new Date('2026-12-25T03:00:01Z'))).toBeNull();      // 25/12 00:00:01 locais
-    expect(occurrenceComparisonInstant(soData).toISOString()).toBe('2026-12-25T02:59:59.000Z');
+    expect(occurrenceComparisonInstant(soData).toISOString()).toBe('2026-12-25T02:59:59.999Z');
+    expect(selectNextOccurrence([soData], new Date('2026-12-25T02:59:59.500Z'))).toEqual(soData); // últimos ms do dia local
+    expect(selectNextOccurrence([soData], new Date('2026-12-25T03:00:00.000Z'))).toBeNull();      // meia-noite local seguinte
   });
 
   it('ordenação usa o instante real: evento com hora antes do só-data do mesmo dia', () => {
@@ -149,5 +150,34 @@ describe('occurrenceSelection — hora local (America/Sao_Paulo, UTC−3)', () =
 
   it('hora inválida continua a não ser seleccionada (comportamento anterior)', () => {
     expect(selectNextOccurrence([{ date: '2026-12-31', time: 'abc', endDate: null, endTime: null }], new Date('2026-11-15T12:00:00Z'))).toBeNull();
+  });
+});
+
+// Contrato com a vista public.active_activities (baseline 0000): predicado
+// reproduzido e ligado ao SQL. Documenta a LIMITAÇÃO CONHECIDA (ver cabeçalho
+// de occurrenceSelection.ts): nas 3 h finais do dia local a vista (current_date
+// em UTC) esconde o evento pontual do próprio dia que o engine ainda considera futuro.
+import { readFileSync as readSql } from 'node:fs';
+describe('occurrenceSelection — contrato com a vista active_activities', () => {
+  const viewShows = (stored: Date, now: Date) =>
+    stored.toISOString().slice(0, 10) >= now.toISOString().slice(0, 10); // start_date >= current_date (UTC)
+
+  it('o predicado reproduzido é o da vista', () => {
+    const sql = readSql(new URL('../../../db/migrations/0000_app_baseline.sql', import.meta.url), 'utf8');
+    expect(sql).toMatch(/recurrence_type = 'none' and start_date >= current_date/);
+  });
+
+  it('até às 21:00 locais: engine e vista concordam (evento às 23:00 locais visível)', () => {
+    const ev: ActivityOccurrence = { date: '2026-12-24', time: '23:00', endDate: null, endTime: null };
+    const now = new Date('2026-12-24T23:59:00Z'); // 20:59 locais
+    expect(selectNextOccurrence([ev], now)).toEqual(ev);
+    expect(viewShows(toRange(ev).startDate, now)).toBe(true);
+  });
+
+  it('LIMITAÇÃO: das 21:00 às 24:00 locais o engine considera futuro mas a vista já não mostra', () => {
+    const ev: ActivityOccurrence = { date: '2026-12-24', time: '23:00', endDate: null, endTime: null };
+    const now = new Date('2026-12-25T01:00:00Z'); // 22:00 locais
+    expect(selectNextOccurrence([ev], now)).toEqual(ev);
+    expect(viewShows(toRange(ev).startDate, now)).toBe(false); // corrige-se só com migration da vista
   });
 });
