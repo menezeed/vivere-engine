@@ -119,6 +119,9 @@ export type ActivityDecision =
   // venue_resolution_decisions. Nunca insert/update. Ver nota completa no
   // cabeçalho do módulo.
   | { readonly action: 'skip_missing_human_decision'; readonly activity: PublishableActivity }
+  // 15/11/2026 (G2) — nunca publicada e sem venue (proposed_new): o app
+  // mostra actividades sem lat/lng em qualquer raio. Nunca insert.
+  | { readonly action: 'skip_no_location'; readonly activity: PublishableActivity }
   | { readonly action: 'error';           readonly activity: PublishableActivity; readonly reason: string };
 
 export class ActivityPublisher {
@@ -136,6 +139,15 @@ export class ActivityPublisher {
      * = 'matched'.
      */
     private readonly decisionRepo?: IVenueResolutionDecisionRepository,
+    /**
+     * 15/11/2026 (G2) — opcional. requireVenueForNew=true (publish.ts):
+     * uma activity NUNCA publicada com venueResolutionStatus='proposed_new'
+     * (venue_id sempre NULL) não é inserida — o app (withinRadius) mostraria
+     * uma activity sem coordenadas a utilizadores de qualquer cidade.
+     * Activities já publicadas não são afectadas. Ausente: comportamento
+     * anterior (testes existentes).
+     */
+    private readonly options: { readonly requireVenueForNew?: boolean } = {},
   ) {}
 
   /**
@@ -170,7 +182,7 @@ export class ActivityPublisher {
         if (decision.action === 'insert') activitiesPublished++;
         else if (decision.action === 'update') activitiesUpdated++;
         else if (decision.action === 'archive_expired') activitiesArchived++;
-        else activitiesSkipped++; // skip_not_dirty, skip_expired, skip_missing_human_decision
+        else activitiesSkipped++; // skip_not_dirty, skip_expired, skip_missing_human_decision, skip_no_location
       } catch {
         errors++;
       }
@@ -280,6 +292,10 @@ export class ActivityPublisher {
           reason: `activity ${activity.stagingId} tem promotedActivityId=${activity.promotedActivityId} mas nenhum public.activities encontrado para a identidade estável ${engineActivityId}`,
         };
       }
+      // G2 — sem venue não há coordenadas: não inserir (ver construtor).
+      if (this.options.requireVenueForNew && activity.venueResolutionStatus === 'proposed_new') {
+        return { action: 'skip_no_location', activity };
+      }
       // Nunca publicada, promotedActivityId null — candidata legítima a insert.
       const operational = PublicationTransformer.transformActivity(activity, now, now);
       if (operational === null) {
@@ -376,6 +392,7 @@ export class ActivityPublisher {
       case 'skip_not_dirty':
       case 'skip_expired':
       case 'skip_missing_human_decision':
+      case 'skip_no_location':
       case 'error':
         return; // zero writes, zero eventos
     }

@@ -91,6 +91,8 @@ function formatActivityRow(d: ActivityDecision, venueStagingIdsBeingInserted: Re
   } else if (d.action === 'skip_missing_human_decision') {
     // Level 2, 2026-09-26.
     occurrenceInfo = 'matched sem decisão humana registada em venue_resolution_decisions';
+  } else if (d.action === 'skip_no_location') {
+    occurrenceInfo = 'proposed_new sem venue: sem coordenadas, não publicada (G2)';
   } else {
     occurrenceInfo = 'n/a';
   }
@@ -130,7 +132,7 @@ async function runPreview(productKey: string): Promise<void> {
   // Level 2, 2026-09-26 — gate de decisão humana para matched.
   const erRepos = await EntityResolutionRepositoryFactory.forSupabase();
   const venuePublisher    = new VenuePublisher(repos.publishableVenue, repos.publicVenue, repos.event);
-  const activityPublisher = new ActivityPublisher(repos.publishableActivity, repos.publicActivity, repos.event, () => new Date(), erRepos.decision);
+  const activityPublisher = new ActivityPublisher(repos.publishableActivity, repos.publicActivity, repos.event, () => new Date(), erRepos.decision, { requireVenueForNew: true });
   const engine             = new PublishingEngine(venuePublisher, activityPublisher, repos.run, repos.event);
 
   const { venues, activities } = await engine.preview(productKey);
@@ -151,6 +153,7 @@ async function runPreview(productKey: string): Promise<void> {
     archive_expired:             activities.filter(d => d.action === 'archive_expired').length,
     // Level 2, 2026-09-26.
     skip_missing_human_decision: activities.filter(d => d.action === 'skip_missing_human_decision').length,
+    skip_no_location:            activities.filter(d => d.action === 'skip_no_location').length,
     error:                       activities.filter(d => d.action === 'error').length,
   };
 
@@ -185,6 +188,7 @@ async function runPreview(productKey: string): Promise<void> {
   console.log(`  expiradas para skip:         ${activityCounts.skip_expired}`);
   console.log(`  expiradas para archive:      ${activityCounts.archive_expired}`);
   console.log(`  sem decisão humana (matched, bloqueadas): ${activityCounts.skip_missing_human_decision}`);
+  console.log(`  sem local (proposed_new, não publicadas — G2): ${activityCounts.skip_no_location}`);
   console.log(`  com venue já resolvido:      ${withVenueResolved}`);
   console.log(`  com venue pendente (matched, resolve nesta run): ${withVenuePending}`);
   console.log(`  proposed_new (venue_id sempre NULL, por desenho): ${withVenueProposedNew}`);
@@ -262,6 +266,7 @@ async function runPreview(productKey: string): Promise<void> {
   printSample(activities, 'skip_expired', formatActivity);
   printSample(activities, 'archive_expired', formatActivity);
   printSample(activities, 'skip_missing_human_decision', formatActivity);
+  printSample(activities, 'skip_no_location', formatActivity);
   printSample(activities, 'error', formatActivity);
 
   console.log('\nPreview concluído. Nenhuma escrita foi feita. Execute sem flags para publicar de facto.');
@@ -273,7 +278,7 @@ async function runReal(productKey: string): Promise<void> {
   const erRepos = await EntityResolutionRepositoryFactory.forSupabase();
 
   const venuePublisher    = new VenuePublisher(repos.publishableVenue, repos.publicVenue, repos.event);
-  const activityPublisher = new ActivityPublisher(repos.publishableActivity, repos.publicActivity, repos.event, () => new Date(), erRepos.decision);
+  const activityPublisher = new ActivityPublisher(repos.publishableActivity, repos.publicActivity, repos.event, () => new Date(), erRepos.decision, { requireVenueForNew: true });
   const engine             = new PublishingEngine(venuePublisher, activityPublisher, repos.run, repos.event);
 
   log(`Iniciando publicação para produto: ${productKey}`);
