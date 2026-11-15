@@ -115,12 +115,12 @@ describe('computeRunQualityMetrics — fixtures das 4 fontes WordPress', () => {
     expect(g.with_venue_mention).toEqual({ count: 2, pct: 100 });
   });
 
-  it('São Pedro: item só com recorrência (sem data) e local inferido do contexto não é geocodificável', () => {
+  it('São Pedro: "Evento:" com "(17/06)" sem ano e item só com recorrência → sem data; só o local explícito é geocodificável', () => {
     const g = group('prefeitura_sao_pedro_da_aldeia');
-    expect(g.total_items).toBe(1);
+    expect(g.total_items).toBe(2);
     expect(g.with_date.count).toBe(0);
-    expect(g.with_venue_mention.count).toBe(1);
-    expect(g.with_geocodable_venue.count).toBe(0);
+    expect(g.with_venue_mention.count).toBe(2);
+    expect(g.with_geocodable_venue.count).toBe(1);
   });
 
   it('Búzios: narrativa com data e hora, sem local extraído', () => {
@@ -132,11 +132,11 @@ describe('computeRunQualityMetrics — fixtures das 4 fontes WordPress', () => {
   });
 
   it('totais da execução', () => {
-    expect(report.totals.total_items).toBe(7);
-    expect(report.totals.with_date).toEqual({ count: 4, pct: 57.1 });
-    expect(report.totals.with_time).toEqual({ count: 4, pct: 57.1 });
-    expect(report.totals.with_venue_mention).toEqual({ count: 6, pct: 85.7 });
-    expect(report.totals.with_geocodable_venue).toEqual({ count: 5, pct: 71.4 });
+    expect(report.totals.total_items).toBe(8);
+    expect(report.totals.with_date).toEqual({ count: 4, pct: 50 });
+    expect(report.totals.with_time).toEqual({ count: 4, pct: 50 });
+    expect(report.totals.with_venue_mention).toEqual({ count: 7, pct: 87.5 });
+    expect(report.totals.with_geocodable_venue).toEqual({ count: 6, pct: 75 });
     expect(report.totals.duplicates).toEqual({ count: 0, pct: 0 });
   });
 
@@ -144,7 +144,7 @@ describe('computeRunQualityMetrics — fixtures das 4 fontes WordPress', () => {
     const d = group('prefeitura_buzios').publication_delay;
     expect(d.items_with_published_at).toBe(1);
     expect(d.mean_hours).toBe(593.9);
-    expect(report.totals.publication_delay.items_with_published_at).toBe(7);
+    expect(report.totals.publication_delay.items_with_published_at).toBe(8);
   });
 
   it('gate geográfico não aplicável a actividades quando não há buckets de venues', () => {
@@ -158,7 +158,7 @@ describe('computeRunQualityMetrics — fixtures das 4 fontes WordPress', () => {
     expect(summary).toContain('Execução dry-run-fixtures');
     expect(summary).toContain('prefeitura_rio_das_ostras (Rio das Ostras): 2 itens');
     expect(summary).toContain('com data: 0 (0.0%)');
-    expect(summary).toContain('TOTAL: 7 itens');
+    expect(summary).toContain('TOTAL: 8 itens');
     expect(summary).toContain('Gate geográfico: não aplicável a actividades');
   });
 });

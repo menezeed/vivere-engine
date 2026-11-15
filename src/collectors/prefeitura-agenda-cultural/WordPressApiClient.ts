@@ -1,5 +1,6 @@
 import { withRetry } from '../../lib/retry';
 import { logger } from '../../lib/logger';
+import { parseWordPressGmtDate } from '../../lib/wordpressDates';
 
 /**
  * Cliente genérico da WordPress REST API. Deliberadamente não
@@ -98,7 +99,7 @@ export async function* fetchPostsSince(
       'página de posts da WordPress REST API recebida',
     );
 
-    const postsWithinWindow = posts.filter((p) => new Date(p.date_gmt) >= options.sinceDate);
+    const postsWithinWindow = posts.filter((p) => parseWordPressGmtDate(p.date_gmt) >= options.sinceDate);
     yield postsWithinWindow;
 
     // Se algum post desta página já está fora da janela, todos os
