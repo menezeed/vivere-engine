@@ -162,6 +162,19 @@ describe('narrativa — padrões novos e regras conservadoras', () => {
     expect(r.candidateDates.map((c) => c.date)).toEqual(['2026-10-09', '2026-10-10']);
   });
 
+  it('r0 #2: retrospectiva de dezembro ("foi realizado em 10 de janeiro, às 19h") NÃO vira evento futuro', () => {
+    const r = parseNarrativeFallback('<p>O concerto foi realizado em 10 de janeiro, às 19h, no teatro.</p>', ref('2026-12-20T12:00:00'));
+    expect(r.status).toBe('not_found');
+    expect(r.date).toBeNull();
+  });
+
+  it('r0 #4: datas PASSADAS com ano explícito continuam candidatas em qualquer formato (numérica, intervalo)', () => {
+    const numerica = parseNarrativeFallback('<p>A mostra aconteceu em 21/10/2026, no centro.</p>', ref('2026-11-05T12:00:00'));
+    expect([numerica.status, numerica.date]).toEqual(['extracted', '2026-10-21']);
+    const intervalo = parseNarrativeFallback('<p>A feira decorreu de 3 a 5 de outubro de 2026 na praça.</p>', ref('2026-11-05T12:00:00'));
+    expect([intervalo.status, intervalo.date, intervalo.endDate]).toEqual(['extracted', '2026-10-03', '2026-10-05']);
+  });
+
   it('"às19h30" (sem espaço) é lido como horário', () => {
     const r = parseNarrativeFallback('<p>A peça será no sábado, dia 14, às19h30, no teatro.</p>', ref('2026-11-12T11:53:00'));
     expect([r.status, r.date, r.time]).toEqual(['extracted', '2026-11-14', '19:30']);

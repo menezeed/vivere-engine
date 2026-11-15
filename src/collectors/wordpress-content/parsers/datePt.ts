@@ -65,6 +65,34 @@ const WEEKDAY_ALT = 'domingo|segunda|ter[çc]a|quarta|quinta|sexta|s[áa]bado';
 // Dia da semana como palavra inteira (exclui plurais "sábados"/"sextas" — recorrência, não data).
 const WEEKDAY_WORD = `(?<![\\p{L}])(${WEEKDAY_ALT})(?:-feira)?(?![\\p{L}])`;
 const ORD = '(?:º|°|o(?![\\p{L}]))?';
+// Ano explícito depois do mês: "de 2027", " 2027", ", 2027" (só 19xx/20xx).
+const YEAR_SUFFIX = '(?:\\s*,?\\s*(?:de\\s+)?((?:19|20)\\d{2})(?!\\d))?';
+// Ano de 4 dígitos colado ao fim de uma menção mas NÃO consumido ("8 de novembro/2027", "– 2027"):
+// o ano existe no texto, só não tem forma reconhecida → nunca se infere outro.
+const UNCONSUMED_YEAR_AFTER = /^\s*[,/–-]?\s*(?:de\s+)?\d{4}(?!\d)/;
+
+/**
+ * Contexto de PASSADO explícito na frase da menção ("foi realizado em",
+ * "aconteceu", "ocorreu", "realizou-se", "teve", "encerrou", "recebeu"…):
+ * a data refere-se a algo já acontecido, por isso o ano/mês NÃO é inferido
+ * (a janela de proximidade podia transformar uma retrospectiva de janeiro,
+ * publicada em dezembro, num evento futuro). Na dúvida, sem data.
+ */
+const PAST_CONTEXT = new RegExp(
+  '(?<![\\p{L}])(?:foi|foram|aconteceu|aconteceram|ocorreu|ocorreram|realizou(?:-se)?|realizaram(?:-se)?|' +
+    'teve|tiveram|encerrou|encerraram|recebeu|receberam|participou|participaram|esteve|estiveram|' +
+    'celebrou|celebraram|reuniu|reuniram|visitou|visitaram)(?![\\p{L}])',
+  'iu',
+);
+
+/** Frase (entre . ! ? ; ou quebra de linha) que contém [start, end). */
+function sentenceAround(text: string, start: number, end: number): string {
+  const before = text.slice(0, start);
+  const from = Math.max(before.lastIndexOf('.'), before.lastIndexOf('!'), before.lastIndexOf('?'), before.lastIndexOf(';'), before.lastIndexOf('\n')) + 1;
+  const afterMatch = /[.!?;\n]/.exec(text.slice(end));
+  const to = afterMatch ? end + afterMatch.index : text.length;
+  return text.slice(from, to);
+}
 
 export interface DateMention {
   /** 'YYYY-MM-DD' */
@@ -84,6 +112,12 @@ export interface DateMention {
    * prazo ou o fim de uma exposição — não o dia de uma ocorrência.
    */
   until: boolean;
+  /**
+   * true quando o ANO ou o MÊS da data foi INFERIDO pela publicação (não
+   * vem no texto). Independente do formato (`kind`): "21/10/2026" e "de
+   * 10 a 12 de outubro de 2026" têm ano explícito → false.
+   */
+  inferred: boolean;
 }
 
 const UNTIL_BEFORE = new RegExp(
@@ -234,6 +268,21 @@ export function scanDateMentionsPt(text: string, reference: Date, options: DateS
   const failReason = (day: number, month: number, year: number | null): DateInconsistency['reason'] =>
     year === null && toIsoDate(2028, month, day) ? 'year_not_evident' : 'invalid_calendar_date';
 
+  /**
+   * Para menções SEM ano explícito: devolve false (e regista porquê, quando
+   * é uma inconsistência) se a inferência não deve acontecer:
+   *   - há um ano de 4 dígitos colado ao fim da menção que não foi consumido;
+   *   - a frase tem contexto de passado explícito (retrospectiva) — a menção
+   *     é simplesmente ignorada (não é candidata).
+   */
+  const inferenceAllowed = (start: number, end: number, matched: string): boolean => {
+    if (UNCONSUMED_YEAR_AFTER.test(text.slice(end, end + 12))) {
+      inconsistencies.push({ matchedText: matched, reason: 'year_not_evident' });
+      return false;
+    }
+    return !PAST_CONTEXT.test(sentenceAround(text, start, end));
+  };
+
   const checkWeekday = (iso: string, start: number, end: number, matched: string): boolean => {
     const wd = weekdayRightBefore(text, start) ?? weekdayRightAfter(text, end);
     if (wd !== null && weekdayOf(iso) !== wd) {
@@ -245,7 +294,7 @@ export function scanDateMentionsPt(text: string, reference: Date, options: DateS
 
   // 1. Intervalo: "de 10 a 12 de outubro [de 2026]", "10 a 12 de outubro".
   const rangeRe = new RegExp(
-    `(?<!\\d)(?:de\\s+)?(\\d{1,2})${ORD}\\s+(?:a|até)\\s+(?:o\\s+dia\\s+)?(\\d{1,2})${ORD}\\s+de\\s+(${MONTH_ALT})(?:\\s+de\\s+(\\d{4}))?`,
+    `(?<!\\d)(?:de\\s+)?(\\d{1,2})${ORD}\\s+(?:a|até)\\s+(?:o\\s+dia\\s+)?(\\d{1,2})${ORD}\\s+de\\s+(${MONTH_ALT})(?![\\p{L}])${YEAR_SUFFIX}`,
     'giu',
   );
   for (const m of text.matchAll(rangeRe)) {
@@ -254,6 +303,7 @@ export function scanDateMentionsPt(text: string, reference: Date, options: DateS
     take(s, e);
     const month = monthIndexPt(m[3]!)!;
     const year = m[4] ? Number(m[4]) : null;
+    if (year === null && !inferenceAllowed(s, e, m[0])) continue;
     const startDay = Number(m[1]), endDay = Number(m[2]);
     const startIso = resolveDayMonth(startDay, month, year);
     const endIso = startIso ? toIsoDate(Number(startIso.slice(0, 4)), month, endDay) : null;
@@ -261,12 +311,14 @@ export function scanDateMentionsPt(text: string, reference: Date, options: DateS
       inconsistencies.push({ matchedText: m[0], reason: startIso ? 'invalid_calendar_date' : failReason(startDay, month, year) });
       continue;
     }
-    mentions.push({ date: startIso, endDate: endIso, matchedText: m[0], index: s, end: e, kind: 'range' });
+    // Mesma regra das datas simples: dia da semana junto do intervalo tem de bater com o 1.º dia.
+    if (!checkWeekday(startIso, s, e, m[0])) continue;
+    mentions.push({ date: startIso, endDate: endIso, matchedText: m[0], index: s, end: e, kind: 'range', inferred: year === null });
   }
 
   // 2. Lista: "10, 11 e 12 de outubro", "dias 19 e 20 de dezembro" → uma menção por dia.
   const listRe = new RegExp(
-    `(?<!\\d)(\\d{1,2}${ORD}(?:\\s*,\\s*\\d{1,2}${ORD})*\\s+e\\s+\\d{1,2})${ORD}\\s+de\\s+(${MONTH_ALT})(?:\\s+de\\s+(\\d{4}))?`,
+    `(?<!\\d)(\\d{1,2}${ORD}(?:\\s*,\\s*\\d{1,2}${ORD})*\\s+e\\s+\\d{1,2})${ORD}\\s+de\\s+(${MONTH_ALT})(?![\\p{L}])${YEAR_SUFFIX}`,
     'giu',
   );
   for (const m of text.matchAll(listRe)) {
@@ -275,6 +327,7 @@ export function scanDateMentionsPt(text: string, reference: Date, options: DateS
     take(s, e);
     const month = monthIndexPt(m[2]!)!;
     const year = m[3] ? Number(m[3]) : null;
+    if (year === null && !inferenceAllowed(s, e, m[0])) continue;
     const days = m[1]!.split(/\s*(?:,|\be\b)\s*/).map((d) => Number(d.replace(/\D/g, ''))).filter((d) => d > 0);
     for (const day of days) {
       const iso = resolveDayMonth(day, month, year);
@@ -282,25 +335,27 @@ export function scanDateMentionsPt(text: string, reference: Date, options: DateS
         inconsistencies.push({ matchedText: m[0], reason: failReason(day, month, year) });
         continue;
       }
-      mentions.push({ date: iso, endDate: null, matchedText: m[0], index: s, end: e, kind: 'list_item' });
+      mentions.push({ date: iso, endDate: null, matchedText: m[0], index: s, end: e, kind: 'list_item', inferred: year === null });
     }
   }
 
-  // 3. Dia + mês por extenso, com ou sem ano: "8 de novembro", "1º de outubro de 2026".
-  const dayMonthRe = new RegExp(`(?<!\\d)(\\d{1,2})${ORD}\\s+de\\s+(${MONTH_ALT})(?![\\p{L}])(?:\\s+de\\s+(\\d{4}))?`, 'giu');
+  // 3. Dia + mês por extenso, com ou sem ano: "8 de novembro", "1º de outubro de 2026",
+  //    "8 de novembro 2027", "8 de novembro, 2027".
+  const dayMonthRe = new RegExp(`(?<!\\d)(\\d{1,2})${ORD}\\s+de\\s+(${MONTH_ALT})(?![\\p{L}])${YEAR_SUFFIX}`, 'giu');
   for (const m of text.matchAll(dayMonthRe)) {
     const s = m.index!, e = s + m[0].length;
     if (!isFree(s, e)) continue;
     take(s, e);
     const month = monthIndexPt(m[2]!)!;
     const year = m[3] ? Number(m[3]) : null;
+    if (year === null && !inferenceAllowed(s, e, m[0])) continue;
     const iso = resolveDayMonth(Number(m[1]), month, year);
     if (!iso) {
       inconsistencies.push({ matchedText: m[0], reason: failReason(Number(m[1]), month, year) });
       continue;
     }
     if (!checkWeekday(iso, s, e, m[0])) continue;
-    mentions.push({ date: iso, endDate: null, matchedText: m[0], index: s, end: e, kind: year !== null ? 'full' : 'day_month' });
+    mentions.push({ date: iso, endDate: null, matchedText: m[0], index: s, end: e, kind: year !== null ? 'full' : 'day_month', inferred: year === null });
   }
 
   // 4. Numérica: "21/10/2026" (sempre); "21/10" só com allowNumericWithoutYear.
@@ -310,6 +365,7 @@ export function scanDateMentionsPt(text: string, reference: Date, options: DateS
     if (!isFree(s, e)) continue;
     if (!m[3] && !options.allowNumericWithoutYear) continue;
     take(s, e);
+    if (!m[3] && !inferenceAllowed(s, e, m[0])) continue;
     const day = Number(m[1]), month = Number(m[2]);
     const iso = m[3] ? toIsoDate(Number(m[3]), month, day) : (month >= 1 && month <= 12 ? resolveYearNearReference(day, month, reference) : null);
     if (!iso) {
@@ -317,7 +373,7 @@ export function scanDateMentionsPt(text: string, reference: Date, options: DateS
       continue;
     }
     if (!checkWeekday(iso, s, e, m[0])) continue;
-    mentions.push({ date: iso, endDate: null, matchedText: m[0], index: s, end: e, kind: 'numeric' });
+    mentions.push({ date: iso, endDate: null, matchedText: m[0], index: s, end: e, kind: 'numeric', inferred: !m[3] });
   }
 
   // 5. Só dia + dia da semana: "sábado (17)", "terça (03)", "quinta-feira, dia 22", "sábado, 10".
@@ -329,6 +385,7 @@ export function scanDateMentionsPt(text: string, reference: Date, options: DateS
     const s = m.index!, e = s + m[0].length;
     if (!isFree(s, e)) continue;
     take(s, e);
+    if (!inferenceAllowed(s, e, m[0])) continue;
     const weekday = weekdayIndexPt(m[1]!)!;
     const day = Number(m[2] ?? m[3] ?? m[4]);
     const iso = resolveDayWithWeekday(day, weekday, reference);
@@ -336,7 +393,7 @@ export function scanDateMentionsPt(text: string, reference: Date, options: DateS
       inconsistencies.push({ matchedText: m[0], reason: 'weekday_mismatch' });
       continue;
     }
-    mentions.push({ date: iso, endDate: null, matchedText: m[0], index: s, end: e, kind: 'weekday_day' });
+    mentions.push({ date: iso, endDate: null, matchedText: m[0], index: s, end: e, kind: 'weekday_day', inferred: true });
   }
 
   mentions.sort((a, b) => a.index - b.index);

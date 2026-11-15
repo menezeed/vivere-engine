@@ -156,3 +156,55 @@ describe('parseSingleLabeledDate — valor de rótulo de agenda', () => {
     expect(parseSingleLabeledDate('a definir', ref)).toBeNull();
   });
 });
+
+describe('revisão r0 do PR #24', () => {
+  const ref = utc('2026-11-01T12:00:00');
+  const dez = utc('2026-12-20T12:00:00');
+
+  it('1. ano sem "de": "8 de novembro 2027" e "8 de novembro, 2027" → 2027, nunca 2026', () => {
+    expect(dates('Data: 8 de novembro 2027', ref)).toEqual([['2027-11-08', null, 'full']]);
+    expect(dates('Data: 8 de novembro, 2027', ref)).toEqual([['2027-11-08', null, 'full']]);
+    expect(dates('Data: 8 de novembro de 2027', ref)).toEqual([['2027-11-08', null, 'full']]);
+    expect(parseSingleLabeledDate('8 de novembro 2027', ref)).toMatchObject({ date: '2027-11-08' });
+  });
+
+  it('1. ano de 4 dígitos colado mas não consumido ("8 de novembro/2027", "– 2027") → recusa a inferência', () => {
+    const scan = scanDateMentionsPt('Data: 8 de novembro/2027', ref);
+    expect(scan.mentions).toEqual([]);
+    expect(scan.inconsistencies).toEqual([{ matchedText: '8 de novembro', reason: 'year_not_evident' }]);
+    expect(parseSingleLabeledDate('8 de novembro – 2027', ref)).toBeNull();
+  });
+
+  it('2. contexto de passado explícito na frase → ano/mês NÃO inferido (retrospectiva não vira evento futuro)', () => {
+    expect(dates('O concerto foi realizado em 10 de janeiro, às 19h.', dez)).toEqual([]);
+    for (const verbo of ['foi realizada', 'aconteceu', 'ocorreu', 'foram', 'realizou-se', 'teve início', 'encerrou', 'recebeu o público']) {
+      expect(dates(`O festival ${verbo} no sábado (12) e em 10 de janeiro.`, dez)).toEqual([]);
+    }
+    // a mesma frase no futuro → inferência normal
+    expect(dates('O concerto será realizado em 10 de janeiro, às 19h.', dez)).toEqual([['2027-01-10', null, 'day_month']]);
+    // só a frase no passado perde a data; a frase seguinte, futura, mantém-na
+    expect(dates('A 1.ª edição foi em 10 de janeiro. A próxima será em 14 de fevereiro.', dez)).toEqual([['2027-02-14', null, 'day_month']]);
+  });
+
+  it('2. ano explícito não depende do contexto de passado', () => {
+    expect(dates('O concerto foi realizado em 10 de janeiro de 2026.', dez)).toEqual([['2026-01-10', null, 'full']]);
+  });
+
+  it('3. intervalo com dia da semana incoerente → inconsistência (10/11/2026 é terça)', () => {
+    const bad = scanDateMentionsPt('Data: domingo, de 10 a 12 de novembro de 2026', ref);
+    expect(bad.mentions).toEqual([]);
+    expect(bad.inconsistencies.map((i) => i.reason)).toEqual(['weekday_mismatch']);
+    expect(parseSingleLabeledDate('domingo, de 10 a 12 de novembro de 2026', ref)).toBeNull();
+    expect(dates('Data: terça, de 10 a 12 de novembro de 2026', ref)).toEqual([['2026-11-10', '2026-11-12', 'range']]);
+  });
+
+  it('4. "inferred" separa ano/mês inferido do formato da menção', () => {
+    const scan = scanDateMentionsPt('21/10/2026; de 3 a 5 de outubro de 2026; 8 de novembro; sábado (7)', ref);
+    expect(scan.mentions.map((m) => [m.date, m.kind, m.inferred])).toEqual([
+      ['2026-10-21', 'numeric', false],
+      ['2026-10-03', 'range', false],
+      ['2026-11-08', 'day_month', true],
+      ['2026-11-07', 'weekday_day', true],
+    ]);
+  });
+});

@@ -113,7 +113,8 @@ interface CandidateScan {
  * que já passou. Custo assumido: um anúncio "hoje (19)" publicado no
  * próprio dia perde a data. Sem instante de publicação (só ano/mês), o
  * limite é o dia 1 do mês, inclusive. Datas com ano explícito mantêm o
- * comportamento anterior quanto a esta regra (são sempre candidatas).
+ * comportamento anterior quanto a esta regra (são sempre candidatas),
+ * seja qual for o formato (por extenso, numérica, intervalo, lista).
  *
  * Em qualquer forma, uma menção de LIMITE ("até o dia 8 de novembro",
  * "até a próxima segunda-feira (12)", "até 29 de janeiro de 2027") não é
@@ -124,7 +125,9 @@ function findAllCandidateDates(text: string, reference: Date, hasInstant: boolea
   const scan = scanDateMentionsPt(text, reference);
   const minExclusiveIso = new Date(reference.getTime() - (hasInstant ? 0 : DAY_MS)).toISOString().slice(0, 10);
   // Prazos/limites ("até o dia 8 de novembro") nunca são o dia de uma ocorrência.
-  const kept: DateMention[] = scan.mentions.filter((m) => !m.until && (m.kind === 'full' || m.date > minExclusiveIso));
+  // O filtro de passado depende de o ano/mês ter sido INFERIDO, não do
+  // formato: "21/10/2026" e "de 10 a 12 de outubro de 2026" têm ano explícito.
+  const kept: DateMention[] = scan.mentions.filter((m) => !m.until && (!m.inferred || m.date > minExclusiveIso));
 
   const candidates: NarrativeCandidateDate[] = [];
   const endDates: Array<string | null> = [];
