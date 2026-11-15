@@ -46,7 +46,8 @@ describe('parseNarrativeFallback — caminho de sucesso (1 data clara, 1 horári
 
 describe('parseNarrativeFallback — extração parcial sinalizada (data ok, venue não encontrado)', () => {
   it('marca review_reason venue_not_extracted_from_narrative sem descartar data/hora já extraídos', () => {
-    const html = '<p>Nesta quinta-feira (10), a partir das 18h, acontece uma roda de samba para os moradores.</p>';
+    // 10/07/2026 é sexta-feira (o dia da semana tem de bater com o calendário).
+    const html = '<p>Nesta sexta-feira (10), a partir das 18h, acontece uma roda de samba para os moradores.</p>';
     const result = parseNarrativeFallback(html, { year: 2026, month: 7 });
 
     expect(result.status).toBe('extracted');

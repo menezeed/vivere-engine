@@ -150,9 +150,14 @@ describe('runRegionIngestion', () => {
     expect(events).toEqual(['createRepos', 'fetch:rio-das-ostras']);
     expect(result.sources[0]!.summary).toMatchObject({ rawItemsCollected: 2, rawItemsPersisted: 2, stagedItems: 2, ingestionRunId: 'run-1' });
     expect(memory.raw).toHaveLength(2);
-    // Datas sem ano → sem data → high_no_date_rate (revisão, nada inventado).
-    expect(result.health.alerts.map((a) => a.code)).toEqual(['high_no_date_rate']);
-    expect(formatRegionResult(result)).toContain('prefeitura_rio_das_ostras: recolhidos 2, gravados 2, staged 2, descartes 3');
+    // "Data: Domingo, 8 de novembro" ganha ano pela regra do ano mais próximo;
+    // a exposição ("Em cartaz até…") continua sem data → 1 de 2 (50%, sem alerta).
+    expect(result.health.alerts.map((a) => a.code)).toEqual([]);
+    // Descartes = só posts sem nenhum item, agregados por classe (o item
+    // sem data da exposição NÃO é descarte).
+    expect(formatRegionResult(result)).toContain(
+      'prefeitura_rio_das_ostras: recolhidos 2, gravados 2, staged 2, descartes 1 (no_extractable_schedule_found 1)',
+    );
   });
 
   it('idempotente: duas execuções da mesma região produzem o mesmo resultado', async () => {

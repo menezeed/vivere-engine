@@ -117,6 +117,14 @@ function skippedEntry(source_key: string, reason: string): ManifestSourceEntry {
   return { source_key, status: 'skipped', error_class: null, http_status: null, error_host: null, skip_reason: reason, retries: 0, counts: null, ingestion_run_id: null };
 }
 
+/** " (narrative_ambiguous 3, no_extractable_schedule_found 1)" — só classes (identificadores), nunca conteúdo. */
+export function formatDiscardReasons(byReason: Record<string, number> | null | undefined): string {
+  const entries = Object.entries(byReason ?? {})
+    .filter(([k, n]) => /^[a-z][a-z0-9_]*$/.test(k) && n > 0)
+    .sort(([a, x], [b, y]) => y - x || a.localeCompare(b));
+  return entries.length ? ` (${entries.map(([k, n]) => `${k} ${n}`).join(', ')})` : '';
+}
+
 export function formatAssistedSummary(m: RunManifest, manifestPath: string | null): string {
   const lines = [
     `=== Execução assistida ${m.run_id} ===`,
@@ -126,7 +134,7 @@ export function formatAssistedSummary(m: RunManifest, manifestPath: string | nul
   for (const s of m.sources) {
     if (s.status === 'ok') {
       const c = s.counts!;
-      lines.push(`OK      ${s.source_key}: recolhidos ${c.collected}, gravados ${c.persisted}, staged ${c.staged}, descartes ${c.discarded}${s.retries ? `, retries ${s.retries}` : ''}`);
+      lines.push(`OK      ${s.source_key}: recolhidos ${c.collected}, gravados ${c.persisted}, staged ${c.staged}, descartes ${c.discarded}${formatDiscardReasons(s.discarded_by_reason)}${s.retries ? `, retries ${s.retries}` : ''}`);
     } else if (s.status === 'failed') {
       lines.push(`FALHOU  ${s.source_key}: ${formatErrorSummary({ error_class: s.error_class ?? 'unknown', http_status: s.http_status, host: s.error_host })}${s.retries ? ` (após ${s.retries} retries)` : ''}`);
     } else {
@@ -246,6 +254,7 @@ export async function runAssistedIngestion(args: AssistedRunArgs, deps: Assisted
           counts: s.summary
             ? { collected: s.summary.rawItemsCollected, persisted: s.summary.rawItemsPersisted, staged: s.summary.stagedItems, discarded: s.summary.rawItemsErrored }
             : null,
+          discarded_by_reason: s.summary?.rawItemsErroredByReason ?? null,
           ingestion_run_id: s.summary?.ingestionRunId ?? null,
         };
       });

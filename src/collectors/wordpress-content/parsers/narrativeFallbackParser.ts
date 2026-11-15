@@ -1,4 +1,5 @@
-import { parseExplicitDatePt, parseTimeRangePt, combineDayWithReference, extractParentheticalDayNumber, stripHtmlToText } from './sharedTextUtils';
+import { parseTimeRangePt, stripHtmlToText } from './sharedTextUtils';
+import { scanDateMentionsPt, distinctDates, referenceInstant, type DateMention, type PublicationReference } from './datePt';
 import { hasQualifyingRecurrenceEvidence } from '../../../pipeline/stages/02-recurrence-detection';
 
 /**
@@ -73,6 +74,7 @@ export interface NarrativeCandidateDate {
 export interface NarrativeParseResult {
   status: NarrativeParseStatus;
   date: string | null;
+  endDate: string | null;          // data final quando a única data candidata é um intervalo explícito ("de 10 a 12 de outubro")
   time: string | null;
   endTime: string | null;
   venueName: string | null;
@@ -83,36 +85,59 @@ export interface NarrativeParseResult {
   rawText: string;  // texto original (já sem HTML) preservado para auditoria, conforme decisão do usuário
 }
 
+export type NarrativeReference = PublicationReference;
+
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+interface CandidateScan {
+  candidates: NarrativeCandidateDate[];
+  /** endDate de cada candidato (mesmo índice), para intervalos explícitos. */
+  endDates: Array<string | null>;
+  inconsistencies: string[];
+}
+
 /**
- * Encontra todas as datas candidatas no texto: tanto datas explícitas
- * ("28 de junho de 2026") quanto dias entre parênteses associados a
- * nome de dia da semana ("sexta-feira (19)"), estas últimas combinadas
- * com a referência de publicação do post.
+ * Encontra todas as datas candidatas no texto (scanDateMentionsPt):
+ * datas por extenso com ou sem ano ("28 de junho de 2026", "8 de
+ * novembro"), intervalos, listas, "dd/mm/aaaa" e dia + dia da semana
+ * ("sexta-feira (19)", "quinta-feira, dia 22"). Datas repetidas contam
+ * uma vez.
+ *
+ * Regra conservadora da camada narrativa (prosa de notícia, não um
+ * bloco de agenda): uma data cujo ANO ou MÊS foi INFERIDO só é candidata
+ * se for ESTRITAMENTE POSTERIOR ao dia de publicação (data UTC do
+ * date_gmt). Datas anteriores ou do próprio dia, em notícias, são quase
+ * sempre relatos do que já aconteceu ("na última quarta-feira, dia 16",
+ * "iniciou nesta terça-feira, dia 22, o pagamento", "Lei publicada em 18
+ * de setembro") — ficar sem data é preferível a anunciar como evento algo
+ * que já passou. Custo assumido: um anúncio "hoje (19)" publicado no
+ * próprio dia perde a data. Sem instante de publicação (só ano/mês), o
+ * limite é o dia 1 do mês, inclusive. Datas com ano explícito mantêm o
+ * comportamento anterior quanto a esta regra (são sempre candidatas).
+ *
+ * Em qualquer forma, uma menção de LIMITE ("até o dia 8 de novembro",
+ * "até a próxima segunda-feira (12)", "até 29 de janeiro de 2027") não é
+ * candidata: é um prazo de inscrição ou o fim de uma exposição, não o
+ * dia de uma ocorrência.
  */
-function findAllCandidateDates(
-  text: string,
-  postPublishedAt: { year: number; month: number },
-): NarrativeCandidateDate[] {
+function findAllCandidateDates(text: string, reference: Date, hasInstant: boolean): CandidateScan {
+  const scan = scanDateMentionsPt(text, reference);
+  const minExclusiveIso = new Date(reference.getTime() - (hasInstant ? 0 : DAY_MS)).toISOString().slice(0, 10);
+  // Prazos/limites ("até o dia 8 de novembro") nunca são o dia de uma ocorrência.
+  const kept: DateMention[] = scan.mentions.filter((m) => !m.until && (m.kind === 'full' || m.date > minExclusiveIso));
+
   const candidates: NarrativeCandidateDate[] = [];
-
-  const explicitMatches = text.matchAll(/\d{1,2}\s+de\s+[a-zçãâéê]+\s+de\s+\d{4}/gi);
-  for (const m of explicitMatches) {
-    const date = parseExplicitDatePt(m[0]);
-    if (date) candidates.push({ date, matchedText: m[0] });
+  const endDates: Array<string | null> = [];
+  for (const d of distinctDates(kept)) {
+    const first = kept.find((m) => m.date === d.date && m.endDate === d.endDate)!;
+    candidates.push({ date: d.date, matchedText: first.matchedText });
+    endDates.push(d.endDate);
   }
-
-  const weekdayPattern = ['domingo', 'segunda', 'terça', 'terca', 'quarta', 'quinta', 'sexta', 'sábado', 'sabado'].join('|');
-  const parentheticalMatches = text.matchAll(new RegExp(`(?:${weekdayPattern})[a-zç-]*\\s*\\((\\d{1,2})\\)`, 'gi'));
-  for (const m of parentheticalMatches) {
-    const dayNumber = Number(m[1]);
-    const date = combineDayWithReference(dayNumber, postPublishedAt.year, postPublishedAt.month);
-    // Evita duplicar se a mesma data já foi capturada via formato explícito
-    if (!candidates.some((c) => c.date === date)) {
-      candidates.push({ date, matchedText: m[0] });
-    }
-  }
-
-  return candidates;
+  return {
+    candidates,
+    endDates,
+    inconsistencies: scan.inconsistencies.map((i) => `${i.reason}: "${i.matchedText}"`),
+  };
 }
 
 /**
@@ -129,11 +154,34 @@ function extractVenueNameNarrative(text: string): string | null {
 
 export function parseNarrativeFallback(
   htmlContent: string,
-  postPublishedAt: { year: number; month: number },
+  postPublishedAt: NarrativeReference,
 ): NarrativeParseResult {
   const text = stripHtmlToText(htmlContent);
 
-  const candidateDates = findAllCandidateDates(text, postPublishedAt);
+  const hasInstant = postPublishedAt.referenceDate !== undefined && !Number.isNaN(postPublishedAt.referenceDate.getTime());
+  const scan = findAllCandidateDates(text, referenceInstant(postPublishedAt), hasInstant);
+  const candidateDates = scan.candidates;
+
+  // Texto com uma data cujo dia da semana não bate com o calendário
+  // ("quarta-feira (20)" quando o dia 20 é uma terça) ou com uma data
+  // de calendário impossível: a própria fonte é inconsistente, por isso
+  // nenhuma data é escolhida (nem a recorrência é assumida) — vai para
+  // revisão humana com o motivo explícito (ADR-0003).
+  if (scan.inconsistencies.length > 0) {
+    return {
+      status: 'ambiguous',
+      date: null,
+      endDate: null,
+      time: null,
+      endTime: null,
+      venueName: extractVenueNameNarrative(text),
+      confidence: null,
+      ambiguityReason: `data inconsistente no texto (${scan.inconsistencies.join('; ')})`,
+      reviewReasons: [],
+      candidateDates,
+      rawText: text,
+    };
+  }
 
   if (candidateDates.length === 0) {
     // Activity 13/26, F6 — antes de desistir (not_found), verificar se
@@ -150,6 +198,7 @@ export function parseNarrativeFallback(
       return {
         status: 'recurrence_only',
         date: null,
+        endDate: null,
         time: null,
         endTime: null,
         venueName,
@@ -164,6 +213,7 @@ export function parseNarrativeFallback(
     return {
       status: 'not_found',
       date: null,
+      endDate: null,
       time: null,
       endTime: null,
       venueName: null,
@@ -188,6 +238,7 @@ export function parseNarrativeFallback(
     return {
       status: 'ambiguous',
       date: null,
+      endDate: null,
       time: null,
       endTime: null,
       venueName,
@@ -200,6 +251,7 @@ export function parseNarrativeFallback(
   }
 
   const singleDate = candidateDates[0].date;
+  const singleEndDate = scan.endDates[0] ?? null;
 
   // Uma data, mas múltiplos horários candidatos diferentes no texto
   // (raro, mas possível em narrativas que mencionam vários horários
@@ -214,6 +266,7 @@ export function parseNarrativeFallback(
     return {
       status: 'ambiguous',
       date: singleDate,
+      endDate: null,
       time: null,
       endTime: null,
       venueName,
@@ -245,6 +298,7 @@ export function parseNarrativeFallback(
   return {
     status: 'extracted',
     date: singleDate,
+    endDate: singleEndDate,
     time,
     endTime,
     venueName,

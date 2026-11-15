@@ -82,14 +82,12 @@ describe('evaluateSourceHealth — relatório L4 gerado pelas fixtures', () => {
   });
   afterAll(() => vi.useRealTimers());
 
-  it('datas sem ano (Rio das Ostras, São Pedro) → high_no_date_rate; Cabo Frio e Búzios sem alerta de qualidade', () => {
+  it('datas sem ano já resolvidas pela regra do ano mais próximo: Rio das Ostras e São Pedro ficam com 1 de 2 sem data (50%, não alerta); nenhuma fonte com alerta de qualidade', () => {
     const health = evaluateSourceHealth({ current: full.report, now: NOW });
-    expect(health.alerts.map((a) => [a.source_key, a.code])).toEqual([
-      ['prefeitura_rio_das_ostras', 'high_no_date_rate'],
-      ['prefeitura_sao_pedro_da_aldeia', 'high_no_date_rate'],
-    ]);
-    expect(health.alerts[0]!.data).toMatchObject({ items: 2, items_without_date: 2, no_date_pct: 100 });
-    expect(health.status).toBe('warning');
+    expect(health.alerts.map((a) => [a.source_key, a.code])).toEqual([]);
+    const rdo = health.sources.find((s) => s.source_key === 'prefeitura_rio_das_ostras')!;
+    expect(rdo).toMatchObject({ total_items: 2 });
+    expect(health.status).toBe('ok');
     expect(health.notes).toEqual([
       'sem relatório anterior: queda de volume não avaliada',
       'sem data do último post: frescura não avaliada',
@@ -125,8 +123,8 @@ describe('evaluateSourceHealth — relatório L4 gerado pelas fixtures', () => {
     expect(summary).toContain('Saúde das fontes — execução e7-fixtures');
     expect(summary).toContain('CRÍTICO prefeitura_cabo_frio (Cabo Frio): 0 itens');
     expect(summary).toContain('[zero_items]');
-    expect(summary).toContain('AVISO prefeitura_rio_das_ostras (Rio das Ostras): 2 itens');
-    expect(summary).toContain('  - [high_no_date_rate] 100% dos itens sem data');
+    expect(summary).toContain('prefeitura_rio_das_ostras (Rio das Ostras): 2 itens');
+    expect(summary).not.toContain('[high_no_date_rate]');
   });
 });
 
