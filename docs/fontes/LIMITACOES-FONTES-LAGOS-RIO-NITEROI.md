@@ -7,7 +7,9 @@
 - **Princípios deste documento:**
   1. **Prioridade a APIs públicas e fontes verificáveis.** Uma fonte só entra no registo (`src/collectors/wordpress-content/config/registry.ts`) se tiver API ou feed estruturado e se o `robots.txt` o permitir.
   2. **Não criar dados fictícios.** As fixtures de teste são sintéticas, marcadas como tal, e nunca são persistidas. Programação curada só vem de fonte oficial ou de parceiro identificado.
-  3. **Não assumir datas sem evidência.** Uma data sem ano não é completada a partir da data de publicação. O item vai para revisão humana, com o motivo `structured_subevent_missing_date`. É o comportamento actual de `parseExplicitDatePt`, e este documento mantém-no.
+  3. **Não assumir datas sem evidência.** Uma data explícita incompleta, com dia e mês mas sem ano ("8 de novembro"), não é completada a partir da data de publicação. O item vai para revisão humana, com o motivo `structured_subevent_missing_date`. É o comportamento actual de `parseExplicitDatePt`, e este documento mantém-no.
+     - **Excepção existente:** quando o bloco só traz o dia entre parênteses ("sexta (26)"), o `structuredBlockParser` completa o mês e o ano com os da publicação do post.
+     - É uma regra antiga e limitada a esse padrão. Não se alarga a outros formatos sem aprovação.
   4. **Respeitar bloqueios.** Os portais com WAF ou `Disallow: /` não são contornados.
 
 ## Escala de viabilidade
@@ -90,7 +92,9 @@ Os configs de Búzios e Rio das Ostras foram validados com fixtures sintéticas 
 - Exige retries com backoff e baixa frequência.
 
 ## 4. Implicações para o motor
-1. **Datas sem ano:** continuam a ir para revisão. Inferir o ano só será possível com regra aprovada e evidência no próprio texto (por exemplo, dia da semana coerente com um único ano candidato). Nunca apenas com a data de publicação.
+1. **Datas explícitas sem ano** ("8 de novembro"): continuam a ir para revisão.
+   - Inferir o ano só será possível com regra aprovada e evidência no próprio texto (por exemplo, dia da semana coerente com um único ano candidato). Nunca apenas com a data de publicação.
+   - A excepção do dia entre parênteses (princípio 3) mantém-se como está.
 2. **Multi-categoria** (Rio das Ostras) e **filtro por conteúdo** (São Pedro, Niterói): são evoluções do collector WordPress, com testes antes de qualquer activação.
 3. **Collectors HTML** (Araruama, Sesc RJ): fora do motor actual. Só avançam com decisão do PO e revisão dos termos de uso.
 4. **Programação curada** (CRAS, 60UP, UnATI, centros de convivência): precisa de um formato próprio com origem obrigatória (URL oficial ou parceiro) e data de verificação. Nada inventado, nada sem fonte.
