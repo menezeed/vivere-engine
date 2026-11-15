@@ -147,9 +147,12 @@ export class ActivityPublisher {
      * utilizadores de qualquer cidade. Sem local → skip_no_location:
      *  - proposed_new (venue_id sempre NULL);
      *  - venue público resolvido mas sem lat/lng (revisão r0: matched).
-     * matched com venue ainda por promover (resolvedPublicVenueId NULL)
-     * segue o caminho anterior: em publish() o VenuePublisher corre antes e
-     * o id já vem resolvido. Activities já publicadas não são afectadas.
+     *  - matched sem venue público (revisão r1): em publish() o VenuePublisher
+     *    corre antes, por isso o id só fica NULL se a promoção falhou.
+     * No preview, um matched cujo venue só será promovido nesta run aparece
+     * como skip_no_location: o preview é conservador (a execução real pode
+     * inseri-la se o venue for promovido com coordenadas), nunca optimista.
+     * Activities já publicadas não são afectadas.
      * Ausente: comportamento anterior (testes existentes).
      */
     private readonly options: {
@@ -304,11 +307,12 @@ export class ActivityPublisher {
       // G2 — sem venue com coordenadas: não inserir (ver construtor).
       const g2 = this.options.requireVenueForNew;
       if (g2) {
-        if (activity.venueResolutionStatus === 'proposed_new') {
+        // Sem venue público (proposed_new, ou matched cujo venue não foi
+        // promovido — p.ex. falha individual no VenuePublisher) → nunca insert.
+        if (activity.resolvedPublicVenueId === null) {
           return { action: 'skip_no_location', activity };
         }
-        if (activity.resolvedPublicVenueId !== null
-            && !(await g2.venueHasCoordinates(activity.resolvedPublicVenueId))) {
+        if (!(await g2.venueHasCoordinates(activity.resolvedPublicVenueId))) {
           return { action: 'skip_no_location', activity };
         }
       }
