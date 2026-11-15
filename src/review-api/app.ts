@@ -11,7 +11,8 @@ import type { IIngestionRunReadRepository } from '../persistence/types/repositor
 import type { StatsRepository } from './repositories/StatsRepository.js';
 import type { ReviewService } from './services/ReviewService.js';
 import { ER_ACTION_ROLES, type EntityResolutionService } from './services/EntityResolutionService.js';
-import { authMiddleware, requireRole, VALID_ROLES } from './middleware/auth.js';
+import { authMiddleware, createAuthMiddleware, requireRole, VALID_ROLES } from './middleware/auth.js';
+import type { JwtVerifier } from './middleware/jwtVerifier.js';
 import { ACTION_ROLES, type UserRole } from './types/reviewTypes.js';
 import { venueRoutes } from './routes/venues.js';
 import { activityRoutes } from './routes/activities.js';
@@ -26,6 +27,12 @@ export interface ReviewApiDeps {
   statsRepo:     StatsRepository;
   /** Desligar o log de pedidos nos testes. */
   requestLogging?: boolean;
+  /**
+   * SEC-B: verificador de JWT. server.ts passa o verificador criado e
+   * validado no arranque; os testes injectam um com fetch/relógio falsos.
+   * Omisso → verificador por omissão, lido do ambiente (fail-closed).
+   */
+  jwtVerifier?: JwtVerifier;
 }
 
 /**
@@ -53,7 +60,7 @@ export function createApp(deps: ReviewApiDeps): Hono {
   if (deps.requestLogging !== false) app.use('*', honoLogger());
 
   // 1. Autenticação (401) + papel explícito obrigatório (403).
-  app.use('/api/*', authMiddleware);
+  app.use('/api/*', deps.jwtVerifier ? createAuthMiddleware(deps.jwtVerifier) : authMiddleware);
   // 2. Leitura: qualquer papel válido (viewer+), aplicado a toda a /api/*.
   app.use('/api/*', requireRole(...VALID_ROLES));
   // 3. Escrita: papel exigido por rota, antes de chegar ao serviço.
