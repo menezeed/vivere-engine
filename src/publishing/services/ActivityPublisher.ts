@@ -92,6 +92,7 @@ import type {
   PublicActivityId,
   EngineActivityId,
   PublicationRunId,
+  PublicVenueId,
 } from '../types/domain.js';
 import type { IVenueResolutionDecisionRepository } from '../../entity-resolution/repositories/interfaces.js';
 import type { ActivityStagingId as ERActivityStagingId } from '../../entity-resolution/types/domain.js';
@@ -140,14 +141,22 @@ export class ActivityPublisher {
      */
     private readonly decisionRepo?: IVenueResolutionDecisionRepository,
     /**
-     * 15/11/2026 (G2) — opcional. requireVenueForNew=true (publish.ts):
-     * uma activity NUNCA publicada com venueResolutionStatus='proposed_new'
-     * (venue_id sempre NULL) não é inserida — o app (withinRadius) mostraria
-     * uma activity sem coordenadas a utilizadores de qualquer cidade.
-     * Activities já publicadas não são afectadas. Ausente: comportamento
-     * anterior (testes existentes).
+     * 15/11/2026 (G2) — opcional. Com requireVenueForNew (publish.ts), uma
+     * activity NUNCA publicada só é inserida se tiver venue público com
+     * coordenadas: o app (withinRadius) mostra uma activity sem lat/lng a
+     * utilizadores de qualquer cidade. Sem local → skip_no_location:
+     *  - proposed_new (venue_id sempre NULL);
+     *  - venue público resolvido mas sem lat/lng (revisão r0: matched).
+     * matched com venue ainda por promover (resolvedPublicVenueId NULL)
+     * segue o caminho anterior: em publish() o VenuePublisher corre antes e
+     * o id já vem resolvido. Activities já publicadas não são afectadas.
+     * Ausente: comportamento anterior (testes existentes).
      */
-    private readonly options: { readonly requireVenueForNew?: boolean } = {},
+    private readonly options: {
+      readonly requireVenueForNew?: {
+        readonly venueHasCoordinates: (venueId: PublicVenueId) => Promise<boolean>;
+      };
+    } = {},
   ) {}
 
   /**
@@ -292,9 +301,16 @@ export class ActivityPublisher {
           reason: `activity ${activity.stagingId} tem promotedActivityId=${activity.promotedActivityId} mas nenhum public.activities encontrado para a identidade estável ${engineActivityId}`,
         };
       }
-      // G2 — sem venue não há coordenadas: não inserir (ver construtor).
-      if (this.options.requireVenueForNew && activity.venueResolutionStatus === 'proposed_new') {
-        return { action: 'skip_no_location', activity };
+      // G2 — sem venue com coordenadas: não inserir (ver construtor).
+      const g2 = this.options.requireVenueForNew;
+      if (g2) {
+        if (activity.venueResolutionStatus === 'proposed_new') {
+          return { action: 'skip_no_location', activity };
+        }
+        if (activity.resolvedPublicVenueId !== null
+            && !(await g2.venueHasCoordinates(activity.resolvedPublicVenueId))) {
+          return { action: 'skip_no_location', activity };
+        }
       }
       // Nunca publicada, promotedActivityId null — candidata legítima a insert.
       const operational = PublicationTransformer.transformActivity(activity, now, now);

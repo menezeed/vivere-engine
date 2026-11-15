@@ -40,6 +40,13 @@ import type { VenueDecision }          from './services/VenuePublisher.js';
 import type { ActivityDecision }       from './services/ActivityPublisher.js';
 // Level 2, 2026-09-26 — gate de decisão humana para matched.
 import { EntityResolutionRepositoryFactory } from '../entity-resolution/repositories/factory.js';
+import { venueCoordinatesChecker }     from './repositories/impl/PublicVenueRepository.js';
+
+/** G2: verificador de coordenadas do venue público, com o mesmo cliente das escritas. */
+async function makeVenueCoordinatesChecker(): Promise<(venueId: string) => Promise<boolean>> {
+  const { getSupabaseClient } = await import('../persistence/client/supabase.js');
+  return venueCoordinatesChecker(getSupabaseClient());
+}
 
 const DRY_RUN     = process.argv.includes('--dry-run');
 const PREVIEW     = process.argv.includes('--preview');
@@ -132,7 +139,7 @@ async function runPreview(productKey: string): Promise<void> {
   // Level 2, 2026-09-26 — gate de decisão humana para matched.
   const erRepos = await EntityResolutionRepositoryFactory.forSupabase();
   const venuePublisher    = new VenuePublisher(repos.publishableVenue, repos.publicVenue, repos.event);
-  const activityPublisher = new ActivityPublisher(repos.publishableActivity, repos.publicActivity, repos.event, () => new Date(), erRepos.decision, { requireVenueForNew: true });
+  const activityPublisher = new ActivityPublisher(repos.publishableActivity, repos.publicActivity, repos.event, () => new Date(), erRepos.decision, { requireVenueForNew: { venueHasCoordinates: await makeVenueCoordinatesChecker() } });
   const engine             = new PublishingEngine(venuePublisher, activityPublisher, repos.run, repos.event);
 
   const { venues, activities } = await engine.preview(productKey);
@@ -278,7 +285,7 @@ async function runReal(productKey: string): Promise<void> {
   const erRepos = await EntityResolutionRepositoryFactory.forSupabase();
 
   const venuePublisher    = new VenuePublisher(repos.publishableVenue, repos.publicVenue, repos.event);
-  const activityPublisher = new ActivityPublisher(repos.publishableActivity, repos.publicActivity, repos.event, () => new Date(), erRepos.decision, { requireVenueForNew: true });
+  const activityPublisher = new ActivityPublisher(repos.publishableActivity, repos.publicActivity, repos.event, () => new Date(), erRepos.decision, { requireVenueForNew: { venueHasCoordinates: await makeVenueCoordinatesChecker() } });
   const engine             = new PublishingEngine(venuePublisher, activityPublisher, repos.run, repos.event);
 
   log(`Iniciando publicação para produto: ${productKey}`);
