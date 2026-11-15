@@ -3,9 +3,12 @@
 ## Ordem de execução
 
 ```
-0000 → 0001 → 0002 → ... → 0018 → 0019 → 0020 → 0021 → 0022 → 0023 → 0024 → 0025 → 0026 → 0027
+0000 → 0001 → 0002 → ... → 0018 → 0019 → 0020 → 0021 → 0022 → 0023 → 0024 → 0025 → 0026 → 0027 → 0029
    (0023–0025: aplicadas no staging, hashes congelados em APPLIED.sha256; produção: ver docs/runbooks)
    (0026/0027: propostas, só simulação local; staging/produção com REF próprio)
+   (0029: proposta — active_activities pela data local de America/Sao_Paulo; testes em
+    db/audit/active-activities-local-date-tests.staging.sql; não aplicada em nenhum ambiente.
+    0028 (orçamento L5) vive no PR próprio e é independente)
    (0026 é TRANSITÓRIA: na produção vai na mesma janela que 0023→0024→0025;
     a 0027 só depois dos critérios de adopção — docs/runbooks/production-rollout.md)
 ```
