@@ -196,10 +196,10 @@ describe('revisão r0 do PR #24', () => {
     expect(dates('O festival aconteceu no Centro. A próxima edição será em 10 de janeiro.', dez)).toEqual([['2027-01-10', null, 'day_month']]);
   });
 
-  it('r1: marcador de futuro ANTES da data faz ignorar verbos de passado DEPOIS da data', () => {
-    expect(dates('O concerto será em 10 de janeiro, conforme anunciou o grupo que participou no festival.', dez)).toEqual([
-      ['2027-01-10', null, 'day_month'],
-    ]);
+  it('r2: sem excepção de futuro — um verbo de passado na frase tira a data (retrospectiva e anúncio ambíguo)', () => {
+    expect(dates('Será lembrado o concerto de 10 de janeiro, que foi realizado no teatro.', dez)).toEqual([]);
+    // Perda de cobertura aceite (precisão primeiro):
+    expect(dates('O concerto será em 10 de janeiro, conforme anunciou o grupo que participou no festival.', dez)).toEqual([]);
   });
 
   it('r1: LIMITE ASSUMIDO — sem marcador de futuro, um verbo de passado em qualquer ponto da frase tira a data', () => {

@@ -85,18 +85,6 @@ const PAST_CONTEXT = new RegExp(
   'iu',
 );
 
-/**
- * Marcador de FUTURO explícito ("será", "acontecerá", "vai acontecer"…).
- * Se aparecer na frase ANTES da data, os verbos de passado que vierem
- * DEPOIS da data são ignorados ("O concerto será em 10 de janeiro,
- * conforme anunciou o grupo que participou no festival"). Os verbos de
- * passado antes da data contam sempre.
- */
-const FUTURE_MARKER = new RegExp(
-  '(?<![\\p{L}])(?:será|serão|acontecerá|acontecerão|ocorrerá|ocorrerão|vai\\s+acontecer|vão\\s+acontecer|terá\\s+início|terão\\s+início)(?![\\p{L}])',
-  'iu',
-);
-
 /** Abreviaturas cujo ponto NÃO termina a frase ("Centro Dr. João", "Av. Brasil"). */
 const ABBREVIATIONS = new Set([
   'dr', 'dra', 'sr', 'sra', 'srta', 'prof', 'profa', 'av', 'r', 'rod', 'pç', 'pça', 'est', 'jd', 'vl', 'pq',
@@ -143,13 +131,15 @@ function sentenceBounds(text: string, start: number, end: number): { from: numbe
   return { from, to };
 }
 
-/** A frase da menção [start, end) tem contexto de passado explícito? (ver FUTURE_MARKER) */
+/**
+ * A frase da menção [start, end) tem contexto de passado explícito, em
+ * qualquer ponto? Sem excepção para marcadores de futuro: a revisão r2
+ * mostrou que "Será lembrado o concerto de 10 de janeiro, que foi
+ * realizado…" é uma retrospectiva. Na dúvida, sem data.
+ */
 function hasPastContext(text: string, start: number, end: number): boolean {
   const { from, to } = sentenceBounds(text, start, end);
-  const beforeDate = text.slice(from, start);
-  if (PAST_CONTEXT.test(beforeDate)) return true;
-  if (FUTURE_MARKER.test(beforeDate)) return false;
-  return PAST_CONTEXT.test(text.slice(start, to));
+  return PAST_CONTEXT.test(text.slice(from, to));
 }
 
 export interface DateMention {
