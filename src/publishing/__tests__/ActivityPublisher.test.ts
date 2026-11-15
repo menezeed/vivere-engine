@@ -454,8 +454,26 @@ describe('ActivityPublisher — Activity 9/26 recurrence transitions', () => {
     expect(calledId).toBe(publicId);
     expect(calledAdapted.recurrenceType).toBe('none');
     expect(calledAdapted.recurrenceDays).toBeNull();
-    expect(calledAdapted.recurrenceTime).toBeNull();
+    // 15/11/2026: evento pontual → hora da ocorrência actual (09:00), nunca a
+    // hora antiga da recorrência que deixou de existir.
+    expect(calledAdapted.recurrenceTime).toBe('09:00');
     expect(metrics.activitiesUpdated).toBe(1);
+  });
+
+  it('G2. recurrence → none com ocorrência SEM hora → recurrenceTime NULL (nunca preserva a antiga)', async () => {
+    const publicId = 'activity-existing-g2' as PublicActivityId;
+    const activity = makeActivity({
+      sourceItemId:        'recurrence-g2-001',
+      promotedActivityId:  publicId,
+      stagingUpdatedAt:    new Date('2026-07-05T00:00:00.000Z'),
+      occurrences:         [{ date: '2026-08-01', time: null, endDate: null, endTime: null }],
+      recurrenceType: null, recurrenceDays: null, recurrenceTime: null,
+    });
+    const publicationState = vi.fn().mockResolvedValue(makeState(publicId, new Date('2026-07-01T00:00:00.000Z')));
+    const { publishableActivity, publicActivity, eventRepo } = makeRepos({ findDirty: [activity], publicationState });
+    await new ActivityPublisher(publishableActivity, publicActivity, eventRepo, () => NOW).publish(PRODUCT_KEY, RUN_ID);
+    const [, calledAdapted] = (publicActivity.update as ReturnType<typeof vi.fn>).mock.calls[0]!;
+    expect(calledAdapted.recurrenceTime).toBeNull();
   });
 
   it('H. none → recurrence — staging passa a ter weekly/[5]/10:00, UPDATE da mesma Activity, mesmo engine_activity_id', async () => {

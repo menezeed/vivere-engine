@@ -23,7 +23,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { PublicationTransformer } from '../services/PublicationTransformer.js';
+import { PublicationTransformer, eventTimeFromOccurrence } from '../services/PublicationTransformer.js';
 import type {
   PublishableVenue,
   PublishableActivity,
@@ -296,14 +296,14 @@ describe('PublicationTransformer.transformActivity — ADR-0020', () => {
 // ── transformActivity — Activity 9/26 Recurrence ──────────────────────
 
 describe('PublicationTransformer.transformActivity — Activity 9/26 Recurrence', () => {
-  it('A. staging NULL/NULL/NULL → public recurrence_type="none", days/time NULL', () => {
+  it('A. staging NULL/NULL/NULL → public recurrence_type="none", days NULL, time = hora da ocorrência (15/11/2026)', () => {
     const activity = makeActivity({ recurrenceType: null, recurrenceDays: null, recurrenceTime: null });
     const result = PublicationTransformer.transformActivity(activity, PUBLISHED_AT, AS_OF);
 
     expect(result).not.toBeNull();
     expect(result!.recurrence_type).toBe('none');
     expect(result!.recurrence_days).toBeNull();
-    expect(result!.recurrence_time).toBeNull();
+    expect(result!.recurrence_time).toBe('09:00'); // futureOccurrence.time
   });
 
   it('B. weekly single day → passthrough directo', () => {
@@ -420,7 +420,9 @@ describe('PublicationTransformer.transformActivity — Activity 9/26 Recurrence'
     expect(result).not.toBeNull(); // publica, por causa da ocorrência concreta
     expect(result!.recurrence_type).toBe('none'); // mas NUNCA como 'weekly' quebrado
     expect(result!.recurrence_days).toBeNull();
-    expect(result!.recurrence_time).toBeNull();
+    // 15/11/2026: a hora vem da ocorrência concreta (09:00), NUNCA do
+    // recurrenceTime do estado quebrado ('10:00').
+    expect(result!.recurrence_time).toBe('09:00');
   });
 
   it('M. NON-RECURRING REGRESSION — evento normal com ocorrência futura publica exactamente como antes', () => {
@@ -493,5 +495,73 @@ describe('PublicationTransformer — pureza e determinismo', () => {
     const snapshot = { ...fullActivity };
     PublicationTransformer.transformActivity(fullActivity, PUBLISHED_AT, AS_OF);
     expect(fullActivity).toEqual(snapshot);
+  });
+});
+
+// ── 15/11/2026: hora de eventos pontuais em recurrence_time ──────────────
+describe('PublicationTransformer.transformActivity — hora de eventos pontuais', () => {
+  const asOf = new Date('2026-11-15T12:00:00.000Z');
+
+  it('regressão Corrida da Virada: 31/12 06:00 → start_date na data certa e recurrence_time "06:00"', () => {
+    const activity = makeActivity({
+      occurrences: [{ date: '2026-12-31', time: '06:00', endDate: null, endTime: null }],
+      recurrenceType: null, recurrenceDays: null, recurrenceTime: null,
+    });
+    const r = PublicationTransformer.transformActivity(activity, asOf, asOf)!;
+    expect(r.recurrence_type).toBe('none');
+    expect(r.recurrence_time).toBe('06:00');
+    expect(r.start_date!.toISOString().slice(0, 10)).toBe('2026-12-31'); // o app usa start_date.slice(0,10)
+  });
+
+  it('usa a hora da MESMA ocorrência que dá start_date (a próxima futura), não a de outra', () => {
+    const activity = makeActivity({
+      occurrences: [
+        { date: '2026-11-01', time: '08:00', endDate: null, endTime: null }, // passada
+        { date: '2026-12-31', time: '06:00', endDate: null, endTime: null },
+        { date: '2027-01-02', time: '21:00', endDate: null, endTime: null },
+      ],
+    });
+    const r = PublicationTransformer.transformActivity(activity, asOf, asOf)!;
+    expect(r.start_date!.toISOString().slice(0, 10)).toBe('2026-12-31');
+    expect(r.recurrence_time).toBe('06:00');
+  });
+
+  it.each([
+    [null, null], ['6:00', null], ['24:00', null], ['06:60', null], ['06:00:00', null], ['abc', null], ['23:59', '23:59'], ['00:00', '00:00'],
+  ])('eventTimeFromOccurrence: hora %s → %s (só HH:MM válido; nunca inventada)', (time, expected) => {
+    expect(eventTimeFromOccurrence({ date: '2026-12-31', time: time as string | null, endDate: null, endTime: null })).toBe(expected);
+  });
+
+  it.each([[null, null], ['23:59', '23:59'], ['00:00', '00:00']])('transformActivity: ocorrência com hora %s → recurrence_time %s', (time, expected) => {
+    const activity = makeActivity({ occurrences: [{ date: '2026-12-31', time, endDate: null, endTime: null }] });
+    expect(PublicationTransformer.transformActivity(activity, asOf, asOf)!.recurrence_time).toBe(expected);
+  });
+
+  it('transformActivity: hora inválida na ocorrência continua a não publicar (comportamento anterior, inalterado)', () => {
+    const activity = makeActivity({ occurrences: [{ date: '2026-12-31', time: 'abc', endDate: null, endTime: null }] });
+    expect(PublicationTransformer.transformActivity(activity, asOf, asOf)).toBeNull();
+  });
+
+  it('recorrência válida: recurrence_time continua a ser o da regra, mesmo com ocorrência concreta noutra hora', () => {
+    const activity = makeActivity({
+      occurrences: [{ date: '2026-12-31', time: '06:00', endDate: null, endTime: null }],
+      recurrenceType: 'weekly', recurrenceDays: [3], recurrenceTime: '19:00',
+    });
+    const r = PublicationTransformer.transformActivity(activity, asOf, asOf)!;
+    expect(r.recurrence_type).toBe('weekly');
+    expect(r.recurrence_time).toBe('19:00');
+  });
+
+  it('recorrência válida sem ocorrência e sem hora: continua NULL (inalterado)', () => {
+    const activity = makeActivity({ occurrences: [], recurrenceType: 'daily', recurrenceDays: null, recurrenceTime: null });
+    const r = PublicationTransformer.transformActivity(activity, asOf, asOf)!;
+    expect(r.recurrence_type).toBe('daily');
+    expect(r.recurrence_time).toBeNull();
+    expect(r.start_date).toBeNull();
+  });
+
+  it('sem ocorrência futura e sem recorrência: continua sem publicação (null)', () => {
+    const activity = makeActivity({ occurrences: [{ date: '2026-11-01', time: '08:00', endDate: null, endTime: null }] });
+    expect(PublicationTransformer.transformActivity(activity, asOf, asOf)).toBeNull();
   });
 });
