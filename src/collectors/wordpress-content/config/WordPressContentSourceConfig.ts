@@ -35,6 +35,8 @@ export interface WordPressContentSourceConfig {
   /** Conexão com a fonte real */
   base_url: string;
   category_id: number;
+  /** Categorias adicionais recolhidas na mesma fonte (OU na REST API). */
+  extra_category_ids?: readonly number[];
 
   /** Janela e limites de segurança da coleta */
   since_days: number;

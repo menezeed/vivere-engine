@@ -33,6 +33,11 @@ export const CABO_FRIO_CONFIG: WordPressContentSourceConfig = {
 
   base_url: 'https://noticias.cabofrio.rj.gov.br',
   category_id: 73, // "Cultura" — confirmado via /wp-json/wp/v2/categories?search=cultura; NÃO usar 1737 ("Agenda Cultural", abandonada desde 2023)
+  // 15/11/2026: a 73 só trazia relatos de eventos passados (0 ocorrências
+  // futuras em 60 dias). A 4 ("Secretaria de Eventos") anuncia eventos com
+  // antecedência (réveillon 31/12–02/01, Corrida da Virada 31/12): sonda só
+  // de leitura a /wp-json/wp/v2/posts?categories=4, 10 posts em 60 dias.
+  extra_category_ids: [4],
 
   since_days: 30,
   max_pages: 10,
