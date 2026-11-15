@@ -37,6 +37,8 @@ export interface ManifestSourceEntry {
   /** Tentativas repetidas por erro transitório (retry). */
   retries: number;
   counts: { collected: number; persisted: number; staged: number; discarded: number } | null;
+  /** counts.discarded agregado pela classe do motivo (ex.: narrative_ambiguous). Sem conteúdo dos posts. */
+  discarded_by_reason?: Record<string, number> | null;
   ingestion_run_id: string | null;
 }
 

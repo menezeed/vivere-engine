@@ -202,13 +202,20 @@ describe('L7 — pipeline offline: fixtures → collector → orquestrador → f
     const counts = Object.fromEntries(
       Object.entries(first.summaries).map(([k, s]) => [k, [s.rawItemsCollected, s.rawItemsPersisted, s.stagedItems, s.rawItemsErrored]]),
     );
-    // [recolhidos, gravados raw, staged, erros/descartes do collector]
+    // [recolhidos, gravados raw, staged, descartes do collector]. Descartes
+    // = posts sem NENHUM item; um item gerado sem data não é descarte.
     expect(counts).toEqual({
       prefeitura_cabo_frio: [3, 3, 3, 1],
-      prefeitura_sao_pedro_da_aldeia: [2, 2, 2, 1],
-      prefeitura_rio_das_ostras: [2, 2, 2, 3],
+      prefeitura_sao_pedro_da_aldeia: [2, 2, 2, 0],
+      prefeitura_rio_das_ostras: [2, 2, 2, 1],
       prefeitura_buzios: [1, 1, 1, 1],
     });
+    // Nunca há mais descartes do que posts recolhidos, e o detalhe por classe soma o total.
+    for (const s of Object.values(first.summaries)) {
+      const byReason = Object.values(s.rawItemsErroredByReason ?? {}).reduce((a, b) => a + b, 0);
+      expect(byReason).toBe(s.rawItemsErrored);
+    }
+    expect(first.summaries['prefeitura_rio_das_ostras']!.rawItemsErroredByReason).toEqual({ no_extractable_schedule_found: 1 });
     expect(first.raw).toHaveLength(8);
     expect(first.staged).toHaveLength(8);
     expect(first.runs.every((r) => r.finished && !r.failed)).toBe(true);
@@ -220,20 +227,19 @@ describe('L7 — pipeline offline: fixtures → collector → orquestrador → f
     ]);
   });
 
-  it('datas sem ano vão para revisão sem data inventada (Rio das Ostras e São Pedro)', () => {
-    for (const sourceKey of ['prefeitura_rio_das_ostras', 'prefeitura_sao_pedro_da_aldeia']) {
-      const structured = first.raw.filter(
-        (i) => i.source_key === sourceKey && i.raw_payload['extraction_method'] === 'structured_block',
-      );
-      expect(structured.length).toBeGreaterThan(0);
-      for (const item of structured) expect(item.occurrences).toEqual([]);
-    }
-    const reasons = (k: string) => first.errorsBySource[k]!.filter((m) => m.includes('structured_subevent_missing_date')).length;
-    expect(reasons('prefeitura_rio_das_ostras')).toBe(2);
-    expect(reasons('prefeitura_sao_pedro_da_aldeia')).toBe(1);
+  it('datas sem ano: ano inferido pela publicação com dia da semana validado; "Em cartaz até…" fica sem data, para revisão', () => {
+    const structured = (k: string) =>
+      first.raw.filter((i) => i.source_key === k && i.raw_payload['extraction_method'] === 'structured_block');
+    // "Data: Domingo, 8 de novembro" (publicado 06/11/2026) e "Data: Quarta-feira (17/06)" (publicado 10/06/2026).
+    expect(structured('prefeitura_rio_das_ostras').map((i) => i.occurrences.map((o) => o.date))).toEqual([['2026-11-08'], []]);
+    expect(structured('prefeitura_sao_pedro_da_aldeia').map((i) => i.occurrences.map((o) => o.date))).toEqual([['2026-06-17']]);
+    // O item sem data leva o motivo de revisão, mas NÃO conta como erro/descarte do collector.
+    const semData = structured('prefeitura_rio_das_ostras')[1]!;
+    expect(semData.raw_payload['review_reasons']).toEqual(['structured_subevent_missing_date']);
+    expect(first.errorsBySource['prefeitura_rio_das_ostras']!.some((m) => m.includes('structured_subevent_missing_date'))).toBe(false);
     // Nenhuma ocorrência fora do que as fixtures dizem literalmente.
     const allDates = first.raw.flatMap((i) => i.occurrences.map((o) => o.date)).sort();
-    expect(allDates).toEqual(['2026-06-26', '2026-06-26', '2026-06-28', '2026-10-21']);
+    expect(allDates).toEqual(['2026-06-17', '2026-06-26', '2026-06-26', '2026-06-28', '2026-10-21', '2026-11-08']);
   });
 
   it('02-recurrence-detection corre sobre os itens antes da fronteira da BD', () => {
@@ -249,14 +255,14 @@ describe('L7 — pipeline offline: fixtures → collector → orquestrador → f
   it('métricas L4 da execução completa', () => {
     const { totals, by_group } = first.report;
     expect(totals.total_items).toBe(8);
-    expect(totals.with_date).toEqual({ count: 4, pct: 50 });
+    expect(totals.with_date).toEqual({ count: 6, pct: 75 });
     expect(totals.duplicates).toEqual({ count: 0, pct: 0 });
     expect(totals.publication_delay.items_with_published_at).toBe(8);
     expect(by_group.map((g) => [g.source_key, g.total_items, g.with_date.count])).toEqual([
       ['prefeitura_buzios', 1, 1],
       ['prefeitura_cabo_frio', 3, 3],
-      ['prefeitura_rio_das_ostras', 2, 0],
-      ['prefeitura_sao_pedro_da_aldeia', 2, 0],
+      ['prefeitura_rio_das_ostras', 2, 1],
+      ['prefeitura_sao_pedro_da_aldeia', 2, 1],
     ]);
     expect(first.report.geographic_gate).toBeNull();
   });

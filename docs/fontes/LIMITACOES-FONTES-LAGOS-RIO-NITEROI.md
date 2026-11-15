@@ -7,9 +7,12 @@
 - **Princípios deste documento:**
   1. **Prioridade a APIs públicas e fontes verificáveis.** Uma fonte só entra no registo (`src/collectors/wordpress-content/config/registry.ts`) se tiver API ou feed estruturado e se o `robots.txt` o permitir.
   2. **Não criar dados fictícios.** As fixtures de teste são sintéticas, marcadas como tal, e nunca são persistidas. Programação curada só vem de fonte oficial ou de parceiro identificado.
-  3. **Não assumir datas sem evidência.** Uma data explícita incompleta, com dia e mês mas sem ano ("8 de novembro"), não é completada a partir da data de publicação. O item vai para revisão humana, com o motivo `structured_subevent_missing_date`. É o comportamento actual de `parseExplicitDatePt`, e este documento mantém-no.
-     - **Excepção existente:** quando o bloco só traz o dia entre parênteses ("sexta (26)"), o `structuredBlockParser` completa o mês e o ano com os da publicação do post.
-     - É uma regra antiga e limitada a esse padrão. Não se alarga a outros formatos sem aprovação.
+  3. **Não assumir datas sem evidência.** Datas incompletas só são completadas por regras explícitas e testadas (`src/collectors/wordpress-content/parsers/datePt.ts`, PR `feat/extracao-datas-lagos`, 15/11/2026). Tudo o que fica fora delas vai para revisão humana (`structured_subevent_missing_date` ou `narrative_ambiguous`).
+     - **Ano em falta** ("8 de novembro", "17/06"): candidatos ano−1, ano e ano+1 da publicação (instante UTC do `date_gmt`). Escolhe-se o mais próximo, desde que a no máximo 120 dias. Se o texto trouxer o dia da semana, este tem de bater com a data; se não bater, a data não é usada.
+     - **Mês em falta** ("sexta (26)", "quinta-feira, dia 22"): só com dia da semana. Testam-se o mês anterior, o actual e o seguinte, e só conta a data cujo dia da semana coincide (a no máximo 45 dias da publicação). Substitui a regra antiga, que usava sempre o mês da publicação e errava perto da viragem do mês.
+     - **Na prosa (camada narrativa)**, uma data com ano ou mês inferido só conta se for posterior ao dia de publicação. Prazos ("até o dia 8 de novembro") nunca contam como data de ocorrência.
+     - Listas de dias ("10, 11 e 12 de outubro") e várias datas diferentes para o mesmo evento continuam sem data.
+     - **Retrospectivas:** se a frase da data tiver um verbo de passado explícito ("foi realizado", "aconteceu", "participou"…), o ano e o mês não são inferidos. Limite assumido: a regra não faz análise sintáctica. Um anúncio futuro que mencione um passado sem relação com a data ("…é em 10 de janeiro, anunciado pelo grupo que participou no festival") fica sem data. Não há excepção para marcadores de futuro ("será"…): "Será lembrado o concerto de 10 de janeiro, que foi realizado…" é uma retrospectiva, por isso qualquer verbo de passado na frase tira a data.
   4. **Respeitar bloqueios.** Os portais com WAF ou `Disallow: /` não são contornados.
 
 ## Escala de viabilidade
@@ -49,7 +52,7 @@
 
 **Rio das Ostras**
 - Publica 1–2 posts por semana, muitos com o bloco "SERVIÇO" (Local, Endereço, Data, Horário, Ingresso).
-- **As datas dos blocos costumam vir sem ano** ("Data: Domingo, 8 de novembro"). Por isso, a maioria dos itens estruturados vai para revisão.
+- **As datas dos blocos costumam vir sem ano** ("Data: Domingo, 8 de novembro"). Desde 15/11/2026, o ano é inferido pela regra do princípio 3, com o dia da semana a confirmar quando existe. No dry-run de 60 dias, a percentagem de itens com data passou de 9,5% para cerca de 89%.
 - Há duas categorias "Cultura" (17 e 153) e uma "Eventos" (25). O config só suporta uma `category_id`, por isso a cobertura das três exige multi-categoria ou várias instâncias com deduplicação.
 - O `robots.txt` responde 404, logo sem restrição declarada. Mantém-se a pausa de 300 ms entre páginas.
 
@@ -92,9 +95,9 @@ Os configs de Búzios e Rio das Ostras foram validados com fixtures sintéticas 
 - Exige retries com backoff e baixa frequência.
 
 ## 4. Implicações para o motor
-1. **Datas explícitas sem ano** ("8 de novembro"): continuam a ir para revisão.
-   - Inferir o ano só será possível com regra aprovada e evidência no próprio texto (por exemplo, dia da semana coerente com um único ano candidato). Nunca apenas com a data de publicação.
-   - A excepção do dia entre parênteses (princípio 3) mantém-se como está.
+1. **Datas explícitas sem ano** ("8 de novembro"): resolvidas pela regra do princípio 3.
+   - O dia da semana confirma a data quando existe. Sem ele, a regra usa só a proximidade à publicação (no máximo 120 dias). **Esta mudança face à versão anterior deste documento deve ser confirmada pelo PO.**
+   - Fica por resolver o texto que mistura notícia e agenda: editais e inscrições também têm datas, e o motor ainda não distingue um evento de um prazo de inscrição (falta o filtro de relevância).
 2. **Multi-categoria** (Rio das Ostras) e **filtro por conteúdo** (São Pedro, Niterói): são evoluções do collector WordPress, com testes antes de qualquer activação.
 3. **Collectors HTML** (Araruama, Sesc RJ): fora do motor actual. Só avançam com decisão do PO e revisão dos termos de uso.
 4. **Programação curada** (CRAS, 60UP, UnATI, centros de convivência): precisa de um formato próprio com origem obrigatória (URL oficial ou parceiro) e data de verificação. Nada inventado, nada sem fonte.
