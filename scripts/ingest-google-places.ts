@@ -21,6 +21,12 @@
  *   # Restringir a uma única região do produto (por region.key):
  *   npx tsx scripts/ingest-google-places.ts --region=sp_brooklin_pilot
  *
+ *   # Orçamento persistente (L5, migração 0026; só com flag explícita):
+ *   npx tsx scripts/ingest-google-places.ts --budget=persistent
+ *   Por omissão (--budget=memory) o orçamento vive só nesta execução.
+ *   --budget=persistent é recusado com --dry-run (o dry-run nunca cria
+ *   cliente Supabase).
+ *
  * --region=<region_key> é OBRIGATÓRIO recomendar sempre que o objectivo
  * for uma única região — sem ele, a ingestão real corre TODAS as
  * regiões configuradas para o produto (custo multiplicado). Genérico
@@ -40,7 +46,7 @@
 
 import { GooglePlacesApiClient } from '../src/collectors/google-places/GooglePlacesApiClient';
 import { GooglePlacesCollector } from '../src/collectors/google-places/GooglePlacesCollector';
-import { InMemoryBudgetRepo } from '../src/lib/budgetGuard';
+import { BudgetGuard, budgetRepoForRun, resolveBudgetMode, type BudgetMode } from '../src/lib/budgetGuard';
 import { VIVERE_60_MAIS_GOOGLE_PLACES_CONFIG } from '../src/collectors/google-places/config/vivere-60-mais';
 import { VIVERE_60_MAIS_VENUE_FILTER_RULES } from '../src/pipeline/stages/00-filter-venue/products/vivere-60-mais';
 import { IngestionOrchestrator } from '../src/persistence/orchestration/IngestionOrchestrator';
@@ -55,6 +61,7 @@ export interface IngestArgsResolution {
   readonly limitQueries: number | undefined;
   readonly productConfig: GooglePlacesProductConfig;
   readonly regionKey: string | undefined;
+  readonly budgetMode: BudgetMode;
 }
 
 export type IngestArgsResult =
@@ -77,6 +84,11 @@ export function resolveIngestArgs(argv: readonly string[], baseConfig: GooglePla
   const regionArg = argv.find((a) => a.startsWith('--region='));
   const regionKey = regionArg ? regionArg.split('=')[1] : undefined;
 
+  const budget = resolveBudgetMode(argv, dryRun);
+  if (!budget.ok) {
+    return { ok: false, error: budget.error, available: [] };
+  }
+
   const regionResult = resolveRegionFilter(baseConfig, regionKey);
   if (!regionResult.ok) {
     return { ok: false, error: regionResult.error, available: regionResult.available };
@@ -84,7 +96,7 @@ export function resolveIngestArgs(argv: readonly string[], baseConfig: GooglePla
 
   return {
     ok: true,
-    result: { dryRun, limitQueries, productConfig: regionResult.config, regionKey },
+    result: { dryRun, limitQueries, productConfig: regionResult.config, regionKey, budgetMode: budget.mode },
   };
 }
 
@@ -105,7 +117,7 @@ export async function main(argv: readonly string[] = process.argv) {
     process.exit(1);
   }
 
-  const { dryRun, limitQueries, productConfig, regionKey } = resolution.result;
+  const { dryRun, limitQueries, productConfig, regionKey, budgetMode } = resolution.result;
 
   if (!regionKey) {
     logger.warn(
@@ -115,18 +127,20 @@ export async function main(argv: readonly string[] = process.argv) {
   }
 
   logger.info(
-    { dryRun, limitQueries, product: 'vivere-60-mais', regions: productConfig.regions.map((r) => r.key) },
+    { dryRun, limitQueries, budgetMode, product: 'vivere-60-mais', regions: productConfig.regions.map((r) => r.key) },
     'iniciando script de ingestão Google Places',
   );
 
   const apiClient = new GooglePlacesApiClient(apiKey);
-  const budgetRepo = new InMemoryBudgetRepo({
+  // memory (omissão): tecto só desta execução. persistent: RPC da 0026 pelo
+  // cliente único (getSupabaseClient → envGuard); sem config → recusa tudo.
+  const budgetRepo = await budgetRepoForRun(budgetMode, {
     provider: 'google_places',
     monthly_budget_usd: productConfig.monthly_budget_usd,
     hard_stop_enabled: productConfig.hard_stop_enabled,
-    alert_threshold_pct: productConfig.alert_threshold_pct,
   });
-  const collector = new GooglePlacesCollector(apiClient, budgetRepo, productConfig);
+  const budgetGuard = new BudgetGuard(budgetRepo, { mode: budgetMode });
+  const collector = new GooglePlacesCollector(apiClient, budgetGuard, productConfig);
 
   // dry-run: sem cliente Supabase nem repositórios; modo real: forSupabase → envGuard.
   const repos = await reposForRun(dryRun);
@@ -150,6 +164,10 @@ export async function main(argv: readonly string[] = process.argv) {
   console.log(`Excluídos pelo Regional Geographic Gate (ADR-0022): ${summary.geoExcludedItems}`);
   console.log(`Staged (Camada B): ${summary.stagedItems}`);
   console.log(`Rejeitados:        ${summary.rejectedItems}`);
+
+  const cost = budgetGuard.costSummary();
+  logger.info({ apiCost: cost }, 'custo de API da execução');
+  console.log(`Custo API (${cost.budget_mode}): gasto USD ${cost.totals.spent_usd.toFixed(3)}, libertado USD ${cost.totals.released_usd.toFixed(3)}, pendente USD ${cost.totals.pending_usd.toFixed(3)}, recusadas ${cost.totals.refused_count}`);
 }
 
 // Guarda de entry-point — main() só corre quando este ficheiro é

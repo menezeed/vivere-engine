@@ -3,7 +3,7 @@
 ## Ordem de execução
 
 ```
-0000 → 0001 → 0002 → ... → 0018 → 0019 → 0020 → 0021 → 0022
+0000 → 0001 → 0002 → ... → 0018 → 0019 → 0020 → 0021 → 0022 → (0023–0025) → 0026
 ```
 
 Numérica, estrita. Nenhum *runner* automatizado de migrações foi
@@ -116,6 +116,25 @@ Idempotente por natureza (repetir `ENABLE ROW LEVEL SECURITY` não faz nada),
 sem `IF NOT EXISTS`. Em produção seria um no-op e não deve ser executada lá
 sem autorização própria. O rollback desliga o RLS e só serve para ambientes
 reconstruídos, nunca para produção.
+
+## `0026_api_budget.sql` (PROPOSTA, não aplicada)
+
+L5: orçamento persistente das APIs pagas. Cria `staging.api_budget_config`
+(tectos por fornecedor, escritos só pelo operador/PO; o Engine só lê) e
+`staging.api_usage_log` (append-only: cada chamada nasce `reserved` e só
+pode passar a `spent` ou `released`, imposto por trigger; DELETE e
+TRUNCATE recusados), mais as RPC `reserve_api_budget` (advisory lock por
+fornecedor; recusa antes da chamada se `hard_stop_enabled` e um tecto
+mensal, diário ou por execução seria excedido; sem config → recusa),
+`confirm_api_spend` e `release_api_budget`. RLS sem políticas; só
+`service_role` tem privilégios. Mês e dia de orçamento em **UTC**.
+
+As 0023–0025 vivem noutras branches (já aplicadas no staging); a 0026 é a
+seguinte. Sem dados: os valores dos tectos são decisão do PO (exemplo em
+`scripts/staging/api_budget_config.seed.example.sql`). Testes SQL (só
+staging, rollback garantido): `db/audit/api-budget-tests.staging.sql`. O
+Engine só usa estas tabelas com `--budget=persistent` nos scripts
+`ingest-*`. O rollback apaga o histórico de gasto.
 
 ## Contrato forward-only
 

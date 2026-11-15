@@ -1,12 +1,14 @@
 import { logger } from '../../lib/logger';
-import { checkBudgetBeforeCall, type BudgetRepo } from '../../lib/budgetGuard';
+import { BudgetGuard, checkBudgetBeforeCall, toBudgetGuard, type BudgetRepo } from '../../lib/budgetGuard';
 import { buildQueriesForProduct, findRegion, type GooglePlacesProductConfig, type PlaceSearchQuery } from './config/GooglePlacesProductConfig';
-import { GooglePlacesApiClient, type GooglePlaceRaw, type GooglePlaceEnriched } from './GooglePlacesApiClient';
+import { ESTIMATED_COST_PER_CALL, GooglePlacesApiClient, type GooglePlaceRaw, type GooglePlaceEnriched } from './GooglePlacesApiClient';
 import type { RawVenueItem, VenueCollectorError, VenueCollectorResult } from '../../types/RawVenueItem';
 
 export interface GooglePlacesCollectorOptions {
   dryRun?: boolean;
   limitQueries?: number; // útil para teste manual ("rode só as 2 primeiras queries")
+  /** staging.ingestion_runs.id desta execução (ligação de auditoria do orçamento). */
+  ingestionRunId?: string | null;
 }
 
 /**
@@ -18,12 +20,16 @@ export interface GooglePlacesCollectorOptions {
  */
 export class GooglePlacesCollector {
   readonly sourceKey = 'google_places';
+  /** Guarda de orçamento (alertas por processo e resumo de custo da execução). */
+  readonly budgetGuard: BudgetGuard;
 
   constructor(
     private readonly apiClient: GooglePlacesApiClient,
-    private readonly budgetRepo: BudgetRepo,
+    budget: BudgetRepo | BudgetGuard,
     private readonly productConfig: GooglePlacesProductConfig,
-  ) {}
+  ) {
+    this.budgetGuard = toBudgetGuard(budget);
+  }
 
   async collect(options: GooglePlacesCollectorOptions = {}): Promise<VenueCollectorResult> {
     const allQueries = buildQueriesForProduct(this.productConfig);
@@ -36,33 +42,42 @@ export class GooglePlacesCollector {
     let placesFoundRaw = 0;
     let totalCostUsd = 0;
 
+    // Uma execução de orçamento por collect(): novo run_key (tecto por execução).
+    this.budgetGuard.startRun(options.ingestionRunId ?? null);
+
     for (const query of queries) {
-      const budgetCheck = await checkBudgetBeforeCall(
-        'google_places',
-        0.032, // custo estimado de text_search_basic, ver GooglePlacesApiClient.ESTIMATED_COST_PER_CALL
-        this.budgetRepo,
-      );
-
-      if (!budgetCheck.allowed) {
-        logger.warn(
-          { query: query.query_text, reason: budgetCheck.reason },
-          'query pulada — orçamento da Google Places API esgotado',
-        );
-        queriesSkippedBudget++;
-        continue;
-      }
-
       try {
         const region = findRegion(this.productConfig, query.region_key);
-        const { places, costUsd } = await this.apiClient.textSearch({
-          query: query.query_text,
-          lat: region.lat,
-          lng: region.lng,
-          radiusMeters: region.radius_m,
-        });
+        // Reserva → chamada → confirm/release. Recusada: a API não é chamada.
+        const budgeted = await checkBudgetBeforeCall(
+          this.budgetGuard,
+          {
+            provider: 'google_places',
+            callType: 'text_search',
+            estimatedCostUsd: ESTIMATED_COST_PER_CALL.text_search_basic,
+          },
+          async () => {
+            const r = await this.apiClient.textSearch({
+              query: query.query_text,
+              lat: region.lat,
+              lng: region.lng,
+              radiusMeters: region.radius_m,
+            });
+            return { value: r.places, costUsd: r.costUsd };
+          },
+        );
 
-        totalCostUsd += costUsd;
-        await this.budgetRepo.recordSpend('google_places', 'text_search', costUsd);
+        if (!budgeted.allowed) {
+          logger.warn(
+            { query: query.query_text, reason: budgeted.reason },
+            'query pulada — orçamento da Google Places API esgotado',
+          );
+          queriesSkippedBudget++;
+          continue;
+        }
+
+        const places = budgeted.value;
+        totalCostUsd += budgeted.costUsd;
         queriesExecuted++;
         placesFoundRaw += places.length;
 
@@ -118,24 +133,31 @@ export class GooglePlacesCollector {
     // em staging.venues_staging é suprimida (ver scripts/dry-run, não
     // este Collector).
     for (const item of dedupedItems) {
-      const enrichBudgetCheck = await checkBudgetBeforeCall('google_places', 0.017, this.budgetRepo);
+      // getEnrichedDetails devolve costUsd 0 quando falha → a reserva é libertada.
+      const enriched = await checkBudgetBeforeCall(
+        this.budgetGuard,
+        {
+          provider: 'google_places',
+          callType: 'place_details_enriched',
+          estimatedCostUsd: ESTIMATED_COST_PER_CALL.place_details_enriched,
+        },
+        async () => {
+          const r = await this.apiClient.getEnrichedDetails(item.source_item_id);
+          return { value: r.details, costUsd: r.costUsd };
+        },
+      );
 
-      if (!enrichBudgetCheck.allowed) {
+      if (!enriched.allowed) {
         logger.warn(
-          { placeId: item.source_item_id, reason: enrichBudgetCheck.reason },
+          { placeId: item.source_item_id, reason: enriched.reason },
           'enriquecimento pulado — orçamento esgotado, item segue sem telefone/site/horário',
         );
         continue;
       }
 
-      const { details, costUsd } = await this.apiClient.getEnrichedDetails(item.source_item_id);
-      totalCostUsd += costUsd;
-      if (costUsd > 0) {
-        await this.budgetRepo.recordSpend('google_places', 'place_details_enriched', costUsd);
-      }
-
-      if (details) {
-        this.applyEnrichment(item, details);
+      totalCostUsd += enriched.costUsd;
+      if (enriched.value) {
+        this.applyEnrichment(item, enriched.value);
       }
     }
 
@@ -146,6 +168,7 @@ export class GooglePlacesCollector {
         placesFoundRaw,
         placesReturned: dedupedItems.length,
         estimatedCostUsd: Math.round(totalCostUsd * 100) / 100,
+        apiCost: this.budgetGuard.costSummary().totals,
       },
       'coleta Google Places finalizada',
     );
