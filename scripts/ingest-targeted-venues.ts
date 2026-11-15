@@ -4,14 +4,18 @@
  * Ingestão direccionada de venues específicos mencionados nas
  * VenueMentions das actividades actuais da Prefeitura de Cabo Frio.
  *
- * Uso:
+ * Uso (acrescentar --budget=persistent para o orçamento persistente):
  *   npx tsx --env-file=.env scripts/ingest-targeted-venues.ts --dry-run
  *   npx tsx --env-file=.env scripts/ingest-targeted-venues.ts
+ *
+ * --budget=persistent (L5, migração 0028): orçamento persistente por RPC,
+ * só com flag explícita; por omissão (memory) o tecto vale só para esta
+ * execução. Recusado com --dry-run (o dry-run nunca cria cliente Supabase).
  */
 
 import { GooglePlacesApiClient }          from '../src/collectors/google-places/GooglePlacesApiClient.js';
 import { GooglePlacesCollector }          from '../src/collectors/google-places/GooglePlacesCollector.js';
-import { InMemoryBudgetRepo }             from '../src/lib/budgetGuard.js';
+import { BudgetGuard, budgetRepoForRun, resolveBudgetMode } from '../src/lib/budgetGuard.js';
 import { TARGETED_VENUE_LOOKUP_CONFIG }   from '../src/collectors/google-places/config/targeted-venue-lookup.js';
 import { VIVERE_60_MAIS_VENUE_FILTER_RULES } from '../src/pipeline/stages/00-filter-venue/products/vivere-60-mais.js';
 import { IngestionOrchestrator }          from '../src/persistence/orchestration/IngestionOrchestrator.js';
@@ -42,17 +46,23 @@ async function main() {
   );
   console.log('');
 
+  const budget = resolveBudgetMode(process.argv, DRY_RUN);
+  if (!budget.ok) {
+    console.error(`❌ ${budget.error} — nenhuma chamada à API foi feita`);
+    process.exit(1);
+  }
+
   const apiClient  = new GooglePlacesApiClient(apiKey);
-  const budgetRepo = new InMemoryBudgetRepo({
+  const budgetRepo = await budgetRepoForRun(budget.mode, {
     provider:            'google_places',
     monthly_budget_usd:  TARGETED_VENUE_LOOKUP_CONFIG.monthly_budget_usd,
     hard_stop_enabled:   TARGETED_VENUE_LOOKUP_CONFIG.hard_stop_enabled,
-    alert_threshold_pct: TARGETED_VENUE_LOOKUP_CONFIG.alert_threshold_pct,
   });
+  const budgetGuard = new BudgetGuard(budgetRepo, { mode: budget.mode });
 
   const collector = new GooglePlacesCollector(
     apiClient,
-    budgetRepo,
+    budgetGuard,
     TARGETED_VENUE_LOOKUP_CONFIG,
   );
 
@@ -72,7 +82,8 @@ async function main() {
   console.log(`Aceites:     ${summary.stagedItems}`);
   console.log(`Rejeitados:  ${summary.rejectedItems}`);
   console.log(`Revisão:     ${(summary.rawItemsCollected - summary.stagedItems - summary.rejectedItems)}`);
-  console.log(`Custo real:  ~$${(N_QUERIES * COST_PER_QUERY).toFixed(3)}`);
+  const cost = budgetGuard.costSummary();
+  console.log(`Custo API (${cost.budget_mode}): gasto USD ${cost.totals.spent_usd.toFixed(3)}, libertado USD ${cost.totals.released_usd.toFixed(3)}, recusadas ${cost.totals.refused_count}`);
 
   if (DRY_RUN) {
     console.log('\n✔ Dry-run concluído — nenhum dado foi escrito.');

@@ -42,6 +42,7 @@
 
 import type { RawActivityItem } from '../../types/RawActivityItem';
 import type { GeographicBucket } from '../stages/01-geographic-gate/types';
+import type { RunCostSummary } from '../../lib/budgetGuard';
 import { getWordPressSourceConfigBySourceKey } from '../../collectors/wordpress-content/config/registry';
 
 export interface RateMetric {
@@ -85,6 +86,12 @@ export interface RunQualityReport {
   by_group: GroupQualityMetrics[];
   /** null = não aplicável a actividades e nenhum bucket de venues fornecido */
   geographic_gate: GeographicGateSummary | null;
+  /**
+   * L5 — resumo de custo das APIs pagas da mesma execução (BudgetGuard),
+   * só quando fornecido em options.apiCost. As fontes WordPress não fazem
+   * chamadas pagas.
+   */
+  api_cost?: RunCostSummary;
   notes: string[];
 }
 
@@ -98,6 +105,8 @@ export interface RunQualityOptions {
   resolvePublishedAt?: (item: RawActivityItem) => string | null;
   /** Buckets do gate geográfico aplicado aos VENUES da mesma execução. */
   venueGateBuckets?: readonly GeographicBucket[];
+  /** Resumo de custo de API da execução (BudgetGuard.costSummary()). */
+  apiCost?: RunCostSummary;
 }
 
 const HOUR_MS = 60 * 60 * 1000;
@@ -228,6 +237,7 @@ export function computeRunQualityMetrics(
     totals: groupMetrics(items, options),
     by_group: byGroup,
     geographic_gate: options.venueGateBuckets ? summarizeGate(options.venueGateBuckets) : null,
+    ...(options.apiCost ? { api_cost: options.apiCost } : {}),
     notes,
   };
 }
@@ -262,6 +272,15 @@ export function formatRunQualitySummary(report: RunQualityReport): string {
     );
   } else {
     lines.push('Gate geográfico: não aplicável a actividades');
+  }
+  if (report.api_cost) {
+    const t = report.api_cost.totals;
+    lines.push(
+      `Custo de API (${report.api_cost.budget_mode}): gasto USD ${t.spent_usd.toFixed(3)} (${t.spent_count}), libertado USD ${t.released_usd.toFixed(3)} (${t.released_count}), pendente USD ${t.pending_usd.toFixed(3)}, recusadas ${t.refused_count}`,
+    );
+    for (const l of report.api_cost.by_provider_call_type) {
+      lines.push(`  ${l.provider}/${l.call_type}: gasto USD ${l.spent_usd.toFixed(3)} (${l.spent_count}), recusadas ${l.refused_count}`);
+    }
   }
   for (const n of report.notes) lines.push(`nota: ${n}`);
   return lines.join('\n');
