@@ -1,0 +1,29 @@
+[
+  {
+    "id": 900001,
+    "date": "2026-11-06T14:16:01",
+    "date_gmt": "2026-11-06T17:16:01",
+    "link": "https://www.riodasostras.rj.gov.br/exemplo-espetaculo-de-danca/",
+    "title": { "rendered": "Domingo é dia de espetáculo de dança no Teatro Municipal" },
+    "content": { "rendered": "<p>O espetáculo acontece no dia 8, a partir das 17h Foto: Divulgação</p>\n<p>A dança vai tomar conta do palco do Teatro Municipal no próximo domingo, dia 8 de novembro, com a apresentação de um espetáculo de uma escola de dança local, a partir das 17h.</p>\n<p>&nbsp;</p>\n<p><strong>SERVIÇO</strong></p>\n<p><strong>ESPETÁCULO DE DANÇA DE FIM DE ANO</strong></p>\n<p>Local: Teatro Municipal</p>\n<p>Endereço: Avenida Exemplo, s/nº – Centro, Rio das Ostras – RJ</p>\n<p>Data: Domingo, 8 de novembro</p>\n<p>Horário: 17h</p>\n<p>Ingresso: R$ 30 (inteira) R$ 15 (meia)</p>\n<p>&nbsp;</p>\n" },
+    "categories": [17, 9, 1]
+  },
+  {
+    "id": 900002,
+    "date": "2026-11-04T15:47:18",
+    "date_gmt": "2026-11-04T18:47:18",
+    "link": "https://www.riodasostras.rj.gov.br/exemplo-exposicao-de-pinturas/",
+    "title": { "rendered": "Casa de Cultura apresenta exposição de pinturas" },
+    "content": { "rendered": "<p>Tema será “A cidade sob um olhar afetivo”</p>\n<p>Começa nesta quarta-feira, dia 4, na Casa de Cultura, uma exposição de pintura de uma artista local, com o tema “A cidade sob um olhar afetivo”.</p>\n<p><strong>SERVIÇO</strong></p>\n<p><strong>“A cidade sob um olhar afetivo”</strong></p>\n<p>Local: Casa de Cultura</p>\n<p>Endereço: Rua Exemplo, 70 – Centro</p>\n<p>Período: Em cartaz até o dia 28 de novembro</p>\n<p>De segunda a sexta-feira, das 8h às 17h</p>\n<p>Sábado, de 13h às 17h</p>\n<p>Classificação Livre</p>\n<p>&nbsp;</p>\n" },
+    "categories": [17, 9, 1]
+  },
+  {
+    "id": 900003,
+    "date": "2026-11-10T16:46:52",
+    "date_gmt": "2026-11-10T19:46:52",
+    "link": "https://www.riodasostras.rj.gov.br/exemplo-inscricoes-formacao-artistica/",
+    "title": { "rendered": "Inscrições para Centro de Formação Artística começam dia 11" },
+    "content": { "rendered": "<p>Serão disponibilizadas vagas nas habilitações de Música, Dança e Teatro</p>\n<p>&nbsp;</p>\n<p>Os interessados em ingressar em algum dos cursos básicos ou técnicos do Centro de Formação Artística devem ficar atentos porque as inscrições para o processo seletivo do ano letivo de 2027 são feitas de forma gratuita, pela internet.</p>\n" },
+    "categories": [17, 8, 1]
+  }
+]

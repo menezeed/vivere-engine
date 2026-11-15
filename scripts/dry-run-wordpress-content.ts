@@ -20,17 +20,19 @@
 
 import { WordPressApiClient } from '../src/collectors/wordpress-content/WordPressApiClient';
 import { WordPressContentCollector } from '../src/collectors/wordpress-content/WordPressContentCollector';
-import { CABO_FRIO_CONFIG } from '../src/collectors/wordpress-content/config/cabo-frio';
+// Revisão r0 (MÉDIO): a mesma lista de instâncias que a ingestão usa (registry),
+// em vez de um mapa local que ficava desactualizado (Búzios, Rio das Ostras).
+import { AVAILABLE_INSTANCES as REGISTRY_INSTANCES } from '../src/collectors/wordpress-content/config/registry';
 import { ARARUAMA_CONFIG } from '../src/collectors/wordpress-content/config/araruama';
-import { SAO_PEDRO_DA_ALDEIA_CONFIG } from '../src/collectors/wordpress-content/config/sao-pedro-da-aldeia';
 import type { WordPressContentSourceConfig } from '../src/collectors/wordpress-content/config/WordPressContentSourceConfig';
-import type { MapReviewReason } from '../src/collectors/wordpress-content/mapToRawActivityItems';
 
+// Revisão r1 (MÉDIO): Araruama (config placeholder, fora do registry da ingestão)
+// continua disponível SÓ no dry-run, como antes; não é activada na ingestão.
 const AVAILABLE_INSTANCES: Record<string, WordPressContentSourceConfig> = {
-  'cabo-frio': CABO_FRIO_CONFIG,
+  ...REGISTRY_INSTANCES,
   araruama: ARARUAMA_CONFIG,
-  'sao-pedro-da-aldeia': SAO_PEDRO_DA_ALDEIA_CONFIG,
 };
+import type { MapReviewReason } from '../src/collectors/wordpress-content/mapToRawActivityItems';
 
 function parseArgValue(flag: string): string | undefined {
   const arg = process.argv.find((a) => a.startsWith(`--${flag}=`));
