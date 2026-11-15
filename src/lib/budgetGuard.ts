@@ -8,8 +8,16 @@ import { logger } from './logger';
  *   1. BudgetRepo.reserve() reserva o custo estimado ANTES da chamada. Se a
  *      reserva for recusada (tecto excedido com hard_stop, sem configuração,
  *      erro do repositório), a API paga NÃO é chamada.
- *   2. Depois da chamada: confirm() se houve custo; release() se a chamada
- *      falhou (excepção) ou terminou sem custo.
+ *   2. Depois da chamada: release() SÓ quando é certo que nenhum pedido
+ *      chegou ao fornecedor; confirm() em todos os outros casos, incluindo
+ *      os incertos (ver Billable). Contar a mais é o lado seguro.
+ *   3. Uma reserva por TENTATIVA HTTP (attemptGate): cada repetição do
+ *      cliente reserva antes de enviar; uma recusa pára as repetições.
+ *
+ * Alertas (50/80/100%): deduplicados POR PROCESSO. Processos diferentes
+ * (execuções separadas, ou concorrentes) podem repetir o mesmo alerta
+ * mensal/diário; isso é esperado — o tecto é imposto pela reserva, não
+ * pelo alerta.
  *
  * Dois repositórios com o mesmo contrato:
  *   - InMemoryBudgetRepo: acumulador válido só para o processo actual
@@ -17,9 +25,9 @@ import { logger } from './logger';
  *     por execução em memória — várias execuções NÃO se somam.
  *   - SupabaseBudgetRepo (src/persistence/repositories/): RPC atómicas
  *     staging.reserve_api_budget / confirm_api_spend / release_api_budget
- *     (migração 0026), activado só com --budget=persistent.
+ *     (migração 0028), activado só com --budget=persistent.
  *
- * Mês e dia de orçamento em UTC (igual à 0026).
+ * Mês e dia de orçamento em UTC (igual à 0028).
  */
 
 export type BudgetScope = 'month' | 'day' | 'run';
@@ -307,7 +315,33 @@ export class BudgetGuard {
     return this.runKey;
   }
 
-  /** @internal usado por checkBudgetBeforeCall */
+  /**
+   * Portão por tentativa HTTP para um fornecedor: cada begin() é UMA reserva;
+   * settle('no') liberta, settle('yes'|'uncertain') confirma (ver Billable).
+   */
+  attemptGate(provider: string): PaidAttemptGate {
+    return {
+      begin: async (callType: string, estimatedCostUsd: number): Promise<PaidAttemptTicket> => {
+        const r = await this.reserve(provider, callType, estimatedCostUsd);
+        if (!r.allowed || r.reservationId === null) {
+          return { ok: false, reason: describeRefusal(r.reason ?? 'refused', r) };
+        }
+        const reservationId = r.reservationId;
+        let settled = false;
+        return {
+          ok: true,
+          reservationId,
+          settle: async (billable: Billable) => {
+            if (settled) return;
+            settled = true;
+            await this.settle(provider, callType, reservationId, estimatedCostUsd, billable === 'no' ? 'released' : 'spent');
+          },
+        };
+      },
+    };
+  }
+
+  /** @internal usado por attemptGate */
   async reserve(provider: string, callType: string, estimatedCostUsd: number): Promise<BudgetReservation> {
     let reservation: BudgetReservation;
     try {
@@ -463,20 +497,59 @@ export class BudgetGuard {
 // checkBudgetBeforeCall: reserva → chamada → confirm | release
 // ---------------------------------------------------------------------------
 
+/**
+ * Se um pedido pago pode ter sido cobrado. Regra conservadora (r0 L5):
+ *   'no'        → CERTEZA de que nenhum pedido chegou ao fornecedor (falha
+ *                 antes de enviar, ou falha na fase de ligação: DNS, ligação
+ *                 recusada, timeout de ligação). Só este caso liberta.
+ *   'yes'       → houve resposta 2xx (mesmo que a leitura do corpo falhe).
+ *   'uncertain' → tudo o resto (resposta não-2xx, ligação perdida depois de
+ *                 enviar, erro desconhecido). Conta como GASTO.
+ * Contar a mais é o lado seguro: o tecto nunca é excedido por pedidos
+ * cobrados que desapareceram do total.
+ */
+export type Billable = 'yes' | 'no' | 'uncertain';
+
+/** Erro que declara explicitamente que o pedido NÃO chegou ao fornecedor. */
+export class NotBilledError extends Error {
+  readonly billable = 'no' as const;
+}
+
+/** A reserva de orçamento foi recusada: nenhum (outro) pedido pago foi enviado. */
+export class BudgetRefusedError extends Error {
+  constructor(
+    readonly reason: string,
+    /** Tentativas HTTP já enviadas (e liquidadas) antes da recusa. */
+    readonly attemptsSent: number,
+  ) {
+    super(`orçamento recusou o pedido pago: ${reason}`);
+    this.name = 'BudgetRefusedError';
+  }
+}
+
+/** Classifica uma excepção lançada por `call`: só NotBilledError/billable='no' liberta. */
+export function billableOfError(err: unknown): Billable {
+  return (err as { billable?: unknown } | null)?.billable === 'no' ? 'no' : 'uncertain';
+}
+
 export interface PaidCallOutcome<T> {
   value: T;
-  /** Custo efectivo comunicado pelo cliente da API; 0 = não cobrado. */
-  costUsd: number;
+  /** Ver Billable. 'no' liberta a reserva; 'yes' e 'uncertain' confirmam. */
+  billable: Billable;
 }
 
 export type BudgetedCallResult<T> =
-  | { allowed: true; value: T; costUsd: number; reservationId: string }
+  | { allowed: true; value: T; billable: Billable; reservationId: string }
   | { allowed: false; reason: string };
 
 /**
- * Reserva o custo estimado; só se a reserva for aceite chama `call`.
- * Depois: confirm se costUsd > 0; release se costUsd = 0 ou se `call`
- * lançar (a excepção é propagada depois da libertação).
+ * UMA reserva para UM pedido HTTP pago. Só se a reserva for aceite chama
+ * `call`. Depois: release só se billable='no'; confirm em 'yes' e
+ * 'uncertain'. Se `call` lançar, confirm salvo se o erro declarar
+ * billable='no' (NotBilledError); a excepção é propagada.
+ *
+ * Para clientes com tentativas repetidas use attemptGate(): cada tentativa
+ * HTTP tem a sua própria reserva.
  *
  * O valor registado é a ESTIMATIVA reservada (o custo da Google Places é
  * tabelado por SKU, igual à estimativa).
@@ -486,35 +559,34 @@ export async function checkBudgetBeforeCall<T>(
   params: { provider: string; callType: string; estimatedCostUsd: number },
   call: () => Promise<PaidCallOutcome<T>>,
 ): Promise<BudgetedCallResult<T>> {
-  const { provider, callType, estimatedCostUsd } = params;
-  const reservation = await guard.reserve(provider, callType, estimatedCostUsd);
-  if (!reservation.allowed || reservation.reservationId === null) {
-    const reason = reservation.reason ?? 'refused';
-    return {
-      allowed: false,
-      reason: describeRefusal(reason, reservation),
-    };
-  }
+  const ticket = await guard.attemptGate(params.provider).begin(params.callType, params.estimatedCostUsd);
+  if (!ticket.ok) return { allowed: false, reason: ticket.reason };
 
-  const reservationId = reservation.reservationId;
   let outcome: PaidCallOutcome<T>;
   try {
     outcome = await call();
   } catch (err) {
-    await guard.settle(provider, callType, reservationId, estimatedCostUsd, 'released');
+    await ticket.settle(billableOfError(err));
     throw err;
   }
-  await guard.settle(
-    provider,
-    callType,
-    reservationId,
-    estimatedCostUsd,
-    outcome.costUsd > 0 ? 'spent' : 'released',
-  );
-  return { allowed: true, value: outcome.value, costUsd: outcome.costUsd, reservationId };
+  await ticket.settle(outcome.billable);
+  return { allowed: true, value: outcome.value, billable: outcome.billable, reservationId: ticket.reservationId };
 }
 
-function describeRefusal(reason: string, r: BudgetReservation): string {
+/**
+ * Portão por tentativa HTTP: o cliente da API chama begin() ANTES de cada
+ * tentativa (incluindo repetições) e settle() com o resultado. Recusa →
+ * o cliente não envia a tentativa nem as seguintes.
+ */
+export interface PaidAttemptGate {
+  begin(callType: string, estimatedCostUsd: number): Promise<PaidAttemptTicket>;
+}
+
+export type PaidAttemptTicket =
+  | { ok: true; reservationId: string; settle(billable: Billable): Promise<void> }
+  | { ok: false; reason: string };
+
+export function describeRefusal(reason: string, r: BudgetReservation): string {
   const fmt = (n: number | null | undefined): string => (n === null || n === undefined ? '?' : n.toFixed(2));
   switch (reason) {
     case 'monthly_cap':

@@ -1,5 +1,5 @@
 -- ============================================================
--- Migration 0026 — Orçamento persistente das APIs pagas
+-- Migration 0028 — Orçamento persistente das APIs pagas
 --                  (staging.api_budget_config, staging.api_usage_log
 --                   e RPC reserve/confirm/release)
 --
@@ -7,8 +7,8 @@
 -- ESTADO: PROPOSTA, NÃO APLICADA em nenhum Supabase. Não testada em
 -- PostgreSQL (não havia base local disponível). Aplicar só no STAGING
 -- primeiro, com REF próprio, depois de rever db/audit/api-budget-
--- tests.staging.sql. NUMERAÇÃO: 0023–0025 vivem noutras branches e já
--- estão aplicadas no staging; esta é a seguinte.
+-- tests.staging.sql. NUMERAÇÃO: 0023–0027 vivem noutras branches (0023–0025 já
+-- aplicadas no staging; 0026 e 0027 em lote3/rollout-compat); esta é a seguinte.
 --
 -- CONTEXTO
 -- Até aqui o BudgetRepo só existia em memória: cada execução dos
@@ -69,7 +69,7 @@
 --     migração existe; papéis anon, authenticated e service_role existem.
 --
 -- Correr como `postgres`. NÃO é idempotente: reaplicar aborta em P1.
--- ROLLBACK: 0026_api_budget.rollback.sql (apaga o histórico de gasto).
+-- ROLLBACK: 0028_api_budget.rollback.sql (apaga o histórico de gasto).
 -- ============================================================
 
 begin;
@@ -96,7 +96,7 @@ begin
     where not exists (select 1 from pg_catalog.pg_roles x where x.rolname = r)
   ) x;
   if v_problems is not null then
-    raise exception '0026 abortada (P1): %', v_problems;
+    raise exception '0028 abortada (P1): %', v_problems;
   end if;
 end;
 $pre$;
@@ -121,7 +121,7 @@ create table staging.api_budget_config (
 );
 
 comment on table staging.api_budget_config is
-  'L5 (0026): tectos de gasto por fornecedor de API paga. Escrita só pelo operador/PO por SQL revisto; o Engine só lê. Sem linha = recusa (fail-closed). Mês/dia em UTC.';
+  'L5 (0028): tectos de gasto por fornecedor de API paga. Escrita só pelo operador/PO por SQL revisto; o Engine só lê. Sem linha = recusa (fail-closed). Mês/dia em UTC.';
 
 create table staging.api_usage_log (
   id                 bigint generated always as identity primary key,
@@ -142,7 +142,7 @@ create table staging.api_usage_log (
 );
 
 comment on table staging.api_usage_log is
-  'L5 (0026): registo append-only de chamadas pagas (reserva → spent|released). Só a transição de status é permitida (trigger guard_api_usage_log). budget_month/budget_day em UTC. Retenção: decisão operacional pendente.';
+  'L5 (0028): registo append-only de chamadas pagas (reserva → spent|released). Só a transição de status é permitida (trigger guard_api_usage_log). budget_month/budget_day em UTC. Retenção: decisão operacional pendente.';
 
 create index api_usage_log_provider_month on staging.api_usage_log (provider, budget_month) where status <> 'released';
 create index api_usage_log_provider_day   on staging.api_usage_log (provider, budget_day)   where status <> 'released';
@@ -302,7 +302,7 @@ end;
 $$;
 
 comment on function staging.reserve_api_budget(text, text, uuid, uuid, numeric) is
-  'L5 (0026): reserva atómica (advisory lock por fornecedor) antes de uma chamada paga. Recusa sem config (no_config) ou com tecto excedido e hard_stop (monthly_cap/daily_cap/per_run_cap). Mês/dia em UTC.';
+  'L5 (0028): reserva atómica (advisory lock por fornecedor) antes de uma chamada paga. Recusa sem config (no_config) ou com tecto excedido e hard_stop (monthly_cap/daily_cap/per_run_cap). Mês/dia em UTC.';
 
 create function staging.confirm_api_spend(p_reservation_id bigint)
 returns void
@@ -410,7 +410,7 @@ begin
     where exists (select 1 from staging.api_budget_config)
   ) x;
   if v_problems is not null then
-    raise exception '0026 incompleta (verificacao final), transaccao desfeita: %', v_problems;
+    raise exception '0028 incompleta (verificacao final), transaccao desfeita: %', v_problems;
   end if;
 end;
 $post$;

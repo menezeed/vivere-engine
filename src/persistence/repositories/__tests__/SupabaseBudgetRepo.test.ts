@@ -5,7 +5,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { SupabaseBudgetRepo } from '../SupabaseBudgetRepo';
-import { BudgetGuard, checkBudgetBeforeCall } from '../../../lib/budgetGuard';
+import { BudgetGuard, NotBilledError, checkBudgetBeforeCall } from '../../../lib/budgetGuard';
 
 type RpcResult = { data: unknown; error: { message: string } | null };
 
@@ -137,7 +137,7 @@ describe('SupabaseBudgetRepo + checkBudgetBeforeCall', () => {
   it('erro da RPC de reserva → nenhuma chamada paga', async () => {
     const { client, calls } = fakeClient(() => ({ data: null, error: { message: 'boom' } }));
     const guard = new BudgetGuard(new SupabaseBudgetRepo(client), { log: quiet });
-    const paid = vi.fn(async () => ({ value: 1, costUsd: 0.032 }));
+    const paid = vi.fn(async () => ({ value: 1, billable: 'yes' as const }));
     const r = await checkBudgetBeforeCall(guard, { provider: 'google_places', callType: 'text_search', estimatedCostUsd: 0.032 }, paid);
     expect(r.allowed).toBe(false);
     expect(paid).not.toHaveBeenCalled();
@@ -147,12 +147,12 @@ describe('SupabaseBudgetRepo + checkBudgetBeforeCall', () => {
   it('reserva aceite → chamada → confirm_api_spend', async () => {
     const { client, calls } = fakeClient((fn) => (fn === 'reserve_api_budget' ? { data: [ALLOWED_ROW], error: null } : { data: null, error: null }));
     const guard = new BudgetGuard(new SupabaseBudgetRepo(client), { log: quiet });
-    const r = await checkBudgetBeforeCall(guard, { provider: 'google_places', callType: 'text_search', estimatedCostUsd: 0.032 }, async () => ({ value: 'ok', costUsd: 0.032 }));
+    const r = await checkBudgetBeforeCall(guard, { provider: 'google_places', callType: 'text_search', estimatedCostUsd: 0.032 }, async () => ({ value: 'ok', billable: 'yes' as const }));
     expect(r.allowed).toBe(true);
     expect(calls.map((c) => c.fn)).toEqual(['reserve_api_budget', 'confirm_api_spend']);
   });
 
-  it('API falha → release_api_budget e a excepção propaga', async () => {
+  it('API falha com custo incerto → confirm_api_spend (conservador) e a excepção propaga', async () => {
     const { client, calls } = fakeClient((fn) => (fn === 'reserve_api_budget' ? { data: [ALLOWED_ROW], error: null } : { data: null, error: null }));
     const guard = new BudgetGuard(new SupabaseBudgetRepo(client), { log: quiet });
     await expect(
@@ -160,6 +160,17 @@ describe('SupabaseBudgetRepo + checkBudgetBeforeCall', () => {
         throw new Error('HTTP 500');
       }),
     ).rejects.toThrow('HTTP 500');
+    expect(calls.map((c) => c.fn)).toEqual(['reserve_api_budget', 'confirm_api_spend']);
+  });
+
+  it('pedido comprovadamente não enviado (NotBilledError) → release_api_budget', async () => {
+    const { client, calls } = fakeClient((fn) => (fn === 'reserve_api_budget' ? { data: [ALLOWED_ROW], error: null } : { data: null, error: null }));
+    const guard = new BudgetGuard(new SupabaseBudgetRepo(client), { log: quiet });
+    await expect(
+      checkBudgetBeforeCall(guard, { provider: 'google_places', callType: 'text_search', estimatedCostUsd: 0.032 }, async () => {
+        throw new NotBilledError('não enviado');
+      }),
+    ).rejects.toThrow('não enviado');
     expect(calls.map((c) => c.fn)).toEqual(['reserve_api_budget', 'release_api_budget']);
   });
 });

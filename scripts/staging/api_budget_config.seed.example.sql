@@ -9,7 +9,7 @@
 --   google_places: mensal USD 10 (o valor actual de vivere-60-mais.ts),
 --                  diário USD 2, por execução USD 1, hard_stop ligado.
 --
--- Pré-requisito: migração 0026 aplicada (no STAGING primeiro).
+-- Pré-requisito: migração 0028 aplicada (no STAGING primeiro).
 -- Quem aplica: só o operador/PO, pelo SQL Editor, com REF próprio. O
 -- Engine nunca escreve nesta tabela (service_role só tem SELECT).
 -- updated_by: identificador operacional, nunca um e-mail nem um nome.

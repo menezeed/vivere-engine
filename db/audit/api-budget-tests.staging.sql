@@ -1,7 +1,7 @@
 -- ============================================================
--- Testes da migração 0026 (orçamento persistente) — SÓ STAGING,
+-- Testes da migração 0028 (orçamento persistente) — SÓ STAGING,
 -- ROLLBACK GARANTIDO
--- REF: L5. Executar só com REF próprio, depois de aplicar a 0026.
+-- REF: L5. Executar só com REF próprio, depois de aplicar a 0028.
 --
 -- ESTADO: escrito, NÃO EXECUTADO (não havia PostgreSQL local nem
 -- autorização para correr no staging).
@@ -57,7 +57,7 @@ begin
     raise exception 'Abortado: confirmar o ambiente (v_confirm = staging) depois de ver o projecto no URL.';
   end if;
   if pg_catalog.to_regclass('staging.api_usage_log') is null then
-    raise exception 'Abortado: 0026 não aplicada (staging.api_usage_log não existe).';
+    raise exception 'Abortado: 0028 não aplicada (staging.api_usage_log não existe).';
   end if;
   if exists (select 1 from staging.api_budget_config where provider like 'qa-%') then
     raise exception 'Abortado: já existem configs qa-* (não deviam persistir).';
@@ -198,7 +198,7 @@ begin
     into v_fail, v_report
     from t_results;
 
-  raise exception E'RELATORIO 0026 (rollback garantido): % FAIL de %\n%',
+  raise exception E'RELATORIO 0028 (rollback garantido): % FAIL de %\n%',
     v_fail, (select count(*) from t_results), v_report;
 end;
 $main$;

@@ -21,7 +21,7 @@
  *   # Restringir a uma única região do produto (por region.key):
  *   npx tsx scripts/ingest-google-places.ts --region=sp_brooklin_pilot
  *
- *   # Orçamento persistente (L5, migração 0026; só com flag explícita):
+ *   # Orçamento persistente (L5, migração 0028; só com flag explícita):
  *   npx tsx scripts/ingest-google-places.ts --budget=persistent
  *   Por omissão (--budget=memory) o orçamento vive só nesta execução.
  *   --budget=persistent é recusado com --dry-run (o dry-run nunca cria
@@ -132,7 +132,7 @@ export async function main(argv: readonly string[] = process.argv) {
   );
 
   const apiClient = new GooglePlacesApiClient(apiKey);
-  // memory (omissão): tecto só desta execução. persistent: RPC da 0026 pelo
+  // memory (omissão): tecto só desta execução. persistent: RPC da 0028 pelo
   // cliente único (getSupabaseClient → envGuard); sem config → recusa tudo.
   const budgetRepo = await budgetRepoForRun(budgetMode, {
     provider: 'google_places',

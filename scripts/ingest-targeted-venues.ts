@@ -8,7 +8,7 @@
  *   npx tsx --env-file=.env scripts/ingest-targeted-venues.ts --dry-run
  *   npx tsx --env-file=.env scripts/ingest-targeted-venues.ts
  *
- * --budget=persistent (L5, migração 0026): orçamento persistente por RPC,
+ * --budget=persistent (L5, migração 0028): orçamento persistente por RPC,
  * só com flag explícita; por omissão (memory) o tecto vale só para esta
  * execução. Recusado com --dry-run (o dry-run nunca cria cliente Supabase).
  */

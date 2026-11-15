@@ -1,5 +1,5 @@
 -- ============================================================
--- Rollback 0026 — orçamento persistente das APIs pagas
+-- Rollback 0028 — orçamento persistente das APIs pagas
 --
 -- AVISO: APAGA o histórico de gasto (staging.api_usage_log) e a
 -- configuração dos tectos (staging.api_budget_config). Exportar as duas

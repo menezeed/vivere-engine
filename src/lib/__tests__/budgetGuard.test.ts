@@ -12,6 +12,8 @@ import {
   resolveBudgetMode,
   type BudgetConfig,
   type BudgetRepo,
+  NotBilledError,
+  type Billable,
 } from '../budgetGuard';
 
 function quietLog() {
@@ -25,8 +27,8 @@ function cfg(over: Partial<BudgetConfig> = {}): BudgetConfig {
 let runCounter = 0;
 const newRunKey = () => `run-${++runCounter}`;
 
-function paidSpy(costUsd = 1) {
-  return vi.fn(async () => ({ value: 'resultado', costUsd }));
+function paidSpy(billable: Billable = 'yes') {
+  return vi.fn(async () => ({ value: 'resultado', billable }));
 }
 
 const CALL = { provider: 'google_places', callType: 'text_search', estimatedCostUsd: 1 };
@@ -109,8 +111,8 @@ describe('checkBudgetBeforeCall — tectos (nenhuma chamada paga quando excedido
 });
 
 describe('checkBudgetBeforeCall — liquidação', () => {
-  it('custo > 0 → confirm; custo 0 → release; falha da API → release e propaga', async () => {
-    const inner = new InMemoryBudgetRepo(cfg({ monthly_budget_usd: 1.5 }));
+  it("billable 'yes' e 'uncertain' → confirm; só 'no' (ou NotBilledError) → release; excepção genérica → confirm", async () => {
+    const inner = new InMemoryBudgetRepo(cfg({ monthly_budget_usd: 10 }));
     const repo = {
       reserve: vi.fn(inner.reserve.bind(inner)),
       confirm: vi.fn(inner.confirm.bind(inner)),
@@ -118,29 +120,36 @@ describe('checkBudgetBeforeCall — liquidação', () => {
     };
     const guard = new BudgetGuard(repo, { log: quietLog(), newRunKey });
 
-    await checkBudgetBeforeCall(guard, CALL, paidSpy(1));
-    expect(repo.confirm).toHaveBeenCalledTimes(1);
+    await checkBudgetBeforeCall(guard, CALL, paidSpy('yes'));
+    await checkBudgetBeforeCall(guard, CALL, paidSpy('uncertain'));
+    expect(repo.confirm).toHaveBeenCalledTimes(2);
 
-    await checkBudgetBeforeCall(guard, { ...CALL, estimatedCostUsd: 0.5 }, paidSpy(0));
+    await checkBudgetBeforeCall(guard, CALL, paidSpy('no'));
     expect(repo.release).toHaveBeenCalledTimes(1);
 
+    // Excepção sem prova de que nada foi enviado: conta como GASTO (r0 L5).
     await expect(
-      checkBudgetBeforeCall(guard, { ...CALL, estimatedCostUsd: 0.5 }, async () => {
-        throw new Error('HTTP 503');
+      checkBudgetBeforeCall(guard, CALL, async () => {
+        throw new Error('falha a ler o corpo depois de HTTP 200');
       }),
-    ).rejects.toThrow('HTTP 503');
-    expect(repo.release).toHaveBeenCalledTimes(2);
+    ).rejects.toThrow('HTTP 200');
+    expect(repo.confirm).toHaveBeenCalledTimes(3);
 
-    // As libertações não contam: ainda cabe 0.5 (1 gasto + 0.5 = 1.5).
-    expect((await checkBudgetBeforeCall(guard, { ...CALL, estimatedCostUsd: 0.5 }, paidSpy(0.5))).allowed).toBe(true);
+    // NotBilledError declara que o pedido não saiu: liberta.
+    await expect(
+      checkBudgetBeforeCall(guard, CALL, async () => {
+        throw new NotBilledError('pedido não enviado');
+      }),
+    ).rejects.toThrow('não enviado');
+    expect(repo.release).toHaveBeenCalledTimes(2);
 
     const s = guard.costSummary();
     expect(s.totals).toMatchObject({
-      reserved_count: 4,
-      spent_count: 2,
-      spent_usd: 1.5,
+      reserved_count: 5,
+      spent_count: 3,
+      spent_usd: 3,
       released_count: 2,
-      released_usd: 1,
+      released_usd: 2,
       pending_count: 0,
       refused_count: 0,
     });
@@ -159,7 +168,7 @@ describe('checkBudgetBeforeCall — liquidação', () => {
       release: inner.release.bind(inner),
     };
     const guard = new BudgetGuard(repo, { log, newRunKey });
-    const r = await checkBudgetBeforeCall(guard, CALL, paidSpy(1));
+    const r = await checkBudgetBeforeCall(guard, CALL, paidSpy());
     expect(r.allowed).toBe(true);
     expect(log.error).toHaveBeenCalledTimes(1);
     expect(guard.costSummary().totals).toMatchObject({ pending_count: 1, pending_usd: 1, spent_count: 0 });
@@ -167,8 +176,8 @@ describe('checkBudgetBeforeCall — liquidação', () => {
 
   it('resumo por fornecedor e call_type', async () => {
     const guard = new BudgetGuard(new InMemoryBudgetRepo(cfg()), { log: quietLog(), newRunKey, mode: 'memory' });
-    await checkBudgetBeforeCall(guard, { ...CALL, estimatedCostUsd: 0.032 }, paidSpy(0.032));
-    await checkBudgetBeforeCall(guard, { ...CALL, callType: 'place_details_enriched', estimatedCostUsd: 0.017 }, paidSpy(0.017));
+    await checkBudgetBeforeCall(guard, { ...CALL, estimatedCostUsd: 0.032 }, paidSpy());
+    await checkBudgetBeforeCall(guard, { ...CALL, callType: 'place_details_enriched', estimatedCostUsd: 0.017 }, paidSpy());
     const s = guard.costSummary();
     expect(s.budget_mode).toBe('memory');
     expect(s.by_provider_call_type.map((l) => [l.call_type, l.spent_usd])).toEqual([
@@ -190,7 +199,7 @@ describe('alertas 50/80/100%', () => {
     const log = quietLog();
     const guard = new BudgetGuard(new InMemoryBudgetRepo(cfg({ monthly_budget_usd: 10 })), { log, newRunKey });
     // 10 chamadas de 1 USD: 50% na 5.ª, 80% na 8.ª, 100% na 10.ª; a 11.ª é recusada.
-    for (let i = 0; i < 11; i++) await checkBudgetBeforeCall(guard, CALL, paidSpy(1));
+    for (let i = 0; i < 11; i++) await checkBudgetBeforeCall(guard, CALL, paidSpy());
     const month = alerts(log).filter((a) => a.scope === 'month');
     expect(month.map((a) => a.threshold)).toEqual([0.5, 0.8, 1]);
     expect(month[0]).toMatchObject({ provider: 'google_places', scope: 'month', spent: 5, budget: 10, pct: 50 });
@@ -202,8 +211,8 @@ describe('alertas 50/80/100%', () => {
       new InMemoryBudgetRepo(cfg({ monthly_budget_usd: 100, daily_budget_usd: 10, per_run_budget_usd: 2 })),
       { log, newRunKey },
     );
-    await checkBudgetBeforeCall(guard, CALL, paidSpy(1)); // run 50%
-    await checkBudgetBeforeCall(guard, CALL, paidSpy(1)); // run 100% (80 e 100)
+    await checkBudgetBeforeCall(guard, CALL, paidSpy()); // run 50%
+    await checkBudgetBeforeCall(guard, CALL, paidSpy()); // run 100% (80 e 100)
     const run = alerts(log).filter((a) => a.scope === 'run').map((a) => a.threshold);
     expect(run).toEqual([0.5, 0.8, 1]);
     expect(alerts(log).filter((a) => a.scope === 'day')).toHaveLength(0); // 20% do dia
@@ -211,7 +220,7 @@ describe('alertas 50/80/100%', () => {
 
     // Nova execução: o âmbito 'run' volta a alertar (período novo).
     guard.startRun();
-    await checkBudgetBeforeCall(guard, CALL, paidSpy(1));
+    await checkBudgetBeforeCall(guard, CALL, paidSpy());
     expect(alerts(log).filter((a) => a.scope === 'run')).toHaveLength(4);
   });
 });

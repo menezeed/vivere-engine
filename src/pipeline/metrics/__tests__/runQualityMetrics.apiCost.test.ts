@@ -23,7 +23,7 @@ describe('runQualityMetrics — api_cost', () => {
     await checkBudgetBeforeCall(
       guard,
       { provider: 'google_places', callType: 'text_search', estimatedCostUsd: 0.032 },
-      async () => ({ value: null, costUsd: 0.032 }),
+      async () => ({ value: null, billable: 'yes' as const }),
     );
     const report = computeRunQualityMetrics([], { generatedAt: GENERATED_AT, apiCost: guard.costSummary() });
     expect(report.api_cost?.totals.spent_usd).toBe(0.032);

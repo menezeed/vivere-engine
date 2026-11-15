@@ -1,7 +1,7 @@
 import { logger } from '../../lib/logger';
-import { BudgetGuard, checkBudgetBeforeCall, toBudgetGuard, type BudgetRepo } from '../../lib/budgetGuard';
+import { BudgetGuard, BudgetRefusedError, toBudgetGuard, type BudgetRepo, type PaidAttemptGate } from '../../lib/budgetGuard';
 import { buildQueriesForProduct, findRegion, type GooglePlacesProductConfig, type PlaceSearchQuery } from './config/GooglePlacesProductConfig';
-import { ESTIMATED_COST_PER_CALL, GooglePlacesApiClient, type GooglePlaceRaw, type GooglePlaceEnriched } from './GooglePlacesApiClient';
+import { GooglePlacesApiClient, type GooglePlaceRaw, type GooglePlaceEnriched } from './GooglePlacesApiClient';
 import type { RawVenueItem, VenueCollectorError, VenueCollectorResult } from '../../types/RawVenueItem';
 
 export interface GooglePlacesCollectorOptions {
@@ -29,7 +29,11 @@ export class GooglePlacesCollector {
     private readonly productConfig: GooglePlacesProductConfig,
   ) {
     this.budgetGuard = toBudgetGuard(budget);
+    this.gate = this.budgetGuard.attemptGate(this.sourceKey);
   }
+
+  /** Portão de orçamento por tentativa HTTP (fornecedor google_places). */
+  private readonly gate: PaidAttemptGate;
 
   async collect(options: GooglePlacesCollectorOptions = {}): Promise<VenueCollectorResult> {
     const allQueries = buildQueriesForProduct(this.productConfig);
@@ -48,36 +52,30 @@ export class GooglePlacesCollector {
     for (const query of queries) {
       try {
         const region = findRegion(this.productConfig, query.region_key);
-        // Reserva → chamada → confirm/release. Recusada: a API não é chamada.
-        const budgeted = await checkBudgetBeforeCall(
-          this.budgetGuard,
-          {
-            provider: 'google_places',
-            callType: 'text_search',
-            estimatedCostUsd: ESTIMATED_COST_PER_CALL.text_search_basic,
-          },
-          async () => {
-            const r = await this.apiClient.textSearch({
+        // Cada tentativa HTTP do cliente reserva antes de enviar (gate);
+        // recusa → BudgetRefusedError e nenhuma tentativa (seguinte) é enviada.
+        let places: GooglePlaceRaw[];
+        try {
+          const r = await this.apiClient.textSearch(
+            {
               query: query.query_text,
               lat: region.lat,
               lng: region.lng,
               radiusMeters: region.radius_m,
-            });
-            return { value: r.places, costUsd: r.costUsd };
-          },
-        );
-
-        if (!budgeted.allowed) {
+            },
+            this.gate,
+          );
+          places = r.places;
+          totalCostUsd += r.costUsd;
+        } catch (err) {
+          if (!(err instanceof BudgetRefusedError)) throw err;
           logger.warn(
-            { query: query.query_text, reason: budgeted.reason },
+            { query: query.query_text, reason: err.reason, attemptsSent: err.attemptsSent },
             'query pulada — orçamento da Google Places API esgotado',
           );
           queriesSkippedBudget++;
           continue;
         }
-
-        const places = budgeted.value;
-        totalCostUsd += budgeted.costUsd;
         queriesExecuted++;
         placesFoundRaw += places.length;
 
@@ -133,31 +131,21 @@ export class GooglePlacesCollector {
     // em staging.venues_staging é suprimida (ver scripts/dry-run, não
     // este Collector).
     for (const item of dedupedItems) {
-      // getEnrichedDetails devolve costUsd 0 quando falha → a reserva é libertada.
-      const enriched = await checkBudgetBeforeCall(
-        this.budgetGuard,
-        {
-          provider: 'google_places',
-          callType: 'place_details_enriched',
-          estimatedCostUsd: ESTIMATED_COST_PER_CALL.place_details_enriched,
-        },
-        async () => {
-          const r = await this.apiClient.getEnrichedDetails(item.source_item_id);
-          return { value: r.details, costUsd: r.costUsd };
-        },
-      );
+      // As tentativas são liquidadas no portão (gate) pelo próprio cliente;
+      // uma falha depois de enviar continua a contar como gasto.
+      const enriched = await this.apiClient.getEnrichedDetails(item.source_item_id, this.gate);
+      totalCostUsd += enriched.costUsd;
 
-      if (!enriched.allowed) {
+      if (enriched.budgetRefusedReason) {
         logger.warn(
-          { placeId: item.source_item_id, reason: enriched.reason },
+          { placeId: item.source_item_id, reason: enriched.budgetRefusedReason },
           'enriquecimento pulado — orçamento esgotado, item segue sem telefone/site/horário',
         );
         continue;
       }
 
-      totalCostUsd += enriched.costUsd;
-      if (enriched.value) {
-        this.applyEnrichment(item, enriched.value);
+      if (enriched.details) {
+        this.applyEnrichment(item, enriched.details);
       }
     }
 

@@ -7,7 +7,7 @@ import {
 } from '../../lib/budgetGuard';
 
 /**
- * BudgetRepo persistente (L5, migração 0026): chama as RPC atómicas de
+ * BudgetRepo persistente (L5, migração 0028): chama as RPC atómicas de
  * staging. Recebe o cliente único (getSupabaseClient → envGuard); nunca
  * cria um cliente próprio.
  *
@@ -17,7 +17,7 @@ import {
  * para o tecto (lado seguro).
  */
 
-/** Linha devolvida por staging.reserve_api_budget (0026). */
+/** Linha devolvida por staging.reserve_api_budget (0028). */
 interface ReserveRow {
   allowed: boolean | null;
   reason: string | null;
