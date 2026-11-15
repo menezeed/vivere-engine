@@ -1098,3 +1098,40 @@ describe('ActivityPublisher — gate G2 requireVenueForNew', () => {
     for (const c of ctors) expect(c).toContain('requireVenueForNew: { venueHasCoordinates: await makeVenueCoordinatesChecker() }');
   });
 });
+
+// 15/11/2026 (revisão r0 #28, BAIXO): limitação operacional documentada —
+// uma actividade pontual JÁ publicada (recurrence_time NULL no público) e sem
+// alteração posterior em staging continua skip_not_dirty: o deploy não
+// preenche a hora sozinho. Só uma nova publicação elegível (staging alterado
+// depois de last_published_at) ou uma correcção pontual do registo o fazem.
+describe('ActivityPublisher — hora de eventos pontuais já publicados', () => {
+  it('não-dirty: nenhum update (a hora NULL antiga fica até nova publicação elegível)', async () => {
+    const publicId = 'activity-published-no-time' as PublicActivityId;
+    const activity = makeActivity({
+      sourceItemId: 'corrida-like-001', promotedActivityId: publicId,
+      stagingUpdatedAt: new Date('2026-07-01T00:00:00.000Z'),
+      occurrences: [{ date: '2026-08-01', time: '06:00', endDate: null, endTime: null }],
+    });
+    const publicationState = vi.fn().mockResolvedValue(makeState(publicId, new Date('2026-07-02T00:00:00.000Z')));
+    const { publishableActivity, publicActivity, eventRepo } = makeRepos({ findDirty: [activity], publicationState });
+    const publisher = new ActivityPublisher(publishableActivity, publicActivity, eventRepo, () => NOW);
+    const [decision] = await publisher.preview(PRODUCT_KEY);
+    expect(decision!.action).toBe('skip_not_dirty');
+    await publisher.publish(PRODUCT_KEY, RUN_ID);
+    expect(publicActivity.update).not.toHaveBeenCalled();
+  });
+
+  it('dirty: o update leva a hora da ocorrência (06:00)', async () => {
+    const publicId = 'activity-published-dirty' as PublicActivityId;
+    const activity = makeActivity({
+      sourceItemId: 'corrida-like-002', promotedActivityId: publicId,
+      stagingUpdatedAt: new Date('2026-07-05T00:00:00.000Z'),
+      occurrences: [{ date: '2026-08-01', time: '06:00', endDate: null, endTime: null }],
+    });
+    const publicationState = vi.fn().mockResolvedValue(makeState(publicId, new Date('2026-07-02T00:00:00.000Z')));
+    const { publishableActivity, publicActivity, eventRepo } = makeRepos({ findDirty: [activity], publicationState });
+    await new ActivityPublisher(publishableActivity, publicActivity, eventRepo, () => NOW).publish(PRODUCT_KEY, RUN_ID);
+    const [, adapted] = (publicActivity.update as ReturnType<typeof vi.fn>).mock.calls[0]!;
+    expect(adapted.recurrenceTime).toBe('06:00');
+  });
+});
