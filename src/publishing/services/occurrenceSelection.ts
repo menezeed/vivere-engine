@@ -9,19 +9,42 @@
  * ocorrência cuja data/hora seja >= asOf. `asOf` é sempre injectado pelo
  * chamador — nunca lido de new Date()/Date.now() aqui.
  *
- * Nota em aberto (não coberta pela ADR-0020, assumida por falta de
- * especificação): date+time são combinados como UTC puro
- * (`${date}T${time}:00Z`). occurrences não tem informação de fuso-horário na
- * origem (raw_activity_items). Se os horários forem horário local de Cabo
- * Frio (America/Sao_Paulo, UTC-3), a comparação com asOf pode desviar até 3h
- * perto de meia-noite — irrelevante para a cadência diária de publish.ts,
- * mas fica registado para quando o produto expandir para fusos diferentes.
+ * 15/11/2026 — fuso horário (correcção da "nota em aberto" anterior):
+ * date/time das occurrences são hora LOCAL das fontes (prefeituras do RJ,
+ * America/Sao_Paulo, UTC−3 fixo desde o fim do horário de verão em 2019).
+ *
+ *  - COMPARAÇÃO com asOf (o que decide futuro/expirado, ADR-0020): usa o
+ *    instante real, `${date}T${time}:00-03:00`. Antes era `…Z`, e um evento
+ *    às 06:00 locais era dado como passado às 03:01 locais (3 h cedo).
+ *    Ocorrência só com data (time null) conta até ao FIM desse dia local
+ *    (23:59:59−03:00): antes expirava às 21:00 locais da véspera.
+ *  - ARMAZENAMENTO (occurrenceToDateRange → start_date/end_date): mantém a
+ *    convenção existente, hora local com sufixo Z. O app usa
+ *    start_date.slice(0,10) e a vista active_activities compara a data com
+ *    current_date; gravar o instante UTC real mudaria a data de eventos
+ *    depois das 21:00 locais. Não alterado aqui de propósito.
  */
 
 import type { ActivityOccurrence } from '../types/domain.js';
 
-/** Combina date + time (ou meia-noite, se time for null) num Date UTC. */
-function occurrenceDateTime(occurrence: ActivityOccurrence): Date {
+/** Deslocamento UTC da hora local das fontes actuais (America/Sao_Paulo, sem horário de verão). */
+export const SOURCE_LOCAL_UTC_OFFSET = '-03:00';
+
+/**
+ * Instante REAL em que a ocorrência deixa de ser futura (só para comparar
+ * com asOf). Com hora: início local. Só data: fim do dia local.
+ */
+export function occurrenceComparisonInstant(occurrence: ActivityOccurrence): Date {
+  return occurrence.time === null
+    ? new Date(`${occurrence.date}T23:59:59${SOURCE_LOCAL_UTC_OFFSET}`)
+    : new Date(`${occurrence.date}T${occurrence.time}:00${SOURCE_LOCAL_UTC_OFFSET}`);
+}
+
+/**
+ * Valor GRAVADO em start_date: hora local com sufixo Z (convenção do app e
+ * da vista active_activities — ver cabeçalho). Meia-noite se time for null.
+ */
+function storedDateTime(occurrence: ActivityOccurrence): Date {
   const time = occurrence.time ?? '00:00';
   return new Date(`${occurrence.date}T${time}:00Z`);
 }
@@ -37,7 +60,7 @@ export function selectNextOccurrence(
   asOf: Date,
 ): ActivityOccurrence | null {
   const future = occurrences
-    .map(occurrence => ({ occurrence, dateTime: occurrenceDateTime(occurrence) }))
+    .map(occurrence => ({ occurrence, dateTime: occurrenceComparisonInstant(occurrence) }))
     .filter(entry => entry.dateTime.getTime() >= asOf.getTime())
     .sort((a, b) => a.dateTime.getTime() - b.dateTime.getTime());
 
@@ -47,7 +70,7 @@ export function selectNextOccurrence(
 /** Combina uma ActivityOccurrence já seleccionada em start_date/end_date (Date | null). */
 export function occurrenceToDateRange(occurrence: ActivityOccurrence): { startDate: Date; endDate: Date | null } {
   return {
-    startDate: occurrenceDateTime(occurrence),
+    startDate: storedDateTime(occurrence),
     endDate:   occurrence.endDate
       ? new Date(`${occurrence.endDate}T${occurrence.endTime ?? '00:00'}:00Z`)
       : null,
