@@ -186,6 +186,29 @@ describe('revisão r0 do PR #24', () => {
     expect(dates('A 1.ª edição foi em 10 de janeiro. A próxima será em 14 de fevereiro.', dez)).toEqual([['2027-02-14', null, 'day_month']]);
   });
 
+  it('r1: ponto de abreviatura ou de inicial NÃO corta a frase (o "foi realizado" antes continua a contar)', () => {
+    expect(dates('O concerto foi realizado no Centro Dr. João em 10 de janeiro, às 19h.', dez)).toEqual([]);
+    expect(dates('A feira foi montada na Av. Brasil em 10 de janeiro.', dez)).toEqual([]);
+    expect(dates('O recital foi conduzido por J. Silva em 10 de janeiro.', dez)).toEqual([]);
+    // sem passado, as mesmas abreviaturas não impedem a inferência
+    expect(dates('O concerto será no Centro Dr. João em 10 de janeiro.', dez)).toEqual([['2027-01-10', null, 'day_month']]);
+    // fim de frase verdadeiro continua a separar o passado do futuro
+    expect(dates('O festival aconteceu no Centro. A próxima edição será em 10 de janeiro.', dez)).toEqual([['2027-01-10', null, 'day_month']]);
+  });
+
+  it('r1: marcador de futuro ANTES da data faz ignorar verbos de passado DEPOIS da data', () => {
+    expect(dates('O concerto será em 10 de janeiro, conforme anunciou o grupo que participou no festival.', dez)).toEqual([
+      ['2027-01-10', null, 'day_month'],
+    ]);
+  });
+
+  it('r1: LIMITE ASSUMIDO — sem marcador de futuro, um verbo de passado em qualquer ponto da frase tira a data', () => {
+    // Troca precisão/cobertura: o verbo "participou" refere-se a outra coisa,
+    // mas a guarda não faz análise sintáctica; preferimos perder esta data a
+    // arriscar transformar uma retrospectiva num evento futuro (ADR-0003).
+    expect(dates('O concerto, anunciado pelo grupo que participou no festival, é em 10 de janeiro.', dez)).toEqual([]);
+  });
+
   it('2. ano explícito não depende do contexto de passado', () => {
     expect(dates('O concerto foi realizado em 10 de janeiro de 2026.', dez)).toEqual([['2026-01-10', null, 'full']]);
   });

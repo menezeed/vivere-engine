@@ -12,6 +12,7 @@
      - **Mês em falta** ("sexta (26)", "quinta-feira, dia 22"): só com dia da semana. Testam-se o mês anterior, o actual e o seguinte, e só conta a data cujo dia da semana coincide (a no máximo 45 dias da publicação). Substitui a regra antiga, que usava sempre o mês da publicação e errava perto da viragem do mês.
      - **Na prosa (camada narrativa)**, uma data com ano ou mês inferido só conta se for posterior ao dia de publicação. Prazos ("até o dia 8 de novembro") nunca contam como data de ocorrência.
      - Listas de dias ("10, 11 e 12 de outubro") e várias datas diferentes para o mesmo evento continuam sem data.
+     - **Retrospectivas:** se a frase da data tiver um verbo de passado explícito ("foi realizado", "aconteceu", "participou"…), o ano e o mês não são inferidos. Limite assumido: a regra não faz análise sintáctica. Um anúncio futuro que mencione um passado sem relação com a data ("…é em 10 de janeiro, anunciado pelo grupo que participou no festival") fica sem data. A excepção é um marcador de futuro antes da data ("será", "acontecerá"…), que faz ignorar os verbos de passado depois dela.
   4. **Respeitar bloqueios.** Os portais com WAF ou `Disallow: /` não são contornados.
 
 ## Escala de viabilidade

@@ -85,13 +85,71 @@ const PAST_CONTEXT = new RegExp(
   'iu',
 );
 
-/** Frase (entre . ! ? ; ou quebra de linha) que contém [start, end). */
-function sentenceAround(text: string, start: number, end: number): string {
-  const before = text.slice(0, start);
-  const from = Math.max(before.lastIndexOf('.'), before.lastIndexOf('!'), before.lastIndexOf('?'), before.lastIndexOf(';'), before.lastIndexOf('\n')) + 1;
-  const afterMatch = /[.!?;\n]/.exec(text.slice(end));
-  const to = afterMatch ? end + afterMatch.index : text.length;
-  return text.slice(from, to);
+/**
+ * Marcador de FUTURO explícito ("será", "acontecerá", "vai acontecer"…).
+ * Se aparecer na frase ANTES da data, os verbos de passado que vierem
+ * DEPOIS da data são ignorados ("O concerto será em 10 de janeiro,
+ * conforme anunciou o grupo que participou no festival"). Os verbos de
+ * passado antes da data contam sempre.
+ */
+const FUTURE_MARKER = new RegExp(
+  '(?<![\\p{L}])(?:será|serão|acontecerá|acontecerão|ocorrerá|ocorrerão|vai\\s+acontecer|vão\\s+acontecer|terá\\s+início|terão\\s+início)(?![\\p{L}])',
+  'iu',
+);
+
+/** Abreviaturas cujo ponto NÃO termina a frase ("Centro Dr. João", "Av. Brasil"). */
+const ABBREVIATIONS = new Set([
+  'dr', 'dra', 'sr', 'sra', 'srta', 'prof', 'profa', 'av', 'r', 'rod', 'pç', 'pça', 'est', 'jd', 'vl', 'pq',
+  'sto', 'sta', 'nº', 'n', 'cel', 'gen', 'ten', 'cap', 'eng', 'arq', 'ltda', 'cia', 'etc', 'aprox', 'tel', 'km',
+]);
+
+/**
+ * O carácter em `i` termina uma frase? "!", "?", ";" e quebra de linha
+ * sempre; "." só se NÃO vier depois de uma abreviatura conhecida nem de
+ * um token de 1–2 letras (iniciais: "J. Silva"), e se NÃO for seguido de
+ * minúscula, dígito ou carácter não-espaço colado ("1.ª", "3.281",
+ * "site.gov.br"). Na dúvida, não corta — junta mais texto à frase, o que
+ * só torna a guarda de passado mais conservadora.
+ */
+function isSentenceEnd(text: string, i: number): boolean {
+  const ch = text[i];
+  if (ch === '!' || ch === '?' || ch === ';' || ch === '\n') return true;
+  if (ch !== '.') return false;
+  const next = text.slice(i + 1).match(/^(\s*)(\S?)/u)!;
+  if (next[1]!.length === 0 && next[2] !== '') return false;           // colado: "1.ª", "3.281"
+  if (next[2] && /[\p{Ll}\d]/u.test(next[2])) return false;          // seguido de minúscula ou dígito
+  const token = /([\p{L}º]+)$/u.exec(text.slice(Math.max(0, i - 12), i))?.[1] ?? '';
+  if (token.length > 0 && token.length <= 2) return false;           // inicial / token curto
+  if (ABBREVIATIONS.has(token.toLowerCase())) return false;
+  return true;
+}
+
+/** Frase que contém [start, end), com fronteiras dadas por isSentenceEnd. */
+function sentenceBounds(text: string, start: number, end: number): { from: number; to: number } {
+  let from = 0;
+  for (let i = start - 1; i >= 0; i--) {
+    if (isSentenceEnd(text, i)) {
+      from = i + 1;
+      break;
+    }
+  }
+  let to = text.length;
+  for (let i = end; i < text.length; i++) {
+    if (isSentenceEnd(text, i)) {
+      to = i;
+      break;
+    }
+  }
+  return { from, to };
+}
+
+/** A frase da menção [start, end) tem contexto de passado explícito? (ver FUTURE_MARKER) */
+function hasPastContext(text: string, start: number, end: number): boolean {
+  const { from, to } = sentenceBounds(text, start, end);
+  const beforeDate = text.slice(from, start);
+  if (PAST_CONTEXT.test(beforeDate)) return true;
+  if (FUTURE_MARKER.test(beforeDate)) return false;
+  return PAST_CONTEXT.test(text.slice(start, to));
 }
 
 export interface DateMention {
@@ -280,7 +338,7 @@ export function scanDateMentionsPt(text: string, reference: Date, options: DateS
       inconsistencies.push({ matchedText: matched, reason: 'year_not_evident' });
       return false;
     }
-    return !PAST_CONTEXT.test(sentenceAround(text, start, end));
+    return !hasPastContext(text, start, end);
   };
 
   const checkWeekday = (iso: string, start: number, end: number, matched: string): boolean => {
