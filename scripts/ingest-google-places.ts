@@ -44,7 +44,7 @@ import { InMemoryBudgetRepo } from '../src/lib/budgetGuard';
 import { VIVERE_60_MAIS_GOOGLE_PLACES_CONFIG } from '../src/collectors/google-places/config/vivere-60-mais';
 import { VIVERE_60_MAIS_VENUE_FILTER_RULES } from '../src/pipeline/stages/00-filter-venue/products/vivere-60-mais';
 import { IngestionOrchestrator } from '../src/persistence/orchestration/IngestionOrchestrator';
-import { RepositoryFactory } from '../src/persistence/orchestration/RepositoryFactory';
+import { reposForRun } from '../src/persistence/orchestration/reposForRun';
 import { logger } from '../src/lib/logger';
 import { resolveRegionFilter } from '../src/lib/resolveRegionFilter';
 import type { GooglePlacesProductConfig } from '../src/collectors/google-places/config/GooglePlacesProductConfig';
@@ -88,14 +88,14 @@ export function resolveIngestArgs(argv: readonly string[], baseConfig: GooglePla
   };
 }
 
-async function main() {
+export async function main(argv: readonly string[] = process.argv) {
   const apiKey = process.env.GOOGLE_PLACES_API_KEY;
   if (!apiKey) {
     logger.error('GOOGLE_PLACES_API_KEY não definida');
     process.exit(1);
   }
 
-  const resolution = resolveIngestArgs(process.argv, VIVERE_60_MAIS_GOOGLE_PLACES_CONFIG);
+  const resolution = resolveIngestArgs(argv, VIVERE_60_MAIS_GOOGLE_PLACES_CONFIG);
 
   if (!resolution.ok) {
     logger.error(
@@ -128,7 +128,8 @@ async function main() {
   });
   const collector = new GooglePlacesCollector(apiClient, budgetRepo, productConfig);
 
-  const repos = await RepositoryFactory.forSupabase();
+  // dry-run: sem cliente Supabase nem repositórios; modo real: forSupabase → envGuard.
+  const repos = await reposForRun(dryRun);
   const orchestrator = new IngestionOrchestrator(repos);
 
   const startedAt = Date.now();
