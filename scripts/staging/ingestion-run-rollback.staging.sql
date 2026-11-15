@@ -22,7 +22,9 @@
 --   R5 há registos de gasto (staging.api_usage_log, 0028) ligados à run — o
 --      registo de gasto é só de acréscimo e não se apaga;
 --   R6 a run ainda está 'running' (ingestão a decorrer): bloqueia a linha
---      da run (FOR UPDATE) e recusa.
+--      da run (FOR UPDATE) e recusa;
+--   R7 há uma publication run em running; e bloqueia (SHARE MODE) o início
+--      de publicações novas até ao fim da transacção.
 --
 -- Ordem (grafo de FKs do staging lido do catálogo a 15/11/2026):
 --   venue_resolution_candidates → activities_staging → venues_staging
@@ -37,7 +39,7 @@ declare
 
   n_raw_a int; n_raw_v int; n_act int; n_ven int; n_cand int;
   n_prom_a int; n_prom_v int; n_dec int; n_ext int; n_usage int := 0;
-  v_rel text; v_status text;
+  v_rel text; v_status text; n_pub int := 0;
 begin
   if v_confirm is distinct from 'staging' then
     raise exception 'RECUSA: v_confirm tem de ser staging (confirmar o projecto no URL do Dashboard)';
@@ -53,6 +55,19 @@ begin
     select id from staging.raw_activity_items where ingestion_run_id = v_run;
   create temp table _rb_raw_v on commit drop as
     select id from staging.raw_venue_items where ingestion_run_id = v_run;
+  -- Revisão r1 (exclusão com o publisher): toda a publicação começa por
+  -- INSERT em public.publication_runs (PublishingEngine.publish → run.start)
+  -- ANTES de escrever em public.*. SHARE MODE nessa tabela faz qualquer
+  -- publicação nova esperar até este rollback terminar; uma publicação já a
+  -- decorrer (status 'running') é recusada (R7).
+  if pg_catalog.to_regclass('public.publication_runs') is not null then
+    lock table public.publication_runs in share mode;
+    select count(*) into n_pub from public.publication_runs where status = 'running';
+    if n_pub > 0 then
+      raise exception 'RECUSA R7: % publication run(s) em running — esperar que terminem (ou, se forem restos de um processo morto, marcá-las como failed) e repetir', n_pub;
+    end if;
+  end if;
+
   -- Revisão r0 (concorrência): bloquear as linhas-alvo ANTES de as ler e de
   -- verificar R2–R4. FOR UPDATE nas activities/venues da run:
   --  - uma publicação que queira gravar promoted_*_id espera por nós (R2);
