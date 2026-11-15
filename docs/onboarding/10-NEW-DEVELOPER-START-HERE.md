@@ -129,7 +129,7 @@ or paid work, an ADR (suggested ADR-0025) must be approved.
 7. Review UI changes to show AI evidence before AI items reach reviewers (`06` Q10).
 8. Cross-source duplicates between AI items and existing WordPress items (`06` B.6).
 9. Fix for Review API read access by any authenticated user (`09` SEC-A) before exposing more data.
-   **Status:** fixed locally (branch `fix/sec-a-review-api-authz`), **not yet merged or deployed**.
+   **Status:** merged into `main` (PR #7, merge `7e71890`), **not yet validated in a deployment**.
    Before deploying, every review account needs `app_metadata.role`, or it will get `403`.
 
 ## 11. Audit notes (2026-10-10)

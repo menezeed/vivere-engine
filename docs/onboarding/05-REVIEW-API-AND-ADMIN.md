@@ -19,28 +19,30 @@ No secret values appear in this document. Environment variables are referenced b
 
 All `/api/*` routes require `Authorization: Bearer <Supabase access token>`.
 
-> **SEC-A — fixed locally, not yet merged or deployed** (branch `fix/sec-a-review-api-authz`).
-> With the fix, "any authenticated" below becomes "`viewer`, `reviewer` or `admin` explicitly set in
-> `app_metadata.role`": a valid token without such a role gets `403`. Write routes keep the same roles.
-> Until the branch is merged and deployed, the running API behaves as described in this table.
+> **SEC-A — merged into `main` (PR #7, merge `7e71890`), not yet validated in a deployment.**
+> The table describes `main`. "`viewer+`" means `viewer`, `reviewer` or `admin` explicitly set in
+> `app_metadata.role`; a valid token without such a role gets `403`. Write routes keep the same roles.
+> In a deployment that predates SEC-A, every read route accepted any authenticated user (role defaulted to
+> `viewer`). Before validating the deployment, every review account needs `app_metadata.role` in the
+> target project.
 
-| Method | Path | Role required (enforced in service layer) | Purpose |
+| Method | Path | Role required (`app.ts` at the entry; write routes also in the service layer) | Purpose |
 |---|---|---|---|
 | GET | `/health` | none | `{status, service, version, env}` |
-| GET | `/api/venues` | any authenticated (defaults to `viewer`) | List `venues_staging` (+ raw JOIN). Query: `page`, `pageSize`, `search`, `status`, `product_key`, `city`, `category`, `source`, `geographic_status`, `sort`, `order` |
-| GET | `/api/venues/:id` | any authenticated | Detail incl. `raw_payload` |
+| GET | `/api/venues` | `viewer+` | List `venues_staging` (+ raw JOIN). Query: `page`, `pageSize`, `search`, `status`, `product_key`, `city`, `category`, `source`, `geographic_status`, `sort`, `order` |
+| GET | `/api/venues/:id` | `viewer+` | Detail incl. `raw_payload` |
 | PATCH | `/api/venues/:id/approve` | `reviewer`, `admin` | `pending_review → approved` |
 | PATCH | `/api/venues/:id/reject` | `reviewer`, `admin` | `pending_review|approved → rejected` |
 | PATCH | `/api/venues/:id/promote` | `admin` | `approved → promoted` (staging only) |
-| GET | `/api/activities` | any authenticated | List `activities_staging`. Query: `page`, `pageSize`, `search`, `status`, `product_key`, `venue_resolution`, `source`, `sort`, `order` |
-| GET | `/api/activities/:id` | any authenticated | Detail incl. `raw_payload`, `occurrences` |
+| GET | `/api/activities` | `viewer+` | List `activities_staging`. Query: `page`, `pageSize`, `search`, `status`, `product_key`, `venue_resolution`, `source`, `sort`, `order` |
+| GET | `/api/activities/:id` | `viewer+` | Detail incl. `raw_payload`, `occurrences` |
 | PATCH | `/api/activities/:id/approve` \| `reject` \| `promote` | as for venues | same state machine |
-| GET | `/api/ingestion-runs?limit=` | any authenticated | Latest runs (default 20) |
-| GET | `/api/stats?product_key=` | any authenticated | `PlatformStats`; `product_key` **required** (400 otherwise) |
-| GET | `/api/entity-resolution/health?product_key=` | any authenticated | 503 when health is `critical` |
-| GET | `/api/entity-resolution/queue?product_key=&status=&page=&pageSize=` | any authenticated | ER review queue |
-| GET | `/api/entity-resolution/stats?product_key=` | any authenticated | ER stats |
-| GET | `/api/entity-resolution/:activityId/candidates` | any authenticated | Candidates for an activity |
+| GET | `/api/ingestion-runs?limit=` | `viewer+` | Latest runs (default 20) |
+| GET | `/api/stats?product_key=` | `viewer+` | `PlatformStats`; `product_key` **required** (400 otherwise) |
+| GET | `/api/entity-resolution/health?product_key=` | `viewer+` | 503 when health is `critical` |
+| GET | `/api/entity-resolution/queue?product_key=&status=&page=&pageSize=` | `viewer+` | ER review queue |
+| GET | `/api/entity-resolution/stats?product_key=` | `viewer+` | ER stats |
+| GET | `/api/entity-resolution/:activityId/candidates` | `viewer+` | Candidates for an activity |
 | PATCH | `/api/entity-resolution/:activityId/accept` body `{candidateId, notes?}` | `reviewer`, `admin` | Records `matched` decision |
 | PATCH | `/api/entity-resolution/:activityId/override` body `{candidateId, notes}` (notes required) | `reviewer`, `admin` | Same as accept, flags `overrode_high_confidence` when appropriate |
 | PATCH | `/api/entity-resolution/:activityId/propose-new` body `{notes?}` | `admin` | Records `proposed_new` decision |
@@ -56,10 +58,11 @@ There is **no endpoint to create, edit or delete** staging rows, and **no endpoi
 1. Reads `Authorization: Bearer`.
 2. Fetches `${SUPABASE_URL}/auth/v1/.well-known/jwks.json` once per process and caches **the first key**
    (`jwks.keys[0]`), imported as ECDSA P-256.
-3. Verifies the ES256 signature with Web Crypto and checks `exp`.
-4. Role = `payload.app_metadata.role`, **defaulting to `viewer`** when absent.
-   *SEC-A fix (local, not yet merged or deployed):* no default — a missing or invalid role, a role only
-   in `user_metadata`, or `is_anonymous: true` → `403`; a token without `exp` → `401`.
+3. Verifies the ES256 signature with Web Crypto; `exp` is mandatory (missing, invalid, expired token
+   or no `exp` → `401`).
+4. Role = `payload.app_metadata.role` (`resolveAuthUser`), **with no default**: a missing or invalid
+   role, a role only in `user_metadata`, a missing `sub`, or `is_anonymous: true` → `403`.
+   In a deployment that predates SEC-A, the role defaulted to `viewer` when absent.
 
 Not checked: `aud`, `iss`, `alg`/`kid` header, `nbf`. Key rotation requires a process restart.
 
@@ -71,12 +74,12 @@ Not checked: `aud`, `iss`, `alg`/`kid` header, `nbf`. Key rotation requires a pr
 
 - `ACTION_ROLES` (`src/review-api/types/reviewTypes.ts`): approve/reject → `reviewer`, `admin`; promote → `admin`.
 - `ER_ACTION_ROLES` (`EntityResolutionService.ts`): accept/override → `reviewer`, `admin`; proposeNew → `admin`.
-- `requireRole()` exists in `auth.ts` but is **not used** by any route; role checks are in services.
-- Read endpoints have **no role check**: any valid Supabase user token gets `viewer` access to staging,
-  raw payloads, ingestion runs and stats. See `09-SECURITY-AND-ACCESS.md` (finding SEC-A).
-- *SEC-A fix (local, not yet merged or deployed):* `src/review-api/app.ts` applies `requireRole` at the
-  entry — `viewer`/`reviewer`/`admin` on all `/api/*`, and per PATCH route via `MUTATION_ROLE_MATRIX`,
-  built from the same `ACTION_ROLES` / `ER_ACTION_ROLES`. The service checks stay in place.
+- `src/review-api/app.ts` applies `requireRole` at the entry: `viewer`/`reviewer`/`admin` on all
+  `/api/*` (reads included), and per PATCH route via `MUTATION_ROLE_MATRIX`, built from the same
+  `ACTION_ROLES` / `ER_ACTION_ROLES`. The service checks stay in place (second layer).
+- In a deployment that predates SEC-A, `requireRole()` was not used by any route and read endpoints had
+  **no role check**: any valid Supabase user token got `viewer` access to staging, raw payloads,
+  ingestion runs and stats. See `09-SECURITY-AND-ACCESS.md` (finding SEC-A).
 
 ### 1.4 Review states and transitions
 
@@ -138,11 +141,14 @@ sequenceDiagram
 
 - No Supabase JS client in the panel; raw `fetch` (`src/auth/authClient.ts`, `src/api/client.ts`).
 - No refresh-token handling: when the access token expires the user is sent back to login.
-- `ProtectedRoute` checks only that a user object exists in `localStorage`. Role-based UI hiding
-  (e.g. `canReview`, `isAdmin` in `EntityResolutionPage.tsx`) is cosmetic — the API enforces roles.
-- *SEC-A fix (local, not yet merged or deployed):* no `viewer` fallback in the panel; a user without a
-  valid role sees an "Acesso negado" screen. An API `403` shows a banner/toast and keeps the session —
-  only `401` clears the token and redirects to `/login`.
+- `ProtectedRoute` sends a user without a session to `/login` and a user without a valid role to an
+  "Acesso negado" screen, without calling the API. There is no `viewer` fallback in the panel.
+  Role-based UI hiding (e.g. `canReview`, `isAdmin` in `EntityResolutionPage.tsx`) is cosmetic — the
+  API enforces roles.
+- An API `403` shows a banner/toast and keeps the session; only `401` clears the token and redirects
+  to `/login`. Neither is retried.
+- In a deployment that predates SEC-A, `ProtectedRoute` checked only that a user object existed in
+  `localStorage`, and a user without a role was treated as `viewer`.
 - Services: `ActivityService`, `VenueService`, `EntityResolutionService`, `StatsService` mirror the endpoints above.
 - Promote actions require a confirm dialog (`useReviewMutation` → `ConfirmDialog`).
 
