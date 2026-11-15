@@ -961,3 +961,122 @@ describe('ActivityPublisher — gate de decisão humana para matched', () => {
     expect(metrics.activitiesPublished).toBe(1);
   });
 });
+
+// G2 (15/11/2026): sem venue não há coordenadas; o app mostraria a activity em qualquer raio.
+describe('ActivityPublisher — gate G2 requireVenueForNew', () => {
+  const coords = new Set<string>(['venue-xyz']);
+  const G2_ON = { requireVenueForNew: { venueHasCoordinates: async (id: string) => coords.has(id) } };
+  const proposedNew = () => makeActivity({ resolvedPublicVenueId: null, venueResolutionStatus: 'proposed_new', resolvedVenueStagingId: null });
+
+  it('activity nova proposed_new: skip_no_location, zero escritas e zero eventos', async () => {
+    const { publishableActivity, publicActivity, eventRepo } = makeRepos({ findUnpublished: [proposedNew()] });
+    const publisher = new ActivityPublisher(publishableActivity, publicActivity, eventRepo, () => NOW, undefined, G2_ON);
+
+    const [decision] = await publisher.preview(PRODUCT_KEY);
+    expect(decision!.action).toBe('skip_no_location');
+
+    const metrics = await publisher.publish(PRODUCT_KEY, RUN_ID);
+    expect(publicActivity.insert).not.toHaveBeenCalled();
+    expect(publicActivity.linkToStaging).not.toHaveBeenCalled();
+    expect(eventRepo.record).not.toHaveBeenCalled();
+    expect(metrics.activitiesSkipped).toBe(1);
+    expect(metrics.activitiesPublished).toBe(0);
+    expect(metrics.errors).toBe(0);
+  });
+
+  it('activity nova com venue resolvido continua a ser inserida', async () => {
+    const activity = makeActivity({ resolvedPublicVenueId: 'venue-xyz' as PublicVenueId });
+    const { publishableActivity, publicActivity, eventRepo } = makeRepos({ findUnpublished: [activity] });
+    const publisher = new ActivityPublisher(publishableActivity, publicActivity, eventRepo, () => NOW, undefined, G2_ON);
+    const metrics = await publisher.publish(PRODUCT_KEY, RUN_ID);
+    expect(publicActivity.insert).toHaveBeenCalledTimes(1);
+    expect(metrics.activitiesPublished).toBe(1);
+  });
+
+  it('activity proposed_new JÁ publicada não é afectada pelo gate (update segue o caminho normal)', async () => {
+    const activity = makeActivity({ resolvedPublicVenueId: null, venueResolutionStatus: 'proposed_new', resolvedVenueStagingId: null, stagingUpdatedAt: new Date(NOW.getTime() - 1000) });
+    const { publishableActivity, publicActivity, eventRepo } = makeRepos({
+      findDirty: [activity],
+      publicationState: vi.fn().mockResolvedValue(makeState('activity-old-001' as PublicActivityId, new Date(NOW.getTime() - 60_000))),
+    });
+    const publisher = new ActivityPublisher(publishableActivity, publicActivity, eventRepo, () => NOW, undefined, G2_ON);
+    const [decision] = await publisher.preview(PRODUCT_KEY);
+    expect(decision!.action).toBe('update');
+    await publisher.publish(PRODUCT_KEY, RUN_ID);
+    expect(publicActivity.update).toHaveBeenCalledTimes(1);
+    expect(eventRepo.record).toHaveBeenCalledTimes(1);
+  });
+
+  it('matched nova com venue público SEM coordenadas: skip_no_location (revisão r0)', async () => {
+    const activity = makeActivity({ resolvedPublicVenueId: 'venue-sem-coords' as PublicVenueId });
+    const { publishableActivity, publicActivity, eventRepo } = makeRepos({ findUnpublished: [activity] });
+    const publisher = new ActivityPublisher(publishableActivity, publicActivity, eventRepo, () => NOW, undefined, G2_ON);
+    const metrics = await publisher.publish(PRODUCT_KEY, RUN_ID);
+    expect(publicActivity.insert).not.toHaveBeenCalled();
+    expect(eventRepo.record).not.toHaveBeenCalled();
+    expect(metrics.activitiesSkipped).toBe(1);
+  });
+
+  it('matched cujo venue não foi promovido (resolvedPublicVenueId null): skip_no_location (revisão r1)', async () => {
+    const activity = makeActivity({ resolvedPublicVenueId: null, venueResolutionStatus: 'matched', resolvedVenueStagingId: 'venue-staging-001' as never });
+    const { publishableActivity, publicActivity, eventRepo } = makeRepos({ findUnpublished: [activity] });
+    const checker = vi.fn(async () => true);
+    const publisher = new ActivityPublisher(publishableActivity, publicActivity, eventRepo, () => NOW, undefined, { requireVenueForNew: { venueHasCoordinates: checker } });
+    const [decision] = await publisher.preview(PRODUCT_KEY);
+    expect(decision!.action).toBe('skip_no_location');
+    const metrics = await publisher.publish(PRODUCT_KEY, RUN_ID);
+    expect(publicActivity.insert).not.toHaveBeenCalled();
+    expect(checker).not.toHaveBeenCalled();
+    expect(metrics.activitiesSkipped).toBe(1);
+  });
+
+  it('venueCoordinatesChecker lê só lat,lng do venue e falha fechado em erro', async () => {
+    const { venueCoordinatesChecker } = await import('../repositories/impl/PublicVenueRepository.js');
+    const calls: unknown[] = [];
+    const fakeDb = (result: { data: unknown; error: unknown }) => ({
+      from(table: string) {
+        return { select(cols: string) { return { eq(col: string, id: string) { calls.push([table, cols, col, id]); return { maybeSingle: async () => result }; } }; } };
+      },
+    }) as never;
+    expect(await venueCoordinatesChecker(fakeDb({ data: { lat: -22.88, lng: -42.02 }, error: null }))('v1')).toBe(true);
+    expect(calls[0]).toEqual(['venues', 'lat, lng', 'id', 'v1']);
+    expect(await venueCoordinatesChecker(fakeDb({ data: { lat: null, lng: null }, error: null }))('v2')).toBe(false);
+    expect(await venueCoordinatesChecker(fakeDb({ data: null, error: null }))('v3')).toBe(false);
+    await expect(venueCoordinatesChecker(fakeDb({ data: null, error: { message: 'x' } }))('v4')).rejects.toThrow();
+  });
+
+  it('erro ao ler as coordenadas: conta como erro e não insere', async () => {
+    const activity = makeActivity({ resolvedPublicVenueId: 'venue-xyz' as PublicVenueId });
+    const { publishableActivity, publicActivity, eventRepo } = makeRepos({ findUnpublished: [activity] });
+    const failing = { requireVenueForNew: { venueHasCoordinates: async (): Promise<boolean> => { throw new Error('rede'); } } };
+    const publisher = new ActivityPublisher(publishableActivity, publicActivity, eventRepo, () => NOW, undefined, failing);
+    const metrics = await publisher.publish(PRODUCT_KEY, RUN_ID);
+    expect(publicActivity.insert).not.toHaveBeenCalled();
+    expect(metrics.errors).toBe(1);
+  });
+
+  it('hasUsableCoordinates segue a semântica do app (null, 0 e não numérico = sem local)', async () => {
+    const { hasUsableCoordinates } = await import('../repositories/impl/PublicVenueRepository.js');
+    expect(hasUsableCoordinates(null)).toBe(false);
+    expect(hasUsableCoordinates({ lat: null, lng: -42 })).toBe(false);
+    expect(hasUsableCoordinates({ lat: 0, lng: -42 })).toBe(false);
+    expect(hasUsableCoordinates({ lat: 'x', lng: -42 })).toBe(false);
+    expect(hasUsableCoordinates({ lat: -22.88, lng: -42.02 })).toBe(true);
+    expect(hasUsableCoordinates({ lat: '-22.88', lng: '-42.02' })).toBe(true);
+  });
+
+  it('sem a opção, o comportamento anterior mantém-se (proposed_new é inserida)', async () => {
+    const { publishableActivity, publicActivity, eventRepo } = makeRepos({ findUnpublished: [proposedNew()] });
+    const publisher = new ActivityPublisher(publishableActivity, publicActivity, eventRepo, () => NOW);
+    await publisher.publish(PRODUCT_KEY, RUN_ID);
+    expect(publicActivity.insert).toHaveBeenCalledTimes(1);
+  });
+
+  it('publish.ts liga o gate nos dois pontos onde cria o ActivityPublisher', async () => {
+    const { readFileSync } = await import('node:fs');
+    const src = readFileSync(new URL('../publish.ts', import.meta.url), 'utf8');
+    const ctors = src.match(/new ActivityPublisher\([^;]*\)/g) ?? [];
+    expect(ctors).toHaveLength(2);
+    for (const c of ctors) expect(c).toContain('requireVenueForNew: { venueHasCoordinates: await makeVenueCoordinatesChecker() }');
+  });
+});
