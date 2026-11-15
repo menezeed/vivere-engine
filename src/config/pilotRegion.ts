@@ -16,7 +16,7 @@
  * é mais bem feito olhando o mapa do que recalculado aqui.
  */
 
-import { getRegion, type RegionDefinition } from './regions';
+import { getRegion, requireGeo, type RegionDefinition } from './regions';
 
 export interface RegionCenter {
   lat: number;
@@ -33,7 +33,8 @@ export interface RegionCenter {
 export const PILOT_REGION_KEYS = ['cabo_frio', 'araruama'] as const;
 
 function toRegionCenter(region: RegionDefinition): RegionCenter {
-  return { lat: region.center.lat, lng: region.center.lng, radius_m: region.radius_m };
+  const { center, radius_m } = requireGeo(region);
+  return { lat: center.lat, lng: center.lng, radius_m };
 }
 
 export const PILOT_REGIONS: Record<string, RegionCenter> = Object.fromEntries(

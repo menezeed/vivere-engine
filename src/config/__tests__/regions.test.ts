@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { REGIONS, GOOGLE_PLACES_SOURCE_KEY, validateRegions, getRegion, type RegionDefinition } from '../regions';
+import { REGIONS, GOOGLE_PLACES_SOURCE_KEY, validateRegions, getRegion, requireGeo, type RegionDefinition } from '../regions';
 import { buildPilotQueries, PILOT_REGION_KEYS } from '../pilotRegion';
 import { getWordPressSourceConfigBySourceKey } from '../../collectors/wordpress-content/config/registry';
 
@@ -107,5 +107,44 @@ describe('regions — adicionar uma cidade = uma entrada', () => {
     expect(buildPilotQueries(pilotoNoAmpliado)).toEqual(buildPilotQueries());
     expect(buildPilotQueries(pilotoNoAmpliado).some((q) => q.region_key === 'cidade_extra')).toBe(false);
     expect(buildPilotQueries()).toHaveLength(PILOT_REGION_KEYS.length * 7);
+  });
+});
+
+describe('regions — regiões sem centro confirmado (E5)', () => {
+  const semCentro: RegionDefinition = {
+    key: 'cidade_sem_centro',
+    city_label: 'Cidade RJ',
+    city: 'Cidade',
+    state: 'RJ',
+    center: null,
+    radius_m: null,
+    sources: ['prefeitura_x'],
+  };
+
+  it('Búzios e Rio das Ostras estão no registo SEM coordenadas e só com a fonte WordPress', () => {
+    for (const [key, source] of [['buzios', 'prefeitura_buzios'], ['rio_das_ostras', 'prefeitura_rio_das_ostras']] as const) {
+      const r = getRegion(key);
+      expect(r.center).toBeNull();
+      expect(r.radius_m).toBeNull();
+      expect(r.sources).toEqual([source]);
+      expect(() => requireGeo(r)).toThrow(/não tem centro confirmado/);
+    }
+  });
+
+  it('região sem centro é válida se não usar Google Places', () => {
+    expect(() => validateRegions([semCentro])).not.toThrow();
+  });
+
+  it('região sem centro com Google Places é recusada', () => {
+    expect(() => validateRegions([{ ...semCentro, sources: [GOOGLE_PLACES_SOURCE_KEY] }])).toThrow(/sem centro confirmado/);
+  });
+
+  it('center e radius_m têm de estar ambos presentes ou ambos null', () => {
+    expect(() => validateRegions([{ ...semCentro, radius_m: 4000 }])).toThrow(/inconsistentes/);
+    expect(() => validateRegions([{ ...semCentro, center: { lat: -22.9, lng: -42 } }])).toThrow(/inconsistentes/);
+  });
+
+  it('requireGeo devolve centro e raio quando existem', () => {
+    expect(requireGeo(getRegion('cabo_frio'))).toEqual({ center: { lat: -22.8894, lng: -42.0188 }, radius_m: 12000 });
   });
 });
