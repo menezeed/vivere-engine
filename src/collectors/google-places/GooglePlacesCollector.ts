@@ -29,7 +29,33 @@ export class GooglePlacesCollector {
     private readonly productConfig: GooglePlacesProductConfig,
   ) {
     this.budgetGuard = toBudgetGuard(budget);
-    this.gate = this.budgetGuard.attemptGate(this.sourceKey);
+    this.gate = this.meteredGate(this.budgetGuard.attemptGate(this.sourceKey));
+  }
+
+  /**
+   * Custo reportado (stats.estimated_cost_usd) medido no PORTÃO, por
+   * tentativa HTTP liquidada como gasto ('yes' ou 'uncertain'), a mesma regra
+   * do orçamento persistente (L5). Antes somava só o costUsd devolvido por
+   * pedidos bem-sucedidos: tentativas enviadas num pedido que acabava em
+   * excepção (falha após repetições, ou recusa de orçamento a meio) ficavam
+   * fora do total, embora cobradas pela Google (BAIXO da revisão r1 do L5).
+   */
+  private spentUsd = 0;
+
+  private meteredGate(inner: PaidAttemptGate): PaidAttemptGate {
+    return {
+      begin: async (callType, estimatedCostUsd) => {
+        const ticket = await inner.begin(callType, estimatedCostUsd);
+        if (!ticket.ok) return ticket;
+        return {
+          ...ticket,
+          settle: async (billable) => {
+            await ticket.settle(billable);
+            if (billable !== 'no') this.spentUsd += estimatedCostUsd;
+          },
+        };
+      },
+    };
   }
 
   /** Portão de orçamento por tentativa HTTP (fornecedor google_places). */
@@ -44,7 +70,7 @@ export class GooglePlacesCollector {
     let queriesExecuted = 0;
     let queriesSkippedBudget = 0;
     let placesFoundRaw = 0;
-    let totalCostUsd = 0;
+    this.spentUsd = 0;
 
     // Uma execução de orçamento por collect(): novo run_key (tecto por execução).
     this.budgetGuard.startRun(options.ingestionRunId ?? null);
@@ -66,7 +92,6 @@ export class GooglePlacesCollector {
             this.gate,
           );
           places = r.places;
-          totalCostUsd += r.costUsd;
         } catch (err) {
           if (!(err instanceof BudgetRefusedError)) throw err;
           logger.warn(
@@ -134,7 +159,6 @@ export class GooglePlacesCollector {
       // As tentativas são liquidadas no portão (gate) pelo próprio cliente;
       // uma falha depois de enviar continua a contar como gasto.
       const enriched = await this.apiClient.getEnrichedDetails(item.source_item_id, this.gate);
-      totalCostUsd += enriched.costUsd;
 
       if (enriched.budgetRefusedReason) {
         logger.warn(
@@ -155,7 +179,7 @@ export class GooglePlacesCollector {
         queriesSkippedBudget,
         placesFoundRaw,
         placesReturned: dedupedItems.length,
-        estimatedCostUsd: Math.round(totalCostUsd * 100) / 100,
+        estimatedCostUsd: Math.round(this.spentUsd * 100) / 100,
         apiCost: this.budgetGuard.costSummary().totals,
       },
       'coleta Google Places finalizada',
@@ -169,7 +193,7 @@ export class GooglePlacesCollector {
         queries_skipped_budget: queriesSkippedBudget,
         places_found_raw: placesFoundRaw,
         places_returned: dedupedItems.length,
-        estimated_cost_usd: Math.round(totalCostUsd * 100) / 100,
+        estimated_cost_usd: Math.round(this.spentUsd * 100) / 100,
       },
     };
   }

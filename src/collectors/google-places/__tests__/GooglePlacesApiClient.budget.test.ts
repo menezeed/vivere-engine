@@ -181,3 +181,63 @@ describe('GooglePlacesCollector com o cliente real', () => {
     expect(guard.costSummary().totals).toMatchObject({ spent_count: 2, released_count: 0 });
   });
 });
+
+// Revisão r1 do L5 (BAIXO): o custo reportado pelo collector conta TODAS as
+// tentativas liquidadas como gasto, incluindo as de pedidos que acabam em excepção.
+describe('GooglePlacesCollector — estimated_cost_usd = gasto real por tentativa', () => {
+  const CONFIG: GooglePlacesProductConfig = {
+    product_key: 'qa', source_key: 'google_places', source_priority: 70,
+    regions: [{ key: 'cidade_qa', display_label: 'Cidade QA', lat: -22.9, lng: -42.0, radius_m: 1000 }],
+    categories: [{ key: 'teatro', query_text: 'teatro', kind: 'place_type' }],
+    monthly_budget_usd: 10, hard_stop_enabled: true, alert_threshold_pct: 0.8,
+  };
+
+  it('textSearch falha depois de enviar (respostas perdidas, todas as repetições) → todas as tentativas no custo', async () => {
+    const { guard } = setup();
+    const { f, api } = client(async () => { throw lostResponse(); });
+    const result = await new GooglePlacesCollector(api, guard, CONFIG).collect();
+    const sent = f.mock.calls.length;
+    expect(sent).toBeGreaterThan(1);
+    expect(result.stats.estimated_cost_usd).toBeCloseTo(Math.round(sent * TS * 100) / 100, 6);
+    expect(guard.costSummary().totals.spent_usd).toBeCloseTo(sent * TS, 6);
+  });
+
+  it('recusa de orçamento a meio das repetições → as tentativas já enviadas contam', async () => {
+    const { guard } = setup({ per_run_budget_usd: TS * 1.5 }); // cabe 1 tentativa
+    const { f, api } = client(async () => { throw lostResponse(); });
+    const result = await new GooglePlacesCollector(api, guard, CONFIG).collect();
+    expect(f).toHaveBeenCalledTimes(1);
+    expect(result.stats.queries_skipped_budget).toBe(1);
+    expect(result.stats.estimated_cost_usd).toBeCloseTo(Math.round(TS * 100) / 100, 6);
+  });
+
+  it('falha antes de enviar (ligação recusada) → libertada, custo 0', async () => {
+    const { guard } = setup();
+    const { api } = client(async () => { throw connectRefused(); });
+    const result = await new GooglePlacesCollector(api, guard, CONFIG).collect();
+    expect(result.stats.estimated_cost_usd).toBe(0);
+    expect(guard.costSummary().totals.spent_count).toBe(0);
+  });
+
+  it('caminho feliz: custo igual ao do orçamento (pesquisa + detalhes)', async () => {
+    const { guard } = setup();
+    const place = { id: 'p1', displayName: { text: 'Teatro QA' }, location: { latitude: -22.9, longitude: -42.0 } };
+    const { api } = client(async (url: unknown) =>
+      String(url).includes('searchText')
+        ? new Response(JSON.stringify({ places: [place] }), { status: 200 })
+        : new Response(JSON.stringify({ id: 'p1' }), { status: 200 }),
+    );
+    const result = await new GooglePlacesCollector(api, guard, CONFIG).collect();
+    expect(result.stats.estimated_cost_usd).toBeCloseTo(Math.round(guard.costSummary().totals.spent_usd * 100) / 100, 6);
+  });
+
+  it('duas execuções do mesmo collector não acumulam custo entre si', async () => {
+    const { guard } = setup();
+    const { api } = client(async () => new Response(JSON.stringify({ places: [] }), { status: 200 }));
+    const collector = new GooglePlacesCollector(api, guard, CONFIG);
+    const r1 = await collector.collect();
+    const r2 = await collector.collect();
+    expect(r1.stats.estimated_cost_usd).toBeCloseTo(Math.round(TS * 100) / 100, 6);
+    expect(r2.stats.estimated_cost_usd).toBeCloseTo(Math.round(TS * 100) / 100, 6);
+  });
+});
