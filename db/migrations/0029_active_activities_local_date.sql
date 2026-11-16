@@ -19,8 +19,8 @@
 -- local. Colunas, ordem, security_invoker e ACL mantêm-se
 -- (CREATE OR REPLACE VIEW preserva privilégios e opções).
 --
--- Pré-condição (P1): a vista existe, com security_invoker=true, exactamente
--- as 19 colunas abaixo e o filtro do baseline 0000. Na produção a vista foi
+-- Pré-condição (P1): a vista existe, com security_invoker=true, comentário
+-- NULL e a definição COMPLETA do baseline 0000 (projecção, origem e WHERE). Na produção a vista foi
 -- criada manualmente antes do engine: se divergir, a migração ABORTA sem
 -- alterar nada (comparar com a auditoria E2 antes da janela).
 -- Rollback: 0029_active_activities_local_date.rollback.sql.
@@ -28,9 +28,15 @@
 
 do $p1$
 declare
-  v_def  text;
-  v_cols text;
-  v_inv  boolean;
+  -- Definição COMPLETA esperada (baseline 0000), normalizada: minúsculas e
+  -- espaços colapsados. Revisão r0 (ALTO): comparar só fragmentos deixava
+  -- passar uma vista com filtros extra (ex.: engine_status) que o
+  -- CREATE OR REPLACE apagaria. Qualquer diferença → aborta sem alterar.
+  c_def_esperada constant text :=
+    'select id, title, description, category, venue_id, schedule, price, is_free, imagem_url, is_sponsored, created_at, start_date, end_date, recurrence_type, recurrence_days, recurrence_time, phone, url, interested_count from activities where (((end_date is null) or (end_date >= current_date)) and (((recurrence_type is not null) and (recurrence_type <> ''none''::text)) or ((recurrence_type = ''none''::text) and (start_date >= current_date))));';
+  v_def text;
+  v_inv boolean;
+  v_com text;
 begin
   if pg_catalog.to_regclass('public.active_activities') is null then
     raise exception '0029 P1: public.active_activities não existe';
@@ -42,19 +48,25 @@ begin
     raise exception '0029 P1: active_activities sem security_invoker=true — divergente do esperado';
   end if;
 
-  select string_agg(a.attname, ',' order by a.attnum) into v_cols
-    from pg_catalog.pg_attribute a
-   where a.attrelid = 'public.active_activities'::regclass and a.attnum > 0 and not a.attisdropped;
-  if v_cols is distinct from
-     'id,title,description,category,venue_id,schedule,price,is_free,imagem_url,is_sponsored,created_at,start_date,end_date,recurrence_type,recurrence_days,recurrence_time,phone,url,interested_count' then
-    raise exception '0029 P1: colunas de active_activities divergentes: %', v_cols;
+  v_def := pg_catalog.btrim(pg_catalog.lower(pg_catalog.regexp_replace(
+             pg_catalog.pg_get_viewdef('public.active_activities'::regclass), '[[:space:]]+', ' ', 'g')));
+  if v_def is distinct from c_def_esperada then
+    raise exception '0029 P1: definição de active_activities difere do baseline 0000 — não alterado. Actual: %', v_def;
   end if;
 
-  v_def := pg_catalog.lower(pg_catalog.regexp_replace(pg_catalog.pg_get_viewdef('public.active_activities'::regclass), '\s+', ' ', 'g'));
-  if pg_catalog.strpos(v_def, 'end_date >= current_date') = 0
-     or pg_catalog.strpos(v_def, 'start_date >= current_date') = 0 then
-    raise exception '0029 P1: filtro de active_activities não é o do baseline 0000 — não alterado';
+  -- Revisão r0 (MÉDIO): o rollback repõe comentário NULL; só é exacto se o
+  -- estado inicial for NULL.
+  v_com := pg_catalog.obj_description('public.active_activities'::regclass, 'pg_class');
+  if v_com is not null then
+    raise exception '0029 P1: active_activities tem comentário próprio — rollback não seria exacto; não alterado';
   end if;
+
+  -- Estado do catálogo antes da alteração, para os testes compararem ACL,
+  -- dono e opções (revisão r0, BAIXO). Temporária: desaparece no fim da
+  -- transacção/sessão; não altera nada persistente.
+  create temp table if not exists _m0029_pre on commit drop as
+    select c.relacl::text as acl, c.relowner::regrole::text as owner, c.reloptions::text as opts
+      from pg_catalog.pg_class c where c.oid = 'public.active_activities'::regclass;
 end
 $p1$;
 

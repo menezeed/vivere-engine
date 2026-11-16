@@ -2,9 +2,10 @@
 -- Testes da 0029 (active_activities pela data local) — SÓ STAGING
 -- ============================================================================
 -- Uso (SQL Editor do STAGING, confirmar o ref no URL): colar NUM SÓ BLOCO
+--   0. begin;   (transacção explícita: a garantia não depende do cliente)
 --   1. o conteúdo de db/migrations/0029_active_activities_local_date.sql
 --   2. este ficheiro, com v_confirm := 'staging'
--- e correr. Os testes terminam SEMPRE em RAISE EXCEPTION, que desfaz TUDO
+-- e correr; depois, se o cliente não o fizer, "rollback;". Os testes terminam SEMPRE em RAISE EXCEPTION, que desfaz TUDO
 -- (a migração e as fixtures): nada persiste. A mensagem é o relatório e tem
 -- de ter "0 FALHA".
 --
@@ -76,6 +77,18 @@ begin
     then ok := ok + 1; else falha := falha + 1; rel := rel || ' FALHA:colunas'; end if;
   select coalesce('security_invoker=true' = any(c.reloptions), false) into v_inv from pg_catalog.pg_class c where c.oid = 'public.active_activities'::regclass;
   if v_inv then ok := ok + 1; else falha := falha + 1; rel := rel || ' FALHA:security_invoker'; end if;
+  -- ACL, dono e opções iguais ao estado antes da migração (guardado pelo P1)
+  if pg_catalog.to_regclass('pg_temp._m0029_pre') is null then
+    falha := falha + 1; rel := rel || ' FALHA:sem-estado-anterior(colar a 0029 na mesma transaccao)';
+  elsif exists (select 1 from _m0029_pre p, pg_catalog.pg_class c
+                 where c.oid = 'public.active_activities'::regclass
+                   and p.acl is not distinct from c.relacl::text
+                   and p.owner = c.relowner::regrole::text
+                   and p.opts is not distinct from c.reloptions::text) then
+    ok := ok + 1;
+  else
+    falha := falha + 1; rel := rel || ' FALHA:acl/dono/opcoes-alterados';
+  end if;
   if has_table_privilege('anon', 'public.active_activities', 'SELECT') and has_table_privilege('authenticated', 'public.active_activities', 'SELECT')
      and not has_table_privilege('anon', 'public.active_activities', 'INSERT') and not has_table_privilege('authenticated', 'public.active_activities', 'UPDATE')
     then ok := ok + 1; else falha := falha + 1; rel := rel || ' FALHA:privilegios'; end if;
