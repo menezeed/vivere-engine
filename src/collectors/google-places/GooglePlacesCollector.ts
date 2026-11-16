@@ -51,11 +51,13 @@ export class GooglePlacesCollector {
         return {
           ...ticket,
           settle: async (billable) => {
+            // A PRIMEIRA liquidação decide, seja qual for (r1 do #31): o
+            // ticket original ignora as seguintes; um 'no' seguido de 'yes'
+            // não pode passar a contar.
+            const first = !counted;
+            counted = true;
             await ticket.settle(billable);
-            if (!counted && billable !== 'no') {
-              counted = true;
-              meter.spentUsd += estimatedCostUsd;
-            }
+            if (first && billable !== 'no') meter.spentUsd += estimatedCostUsd;
           },
         };
       },

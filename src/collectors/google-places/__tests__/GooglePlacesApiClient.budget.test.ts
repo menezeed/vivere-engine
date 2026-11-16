@@ -280,3 +280,24 @@ describe('GooglePlacesCollector — isolamento por execução (revisão r0 do #3
     expect(result.stats.estimated_cost_usd).toBeCloseTo(Math.round(TS * 100) / 100, 6);
   });
 });
+
+it('settle('no') seguido de settle('yes') no mesmo ticket não conta (a primeira liquidação decide)', async () => {
+  const { guard } = setup();
+  const CONFIG: GooglePlacesProductConfig = {
+    product_key: 'qa', source_key: 'google_places', source_priority: 70,
+    regions: [{ key: 'cidade_qa', display_label: 'Cidade QA', lat: -22.9, lng: -42.0, radius_m: 1000 }],
+    categories: [{ key: 'teatro', query_text: 'teatro', kind: 'place_type' }],
+    monthly_budget_usd: 10, hard_stop_enabled: true, alert_threshold_pct: 0.8,
+  };
+  const fakeApi = {
+    textSearch: async (_p: unknown, gate: { begin: (c: string, e: number) => Promise<{ ok: boolean; settle?: (b: 'yes' | 'no' | 'uncertain') => Promise<void> }> }) => {
+      const ticket = await gate.begin('textSearch', TS);
+      if (ticket.ok && ticket.settle) { await ticket.settle('no'); await ticket.settle('yes'); await ticket.settle('uncertain'); }
+      return { places: [], costUsd: 0 };
+    },
+    getEnrichedDetails: async () => ({ details: null, costUsd: 0 }),
+  } as unknown as GooglePlacesApiClient;
+  const result = await new GooglePlacesCollector(fakeApi, guard, CONFIG).collect();
+  expect(result.stats.estimated_cost_usd).toBe(0);
+  expect(guard.costSummary().totals.spent_count).toBe(0);
+});
