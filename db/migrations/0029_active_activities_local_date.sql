@@ -28,12 +28,14 @@
 
 do $p1$
 declare
-  -- Definição COMPLETA esperada (baseline 0000), normalizada: minúsculas e
-  -- espaços colapsados. Revisão r0 (ALTO): comparar só fragmentos deixava
-  -- passar uma vista com filtros extra (ex.: engine_status) que o
-  -- CREATE OR REPLACE apagaria. Qualquer diferença → aborta sem alterar.
+  -- Definição COMPLETA esperada (baseline 0000), só com espaços colapsados
+  -- (maiúsculas/minúsculas PRESERVADAS, incluindo literais). Revisão r0 (ALTO):
+  -- comparar fragmentos deixava passar filtros extra; revisão r1 (MÉDIO):
+  -- lower() aceitaria uma vista com 'NONE'. Texto igual em pg_get_viewdef do
+  -- PostgreSQL 17.11 (STG) e 18.6 (PGlite). Qualquer diferença → aborta sem
+  -- alterar (impressões diferentes noutras versões só causam aborto).
   c_def_esperada constant text :=
-    'select id, title, description, category, venue_id, schedule, price, is_free, imagem_url, is_sponsored, created_at, start_date, end_date, recurrence_type, recurrence_days, recurrence_time, phone, url, interested_count from activities where (((end_date is null) or (end_date >= current_date)) and (((recurrence_type is not null) and (recurrence_type <> ''none''::text)) or ((recurrence_type = ''none''::text) and (start_date >= current_date))));';
+    'SELECT id, title, description, category, venue_id, schedule, price, is_free, imagem_url, is_sponsored, created_at, start_date, end_date, recurrence_type, recurrence_days, recurrence_time, phone, url, interested_count FROM activities WHERE (((end_date IS NULL) OR (end_date >= CURRENT_DATE)) AND (((recurrence_type IS NOT NULL) AND (recurrence_type <> ''none''::text)) OR ((recurrence_type = ''none''::text) AND (start_date >= CURRENT_DATE))));';
   v_def text;
   v_inv boolean;
   v_com text;
@@ -48,8 +50,8 @@ begin
     raise exception '0029 P1: active_activities sem security_invoker=true — divergente do esperado';
   end if;
 
-  v_def := pg_catalog.btrim(pg_catalog.lower(pg_catalog.regexp_replace(
-             pg_catalog.pg_get_viewdef('public.active_activities'::regclass), '[[:space:]]+', ' ', 'g')));
+  v_def := pg_catalog.btrim(pg_catalog.regexp_replace(
+             pg_catalog.pg_get_viewdef('public.active_activities'::regclass), '[[:space:]]+', ' ', 'g'));
   if v_def is distinct from c_def_esperada then
     raise exception '0029 P1: definição de active_activities difere do baseline 0000 — não alterado. Actual: %', v_def;
   end if;
@@ -64,7 +66,9 @@ begin
   -- Estado do catálogo antes da alteração, para os testes compararem ACL,
   -- dono e opções (revisão r0, BAIXO). Temporária: desaparece no fim da
   -- transacção/sessão; não altera nada persistente.
-  create temp table if not exists _m0029_pre on commit drop as
+  -- Fotografia sempre recriada (revisão r1): nunca reutiliza a de outro ensaio.
+  drop table if exists pg_temp._m0029_pre;
+  create temp table _m0029_pre on commit drop as
     select c.relacl::text as acl, c.relowner::regrole::text as owner, c.reloptions::text as opts
       from pg_catalog.pg_class c where c.oid = 'public.active_activities'::regclass;
 end
