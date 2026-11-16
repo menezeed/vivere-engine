@@ -281,7 +281,7 @@ describe('GooglePlacesCollector — isolamento por execução (revisão r0 do #3
   });
 });
 
-it('settle('no') seguido de settle('yes') no mesmo ticket não conta (a primeira liquidação decide)', async () => {
+it('settle(no) seguido de settle(yes) no mesmo ticket não conta (a primeira liquidação decide)', async () => {
   const { guard } = setup();
   const CONFIG: GooglePlacesProductConfig = {
     product_key: 'qa', source_key: 'google_places', source_priority: 70,
