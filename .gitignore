@@ -42,3 +42,7 @@ tmp/
 # Lixo de sistema operativo
 .DS_Store
 Thumbs.db
+
+# Manifestos locais de execução (E4) — nunca no git
+runs/
+vivere-hora-corrida.cjs

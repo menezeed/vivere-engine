@@ -72,6 +72,19 @@ describe('resolveIngestArgs — o ponto exato onde os dois bugs reais acontecera
       expect(result.result.dryRun).toBe(true);
       expect(result.result.limitQueries).toBe(2);
       expect(result.result.productConfig.regions[0]!.key).toBe('araruama');
+      expect(result.result.budgetMode).toBe('memory');
     }
+  });
+
+  it('--budget=persistent é lido explicitamente (omissão: memory)', () => {
+    const result = resolveIngestArgs(['node', 'ingest-google-places.ts', '--budget=persistent'], BASE_CONFIG);
+    expect(result.ok).toBe(true);
+    if (result.ok) expect(result.result.budgetMode).toBe('persistent');
+  });
+
+  it('--budget=persistent com --dry-run é recusado antes de qualquer chamada', () => {
+    const result = resolveIngestArgs(['node', 'ingest-google-places.ts', '--budget=persistent', '--dry-run'], BASE_CONFIG);
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.error).toMatch(/dry-run/);
   });
 });
