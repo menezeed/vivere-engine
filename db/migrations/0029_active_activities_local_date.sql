@@ -56,6 +56,25 @@ begin
     raise exception '0029 P1: definição de active_activities difere do baseline 0000 — não alterado. Actual: %', v_def;
   end if;
 
+  -- Revisão r2 (MÉDIO): pg_get_viewdef imprime "FROM activities" sem schema
+  -- quando a relação está visível no search_path, por isso o texto não prova
+  -- QUAL activities é a origem. Verificar pelo OID: a regra da vista tem de
+  -- depender de public.activities e de nenhuma outra relação.
+  if not exists (
+       select 1 from pg_catalog.pg_depend d join pg_catalog.pg_rewrite r on r.oid = d.objid
+        where r.ev_class = 'public.active_activities'::regclass
+          and d.classid = 'pg_catalog.pg_rewrite'::regclass
+          and d.refclassid = 'pg_catalog.pg_class'::regclass
+          and d.refobjid = 'public.activities'::regclass)
+     or exists (
+       select 1 from pg_catalog.pg_depend d join pg_catalog.pg_rewrite r on r.oid = d.objid
+        where r.ev_class = 'public.active_activities'::regclass
+          and d.classid = 'pg_catalog.pg_rewrite'::regclass
+          and d.refclassid = 'pg_catalog.pg_class'::regclass
+          and d.refobjid not in ('public.activities'::regclass, 'public.active_activities'::regclass)) then
+    raise exception '0029 P1: a origem de active_activities não é exclusivamente public.activities — não alterado';
+  end if;
+
   -- Revisão r0 (MÉDIO): o rollback repõe comentário NULL; só é exacto se o
   -- estado inicial for NULL.
   v_com := pg_catalog.obj_description('public.active_activities'::regclass, 'pg_class');
