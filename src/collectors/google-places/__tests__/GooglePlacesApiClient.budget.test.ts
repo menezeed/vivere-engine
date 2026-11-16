@@ -241,3 +241,42 @@ describe('GooglePlacesCollector — estimated_cost_usd = gasto real por tentativ
     expect(r2.stats.estimated_cost_usd).toBeCloseTo(Math.round(TS * 100) / 100, 6);
   });
 });
+
+describe('GooglePlacesCollector — isolamento por execução (revisão r0 do #31)', () => {
+  const CONFIG: GooglePlacesProductConfig = {
+    product_key: 'qa', source_key: 'google_places', source_priority: 70,
+    regions: [{ key: 'cidade_qa', display_label: 'Cidade QA', lat: -22.9, lng: -42.0, radius_m: 1000 }],
+    categories: [{ key: 'teatro', query_text: 'teatro', kind: 'place_type' }],
+    monthly_budget_usd: 10, hard_stop_enabled: true, alert_threshold_pct: 0.8,
+  };
+
+  it('collect() concorrente na mesma instância é recusado; a primeira execução reporta só o seu custo', async () => {
+    const { guard } = setup();
+    let release!: () => void;
+    const gateOpen = new Promise<void>((r) => { release = r; });
+    const { api } = client(async () => { await gateOpen; return new Response(JSON.stringify({ places: [] }), { status: 200 }); });
+    const collector = new GooglePlacesCollector(api, guard, CONFIG);
+    const first = collector.collect();
+    await expect(collector.collect()).rejects.toThrow(/já em curso/);
+    release();
+    const r1 = await first;
+    expect(r1.stats.estimated_cost_usd).toBeCloseTo(Math.round(TS * 100) / 100, 6);
+    const r2 = await collector.collect(); // depois de terminar, volta a aceitar
+    expect(r2.stats.estimated_cost_usd).toBeCloseTo(Math.round(TS * 100) / 100, 6);
+  });
+
+  it('settle() repetido no mesmo ticket conta uma só vez', async () => {
+    const { guard } = setup();
+    const settles: Array<() => Promise<void>> = [];
+    const fakeApi = {
+      textSearch: async (_p: unknown, gate: { begin: (c: string, e: number) => Promise<{ ok: boolean; settle?: (b: 'yes') => Promise<void> }> }) => {
+        const ticket = await gate.begin('textSearch', TS);
+        if (ticket.ok && ticket.settle) { await ticket.settle('yes'); settles.push(() => ticket.settle!('yes')); await ticket.settle('yes'); }
+        return { places: [], costUsd: TS };
+      },
+      getEnrichedDetails: async () => ({ details: null, costUsd: 0 }),
+    } as unknown as GooglePlacesApiClient;
+    const result = await new GooglePlacesCollector(fakeApi, guard, CONFIG).collect();
+    expect(result.stats.estimated_cost_usd).toBeCloseTo(Math.round(TS * 100) / 100, 6);
+  });
+});
