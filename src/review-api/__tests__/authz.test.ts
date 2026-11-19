@@ -475,3 +475,41 @@ describe('ER accept/override — corpo do pedido inválido', () => {
     expect(res.status).toBe(401);
   });
 });
+
+describe('ER — corpo inválido (revisão r0 do #34)', () => {
+  async function raw(path: string, token: string | undefined, body: string | undefined) {
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+    return app.request(path, { method: 'PATCH', headers, body });
+  }
+
+  it.each(['{x', 'null', '[1]', '"t"'])('propose-new: corpo presente que não é objecto (%s) → 400, decisão não executada', async (body) => {
+    const res = await raw('/api/entity-resolution/a1/propose-new', await tokenFor('admin'), body);
+    expect(res.status).toBe(400);
+    expect(er.proposeNew).not.toHaveBeenCalled();
+  });
+
+  it('propose-new: corpo vazio continua permitido (contrato opcional)', async () => {
+    const res = await raw('/api/entity-resolution/a1/propose-new', await tokenFor('admin'), undefined);
+    expect(res.status).toBe(200);
+    expect(er.proposeNew).toHaveBeenCalledWith('a1', expect.anything(), null);
+  });
+
+  it('propose-new: notas num objecto continuam a passar', async () => {
+    const res = await raw('/api/entity-resolution/a1/propose-new', await tokenFor('admin'), JSON.stringify({ notes: 'ok' }));
+    expect(res.status).toBe(200);
+    expect(er.proposeNew).toHaveBeenCalledWith('a1', expect.anything(), 'ok');
+  });
+
+  it.each(['null', '[1]', '7'])('override: corpo JSON que não é objecto (%s) → 400', async (body) => {
+    const res = await raw('/api/entity-resolution/a1/override', await tokenFor('admin'), body);
+    expect(res.status).toBe(400);
+    expect(er.override).not.toHaveBeenCalled();
+  });
+
+  it('papel sem permissão continua a dar 403 antes de ler um corpo inválido', async () => {
+    const res = await raw('/api/entity-resolution/a1/accept', await tokenFor('viewer'), '{x');
+    expect(res.status).toBe(403);
+    expect(er.accept).not.toHaveBeenCalled();
+  });
+});
