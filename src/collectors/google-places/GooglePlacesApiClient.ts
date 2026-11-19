@@ -128,8 +128,10 @@ export class GooglePlacesApiClient {
     this.fetchImpl = options.fetch ?? ((input, init) => fetch(input, init));
     this.baseDelayMs = options.baseDelayMs;
     this.timeoutMs = options.timeoutMs ?? PLACES_REQUEST_TIMEOUT_MS;
-    if (!Number.isFinite(this.timeoutMs) || this.timeoutMs <= 0) {
-      throw new Error('GooglePlacesApiClient: timeoutMs tem de ser um número positivo');
+    // AbortSignal.timeout exige inteiro; validar aqui, antes de qualquer
+    // reserva de orçamento (revisão r0 do #33: 1.5 lançaria depois da reserva).
+    if (!Number.isSafeInteger(this.timeoutMs) || this.timeoutMs <= 0) {
+      throw new Error('GooglePlacesApiClient: timeoutMs tem de ser um inteiro positivo (ms)');
     }
   }
 

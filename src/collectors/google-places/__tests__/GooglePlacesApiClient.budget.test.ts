@@ -219,5 +219,37 @@ describe('GooglePlacesApiClient — timeout por tentativa', () => {
     expect(PLACES_REQUEST_TIMEOUT_MS).toBe(30_000);
     expect(() => new GooglePlacesApiClient('k', { timeoutMs: 0 })).toThrow(/positivo/);
     expect(() => new GooglePlacesApiClient('k', { timeoutMs: Number.NaN })).toThrow(/positivo/);
+    expect(() => new GooglePlacesApiClient('k', { timeoutMs: 1.5 })).toThrow(/inteiro/);
+  });
+
+  /** HTTP 200 cujo corpo nunca termina; erra quando o sinal da tentativa aborta. */
+  function hangingBody() {
+    return vi.fn(async (_url: unknown, init?: RequestInit) => {
+      const s = init?.signal;
+      const body = new ReadableStream({
+        start(c) { s?.addEventListener('abort', () => c.error(s.reason), { once: true }); },
+      });
+      return new Response(body, { status: 200 });
+    });
+  }
+
+  it('textSearch: corpo pendurado depois de HTTP 200 → TimeoutError, 1 tentativa, 1 liquidação, sem pendentes', async () => {
+    const { guard, gate } = setup();
+    const f = hangingBody();
+    const api = new GooglePlacesApiClient('chave-falsa', { fetch: f as unknown as typeof fetch, baseDelayMs: 0, timeoutMs: 15 });
+    const err = await api.textSearch(PARAMS, gate).catch((e: unknown) => e);
+    expect((err as Error).name).toBe('TimeoutError');
+    expect(f).toHaveBeenCalledTimes(1); // resposta recebida: não repete
+    expect(guard.costSummary().totals).toMatchObject({ spent_count: 1, released_count: 0, pending_count: 0 });
+  });
+
+  it('getEnrichedDetails: corpo pendurado depois de HTTP 200 → details null, 1 liquidação, sem pendentes', async () => {
+    const { guard, gate } = setup();
+    const f = hangingBody();
+    const api = new GooglePlacesApiClient('chave-falsa', { fetch: f as unknown as typeof fetch, baseDelayMs: 0, timeoutMs: 15 });
+    const r = await api.getEnrichedDetails('p1', gate);
+    expect(r.details).toBeNull();
+    expect(f).toHaveBeenCalledTimes(1);
+    expect(guard.costSummary().totals).toMatchObject({ spent_count: 1, released_count: 0, pending_count: 0 });
   });
 });
