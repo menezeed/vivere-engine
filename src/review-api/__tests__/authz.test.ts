@@ -441,3 +441,37 @@ describe('superfície /api/* e variações de caminho', () => {
     expect(byPath.get('/api/entity-resolution/:activityId/propose-new')).toBe(ER_ACTION_ROLES.proposeNew);
   });
 });
+
+// 19/11/2026: corpo inválido nas rotas de ER → 400 (antes: SyntaxError → 500 + log de erro).
+describe('ER accept/override — corpo do pedido inválido', () => {
+  async function raw(path: string, token: string, body: string) {
+    return app.request(path, { method: 'PATCH', headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }, body });
+  }
+
+  it.each([
+    ['/api/entity-resolution/a1/accept', 'accept'],
+    ['/api/entity-resolution/a1/override', 'override'],
+  ] as const)('%s: JSON mal formado → 400 e o serviço não é chamado', async (path, method) => {
+    const res = await raw(path, await tokenFor('admin'), '{isto não é json');
+    expect(res.status).toBe(400);
+    expect(await res.json()).toEqual({ error: 'Corpo do pedido inválido: é esperado um objecto JSON' });
+    expect(er[method]).not.toHaveBeenCalled();
+  });
+
+  it.each(['[1,2]', '"texto"', 'null', '42'])('accept: corpo JSON que não é objecto (%s) → 400', async (body) => {
+    const res = await raw('/api/entity-resolution/a1/accept', await tokenFor('admin'), body);
+    expect(res.status).toBe(400);
+    expect(er.accept).not.toHaveBeenCalled();
+  });
+
+  it('corpo válido continua a chegar ao serviço', async () => {
+    const res = await call('PATCH', '/api/entity-resolution/a1/accept', await tokenFor('reviewer'), { candidateId: 'c1' });
+    expect(res.status).toBe(200);
+    expect(er.accept).toHaveBeenCalledTimes(1);
+  });
+
+  it('sem token continua a dar 401 antes de ler o corpo', async () => {
+    const res = await app.request('/api/entity-resolution/a1/accept', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: '{x' });
+    expect(res.status).toBe(401);
+  });
+});
