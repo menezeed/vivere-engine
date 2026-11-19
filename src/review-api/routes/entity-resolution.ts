@@ -11,6 +11,7 @@ import { NotFoundError, ForbiddenError } from '../services/ReviewService.js';
 import type { AuthUser } from '../types/reviewTypes.js';
 import { logger } from '../../lib/logger.js';
 import { requireUuidParam } from '../middleware/uuidParam.js';
+import { rejectInvalidIntQuery } from '../middleware/paginationQuery.js';
 
 type Env = { Variables: { user: AuthUser } };
 
@@ -40,6 +41,8 @@ export function entityResolutionRoutes(erService: EntityResolutionService): Hono
   // ── GET /api/entity-resolution/queue ──────────────────────────────────────
   // viewer, reviewer, admin
   router.get('/queue', async (c) => {
+    const invalid = rejectInvalidIntQuery(c, ['page', 'pageSize']);
+    if (invalid) return invalid;
     try {
       const productKey = c.req.query('product_key');
       if (!productKey) return c.json({ error: 'product_key é obrigatório' }, 400);

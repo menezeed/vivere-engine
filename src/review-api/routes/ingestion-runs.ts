@@ -2,12 +2,21 @@ import { Hono } from 'hono';
 import type { IIngestionRunReadRepository } from '../../persistence/types/repositoryInterfaces';
 import type { StatsRepository } from '../repositories/StatsRepository';
 import { logger } from '../../lib/logger';
+import { rejectInvalidIntQuery } from '../middleware/paginationQuery';
+
+/** Tecto de linhas por pedido (o admin-panel pede no máximo 50). */
+export const INGESTION_RUNS_MAX_LIMIT = 100;
 
 export function ingestionRunRoutes(repo: IIngestionRunReadRepository): Hono {
   const router = new Hono();
 
   router.get('/', async (c) => {
-    const limit = c.req.query('limit') ? Number(c.req.query('limit')) : 20;
+    const invalid = rejectInvalidIntQuery(c, ['limit']);
+    if (invalid) return invalid;
+    // Antes sem tecto: limit=1000000 lia a tabela inteira. Clamp a [1, 100].
+    const limit = c.req.query('limit')
+      ? Math.min(INGESTION_RUNS_MAX_LIMIT, Math.max(1, Number(c.req.query('limit'))))
+      : 20;
     try {
       const runs = await repo.list(limit);
       return c.json({ data: runs, count: runs.length });

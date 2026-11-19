@@ -569,3 +569,50 @@ describe('parâmetros de caminho UUID — contrato canónico (revisão r0 do #35
     for (const m of allServiceMocks()) expect(m).not.toHaveBeenCalled();
   });
 });
+
+describe('parâmetros de paginação na query string', () => {
+  const LISTS = [
+    ['/api/venues', 'page'], ['/api/venues', 'pageSize'],
+    ['/api/activities', 'page'], ['/api/activities', 'pageSize'],
+    ['/api/entity-resolution/queue', 'page'], ['/api/entity-resolution/queue', 'pageSize'],
+    ['/api/ingestion-runs', 'limit'],
+  ] as const;
+  const BAD = ['abc', '1.5', '-1', '1e3', ' 2', '0x10', '1234567890', 'NaN'];
+
+  it.each(LISTS.flatMap(([path, param]) => BAD.map((v) => [path, param, v] as const)))(
+    'GET %s?%s=%s → 400, serviço não chamado',
+    async (path, param, value) => {
+      const res = await call('GET', `${path}?product_key=vivere-60-mais&${param}=${encodeURIComponent(value)}`, await tokenFor('viewer'));
+      expect(res.status).toBe(400);
+      expect(await res.json()).toEqual({ error: `Parâmetro de paginação inválido: ${param}` });
+      for (const m of allServiceMocks()) expect(m).not.toHaveBeenCalled();
+    },
+  );
+
+  it('valores válidos e ausentes mantêm o comportamento anterior', async () => {
+    const t = await tokenFor('viewer');
+    expect((await call('GET', '/api/venues?page=2&pageSize=50', t)).status).toBe(200);
+    expect(svc.listVenues).toHaveBeenLastCalledWith(expect.objectContaining({ page: 2, pageSize: 50 }));
+    expect((await call('GET', '/api/activities?page=&pageSize=', t)).status).toBe(200);
+    expect(svc.listActivities).toHaveBeenLastCalledWith(expect.objectContaining({ page: undefined, pageSize: undefined }));
+    expect((await call('GET', '/api/entity-resolution/queue?product_key=vivere-60-mais&page=3&pageSize=100', t)).status).toBe(200);
+    expect(er.listQueue).toHaveBeenLastCalledWith('vivere-60-mais', undefined, 3, 100);
+    expect((await call('GET', '/api/ingestion-runs', t)).status).toBe(200);
+    expect(runRepo.list).toHaveBeenLastCalledWith(20);
+    expect((await call('GET', '/api/ingestion-runs?limit=50', t)).status).toBe(200);
+    expect(runRepo.list).toHaveBeenLastCalledWith(50);
+  });
+
+  it('ingestion-runs: limit tem tecto 100 e mínimo 1', async () => {
+    const t = await tokenFor('viewer');
+    expect((await call('GET', '/api/ingestion-runs?limit=1000000', t)).status).toBe(200);
+    expect(runRepo.list).toHaveBeenLastCalledWith(100);
+    expect((await call('GET', '/api/ingestion-runs?limit=0', t)).status).toBe(200);
+    expect(runRepo.list).toHaveBeenLastCalledWith(1);
+  });
+
+  it('ordem mantida: sem token 401 antes do 400', async () => {
+    expect((await call('GET', '/api/venues?page=abc')).status).toBe(401);
+    expect((await call('GET', '/api/ingestion-runs?limit=abc')).status).toBe(401);
+  });
+});
