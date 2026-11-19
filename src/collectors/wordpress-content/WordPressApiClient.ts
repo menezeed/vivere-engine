@@ -42,11 +42,36 @@ export interface FetchPostsResult {
   totalPages: number;
 }
 
+/** Timeout por pedido (inclui a leitura do corpo). */
+export const WORDPRESS_REQUEST_TIMEOUT_MS = 30_000;
+
+export interface WordPressApiClientOptions {
+  /**
+   * 16/11/2026 — antes não havia timeout: um servidor que aceitasse a ligação
+   * mas não respondesse deixava a ingestão pendurada sem fim. O erro
+   * (TimeoutError) é transitório para withRetry e para a execução assistida.
+   */
+  readonly timeoutMs?: number;
+  /** Injectável para testes. */
+  readonly fetchImpl?: typeof fetch;
+  readonly retry?: { maxAttempts: number; baseDelayMs: number };
+}
+
 export class WordPressApiClient {
-  constructor(private readonly baseUrl: string) {
+  private readonly timeoutMs: number;
+  private readonly fetchImpl: typeof fetch;
+  private readonly retry: { maxAttempts: number; baseDelayMs: number };
+
+  constructor(private readonly baseUrl: string, options: WordPressApiClientOptions = {}) {
     if (!baseUrl) {
       throw new Error('WordPressApiClient requer uma baseUrl válida');
     }
+    this.timeoutMs = options.timeoutMs ?? WORDPRESS_REQUEST_TIMEOUT_MS;
+    if (!Number.isFinite(this.timeoutMs) || this.timeoutMs <= 0) {
+      throw new Error('WordPressApiClient: timeoutMs tem de ser um número positivo');
+    }
+    this.fetchImpl = options.fetchImpl ?? fetch;
+    this.retry = options.retry ?? { maxAttempts: 3, baseDelayMs: 1000 };
   }
 
   async fetchPosts(params: FetchPostsParams): Promise<FetchPostsResult> {
@@ -55,9 +80,10 @@ export class WordPressApiClient {
     url.searchParams.set('page', String(params.page));
     url.searchParams.set('per_page', String(params.perPage));
 
+    // Um sinal novo por tentativa: cada repetição tem o seu próprio prazo.
     const response = await withRetry(
-      () => fetch(url.toString()),
-      { maxAttempts: 3, baseDelayMs: 1000 },
+      () => this.fetchImpl(url.toString(), { signal: AbortSignal.timeout(this.timeoutMs) }),
+      this.retry,
     );
 
     if (!response.ok) {
