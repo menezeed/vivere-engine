@@ -83,7 +83,17 @@ export interface GooglePlacesApiClientOptions {
   fetch?: typeof fetch;
   /** Atraso base entre tentativas (backoff exponencial). */
   baseDelayMs?: number;
+  /**
+   * Timeout por tentativa HTTP, incluindo a leitura do corpo (19/11/2026).
+   * Antes não havia: uma resposta que nunca chegasse pendurava a execução.
+   * Um timeout acontece DEPOIS de enviar, por isso conta como gasto
+   * ('uncertain', ver billableOfFetchError) e é repetido como as outras falhas.
+   */
+  timeoutMs?: number;
 }
+
+/** Timeout por omissão de cada tentativa ao Places API (New). */
+export const PLACES_REQUEST_TIMEOUT_MS = 30_000;
 
 /** Tentativas enviadas e custo estimado das que contaram como gasto. */
 interface CostAccumulator {
@@ -106,6 +116,7 @@ function sleep(ms: number): Promise<void> {
 export class GooglePlacesApiClient {
   private readonly fetchImpl: typeof fetch;
   private readonly baseDelayMs: number | undefined;
+  private readonly timeoutMs: number;
 
   constructor(
     private readonly apiKey: string,
@@ -116,6 +127,10 @@ export class GooglePlacesApiClient {
     }
     this.fetchImpl = options.fetch ?? ((input, init) => fetch(input, init));
     this.baseDelayMs = options.baseDelayMs;
+    this.timeoutMs = options.timeoutMs ?? PLACES_REQUEST_TIMEOUT_MS;
+    if (!Number.isFinite(this.timeoutMs) || this.timeoutMs <= 0) {
+      throw new Error('GooglePlacesApiClient: timeoutMs tem de ser um número positivo');
+    }
   }
 
   /**
@@ -152,7 +167,8 @@ export class GooglePlacesApiClient {
       let response: Response;
       try {
         acc.attemptsSent++;
-        response = await this.fetchImpl(url, init);
+        // Sinal novo por tentativa: cada repetição tem o seu próprio prazo.
+        response = await this.fetchImpl(url, { ...init, signal: AbortSignal.timeout(this.timeoutMs) });
       } catch (err) {
         const billable = billableOfFetchError(err);
         await ticket.settle(billable);

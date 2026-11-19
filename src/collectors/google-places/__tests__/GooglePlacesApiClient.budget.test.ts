@@ -181,3 +181,43 @@ describe('GooglePlacesCollector com o cliente real', () => {
     expect(guard.costSummary().totals).toMatchObject({ spent_count: 2, released_count: 0 });
   });
 });
+
+// 19/11/2026: timeout por tentativa. Expirar depois de enviar = gasto incerto.
+import { PLACES_REQUEST_TIMEOUT_MS } from '../GooglePlacesApiClient';
+describe('GooglePlacesApiClient — timeout por tentativa', () => {
+  function hanging() {
+    return vi.fn((_url: unknown, init?: RequestInit) => new Promise<Response>((_res, rej) => {
+      const s = init?.signal;
+      if (s) s.addEventListener('abort', () => rej(s.reason), { once: true });
+    }));
+  }
+
+  it('resposta que nunca chega → TimeoutError, cada tentativa conta como gasto (incerto) e tem o seu sinal', async () => {
+    const { guard, gate } = setup();
+    const f = hanging();
+    const api = new GooglePlacesApiClient('chave-falsa', { fetch: f as unknown as typeof fetch, baseDelayMs: 0, timeoutMs: 15 });
+    const err = await api.textSearch(PARAMS, gate).catch((e: unknown) => e);
+    expect((err as Error).name).toBe('TimeoutError');
+    const sent = f.mock.calls.length;
+    expect(sent).toBeGreaterThan(1);
+    expect(new Set(f.mock.calls.map((c) => c[1]?.signal)).size).toBe(sent);
+    expect(guard.costSummary().totals).toMatchObject({ spent_count: sent, released_count: 0, pending_count: 0 });
+  });
+
+  it('resposta rápida não é afectada e o pedido continua a levar a chave e o field mask', async () => {
+    const { gate } = setup();
+    const f = vi.fn(async (_url: unknown, _init?: RequestInit) => new Response(JSON.stringify({ places: [] }), { status: 200 }));
+    const api = new GooglePlacesApiClient('chave-falsa', { fetch: f as unknown as typeof fetch, baseDelayMs: 0, timeoutMs: 1000 });
+    await expect(api.textSearch(PARAMS, gate)).resolves.toMatchObject({ places: [] });
+    const init = f.mock.calls[0]![1] as RequestInit;
+    expect(init.signal).toBeInstanceOf(AbortSignal);
+    expect(new Headers(init.headers).get('X-Goog-Api-Key')).toBe('chave-falsa');
+    expect(new Headers(init.headers).get('X-Goog-FieldMask')).toBeTruthy();
+  });
+
+  it('30 s por omissão; timeout inválido é recusado', () => {
+    expect(PLACES_REQUEST_TIMEOUT_MS).toBe(30_000);
+    expect(() => new GooglePlacesApiClient('k', { timeoutMs: 0 })).toThrow(/positivo/);
+    expect(() => new GooglePlacesApiClient('k', { timeoutMs: Number.NaN })).toThrow(/positivo/);
+  });
+});
