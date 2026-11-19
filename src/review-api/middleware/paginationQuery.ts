@@ -9,6 +9,8 @@
  *
  * CONTRATO: ausente ou vazio → o valor por omissão de cada rota (como antes);
  * presente → só dígitos decimais, no máximo 9 (inteiro ≥ 0, sempre seguro).
+ * Parâmetro REPETIDO (?page=1&page=abc): TODOS os valores não vazios têm de
+ * ser válidos, senão 400; a rota usa o primeiro (revisão r0 do #36).
  * Os limites de cada rota (page ≥ 1, pageSize ≤ 100, limit ≤ 100) continuam a
  * ser aplicados por clamp depois desta validação.
  */
@@ -19,8 +21,8 @@ export const PAGINATION_INT_RE = /^[0-9]{1,9}$/;
 /** Resposta 400 se algum dos parâmetros estiver presente e não for inteiro válido; senão null. */
 export function rejectInvalidIntQuery(c: Context, names: readonly string[]): Response | null {
   for (const name of names) {
-    const value = c.req.query(name);
-    if (value !== undefined && value !== '' && !PAGINATION_INT_RE.test(value)) {
+    const values = c.req.queries(name) ?? [];
+    if (values.some((v) => v !== '' && !PAGINATION_INT_RE.test(v))) {
       return c.json({ error: `Parâmetro de paginação inválido: ${name}` }, 400);
     }
   }

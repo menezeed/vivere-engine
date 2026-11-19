@@ -11,6 +11,7 @@ import { createApp, MUTATION_ROLE_MATRIX } from '../app';
 import { resolveAuthUser } from '../middleware/auth';
 import { createJwtVerifier } from '../middleware/jwtVerifier';
 import { logger } from '../../lib/logger';
+import { parseListParams } from '../types/listTypes';
 import type { ReviewService } from '../services/ReviewService';
 import type { EntityResolutionService } from '../services/EntityResolutionService';
 import type { StatsRepository } from '../repositories/StatsRepository';
@@ -611,8 +612,37 @@ describe('parâmetros de paginação na query string', () => {
     expect(runRepo.list).toHaveBeenLastCalledWith(1);
   });
 
-  it('ordem mantida: sem token 401 antes do 400', async () => {
+  it('ordem mantida: sem token 401 e sem papel 403 antes do 400', async () => {
     expect((await call('GET', '/api/venues?page=abc')).status).toBe(401);
     expect((await call('GET', '/api/ingestion-runs?limit=abc')).status).toBe(401);
+    expect((await call('GET', '/api/venues?page=abc', await sign(baseClaims()))).status).toBe(403);
+    expect((await call('GET', '/api/entity-resolution/queue?product_key=vivere-60-mais&pageSize=abc', await sign(baseClaims()))).status).toBe(403);
+  });
+
+  it.each([
+    '/api/venues?page=1&page=abc',
+    '/api/venues?page=abc&page=1',
+    '/api/activities?pageSize=&pageSize=abc',
+    '/api/entity-resolution/queue?product_key=vivere-60-mais&page=2&page=1.5',
+    '/api/ingestion-runs?limit=5&limit=-1',
+  ])('parâmetro repetido com algum valor inválido → 400 (r0 do #36): %s', async (path) => {
+    const res = await call('GET', path, await tokenFor('viewer'));
+    expect(res.status).toBe(400);
+    for (const m of allServiceMocks()) expect(m).not.toHaveBeenCalled();
+  });
+
+  it('parâmetro repetido todo válido → usa o primeiro', async () => {
+    expect((await call('GET', '/api/venues?page=3&page=7', await tokenFor('viewer'))).status).toBe(200);
+    expect(svc.listVenues).toHaveBeenLastCalledWith(expect.objectContaining({ page: 3 }));
+  });
+
+  it('fronteira de 9 dígitos: aceite e offset exacto; 10 dígitos → 400', async () => {
+    const t = await tokenFor('viewer');
+    expect((await call('GET', '/api/venues?page=999999999&pageSize=100', t)).status).toBe(200);
+    expect(svc.listVenues).toHaveBeenLastCalledWith(expect.objectContaining({ page: 999999999, pageSize: 100 }));
+    const p = parseListParams({ page: '999999999', pageSize: '100' });
+    expect(p.offset).toBe(99_999_999_800);
+    expect(Number.isSafeInteger(p.offset + p.pageSize - 1)).toBe(true);
+    expect((await call('GET', '/api/venues?page=1000000000', t)).status).toBe(400);
   });
 });
