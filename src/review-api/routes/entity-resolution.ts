@@ -84,7 +84,10 @@ export function entityResolutionRoutes(erService: EntityResolutionService): Hono
   router.patch('/:activityId/accept', async (c) => {
     const user = c.get('user');
     try {
-      const body = await c.req.json<{ candidateId?: string; notes?: string }>();
+      // Corpo que não é um objecto JSON → 400, sem chegar ao serviço (antes:
+      // SyntaxError caía no ramo genérico → 500 "Erro interno" + log de erro).
+      const body = await readJsonObject<{ candidateId?: string; notes?: string }>(c);
+      if (body === null) return c.json({ error: 'Corpo do pedido inválido: é esperado um objecto JSON' }, 400);
       await erService.accept(
         c.req.param('activityId'),
         body.candidateId ?? '',
@@ -107,7 +110,10 @@ export function entityResolutionRoutes(erService: EntityResolutionService): Hono
   router.patch('/:activityId/override', async (c) => {
     const user = c.get('user');
     try {
-      const body = await c.req.json<{ candidateId?: string; notes?: string }>();
+      // Corpo que não é um objecto JSON → 400, sem chegar ao serviço (antes:
+      // SyntaxError caía no ramo genérico → 500 "Erro interno" + log de erro).
+      const body = await readJsonObject<{ candidateId?: string; notes?: string }>(c);
+      if (body === null) return c.json({ error: 'Corpo do pedido inválido: é esperado um objecto JSON' }, 400);
       await erService.override(
         c.req.param('activityId'),
         body.candidateId ?? '',
@@ -130,7 +136,11 @@ export function entityResolutionRoutes(erService: EntityResolutionService): Hono
   router.patch('/:activityId/propose-new', async (c) => {
     const user = c.get('user');
     try {
-      const body = await c.req.json<{ notes?: string }>().catch(() => ({ notes: undefined }));
+      // Corpo OPCIONAL (contrato existente): vazio → sem notas. Mas um corpo
+      // presente que não seja objecto JSON → 400 (revisão r0 do #34: antes o
+      // JSON mal formado era engolido e a decisão executada; 'null' dava 500).
+      const body = await readOptionalJsonObject<{ notes?: string }>(c);
+      if (body === null) return c.json({ error: 'Corpo do pedido inválido: é esperado um objecto JSON' }, 400);
       await erService.proposeNew(
         c.req.param('activityId'),
         user,
@@ -146,4 +156,26 @@ export function entityResolutionRoutes(erService: EntityResolutionService): Hono
   });
 
   return router;
+}
+
+/** Corpo opcional: vazio → {}; senão tem de ser objecto JSON (null se não for). */
+async function readOptionalJsonObject<T extends object>(c: { req: { text: () => Promise<string> } }): Promise<T | null> {
+  const text = await c.req.text();
+  if (text.trim() === '') return {} as T;
+  try {
+    const v: unknown = JSON.parse(text);
+    return v !== null && typeof v === 'object' && !Array.isArray(v) ? (v as T) : null;
+  } catch {
+    return null;
+  }
+}
+
+/** Lê o corpo como objecto JSON; null se não for JSON válido ou não for um objecto. */
+async function readJsonObject<T extends object>(c: { req: { json: () => Promise<unknown> } }): Promise<T | null> {
+  try {
+    const v = await c.req.json();
+    return v !== null && typeof v === 'object' && !Array.isArray(v) ? (v as T) : null;
+  } catch {
+    return null;
+  }
 }
