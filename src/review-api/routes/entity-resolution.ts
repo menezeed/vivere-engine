@@ -10,11 +10,17 @@ import type { EntityResolutionService } from '../services/EntityResolutionServic
 import { NotFoundError, ForbiddenError } from '../services/ReviewService.js';
 import type { AuthUser } from '../types/reviewTypes.js';
 import { logger } from '../../lib/logger.js';
+import { requireUuidParam } from '../middleware/uuidParam.js';
 
 type Env = { Variables: { user: AuthUser } };
 
 export function entityResolutionRoutes(erService: EntityResolutionService): Hono<Env> {
   const router = new Hono<Env>();
+  // :activityId tem de ser UUID → 400. Lista EXPLÍCITA: '/:activityId/*'
+  // também casaria /health, /queue e /stats (o '*' aceita sufixo vazio).
+  for (const suffix of ['candidates', 'accept', 'override', 'propose-new']) {
+    router.use(`/:activityId/${suffix}`, requireUuidParam('activityId'));
+  }
 
   // ── GET /api/entity-resolution/health ────────────────────────────────────
   // viewer, reviewer, admin

@@ -3,11 +3,15 @@ import type { ReviewService } from '../services/ReviewService';
 import { NotFoundError, ForbiddenError } from '../services/ReviewService';
 import type { AuthUser } from '../types/reviewTypes';
 import { logger } from '../../lib/logger';
+import { requireUuidParam } from '../middleware/uuidParam';
 
 type Env = { Variables: { user: AuthUser } };
 
 export function venueRoutes(reviewService: ReviewService): Hono<Env> {
   const router = new Hono<Env>();
+  // :id tem de ser UUID → 400 (sem consultar a base). Depois de auth/papéis.
+  router.use('/:id', requireUuidParam('id'));
+  router.use('/:id/*', requireUuidParam('id'));
 
   router.get('/', async (c) => {
     try {

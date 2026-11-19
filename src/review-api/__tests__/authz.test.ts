@@ -174,7 +174,7 @@ describe('authMiddleware', () => {
     const t = await tokenFor('viewer');
     const [h, , s] = t.split('.');
     const forged = `${h}.${b64urlJson(baseClaims({ app_metadata: { role: 'admin' } }))}.${s}`;
-    expect((await call('PATCH', '/api/venues/v1/promote', forged)).status).toBe(401);
+    expect((await call('PATCH', '/api/venues/00000000-0000-4000-8000-0000000000b1/promote', forged)).status).toBe(401);
     expect(svc.reviewVenue).not.toHaveBeenCalled();
   });
 
@@ -294,15 +294,15 @@ describe('SEC-B — validação de JWT na app', () => {
 
 const GET_ROUTES = [
   '/api/venues',
-  '/api/venues/v1',
+  '/api/venues/00000000-0000-4000-8000-0000000000b1',
   '/api/activities',
-  '/api/activities/a1',
+  '/api/activities/00000000-0000-4000-8000-0000000000a1',
   '/api/ingestion-runs',
   '/api/stats?product_key=vivere-60-mais',
   '/api/entity-resolution/health?product_key=vivere-60-mais',
   '/api/entity-resolution/queue?product_key=vivere-60-mais',
   '/api/entity-resolution/stats?product_key=vivere-60-mais',
-  '/api/entity-resolution/a1/candidates',
+  '/api/entity-resolution/00000000-0000-4000-8000-0000000000a1/candidates',
 ];
 
 describe('rotas GET', () => {
@@ -321,15 +321,15 @@ describe('rotas GET', () => {
 const ROLES: readonly UserRole[] = ['viewer', 'reviewer', 'admin'];
 
 const PATCH_CASES: Array<{ path: string; allowed: UserRole[]; mock: ReturnType<typeof vi.fn>; body?: unknown }> = [
-  { path: '/api/venues/v1/approve',     allowed: ['reviewer', 'admin'], mock: svc.reviewVenue },
-  { path: '/api/venues/v1/reject',      allowed: ['reviewer', 'admin'], mock: svc.reviewVenue },
-  { path: '/api/venues/v1/promote',     allowed: ['admin'],             mock: svc.reviewVenue },
-  { path: '/api/activities/a1/approve', allowed: ['reviewer', 'admin'], mock: svc.reviewActivity },
-  { path: '/api/activities/a1/reject',  allowed: ['reviewer', 'admin'], mock: svc.reviewActivity },
-  { path: '/api/activities/a1/promote', allowed: ['admin'],             mock: svc.reviewActivity },
-  { path: '/api/entity-resolution/a1/accept',      allowed: ['reviewer', 'admin'], mock: er.accept,     body: { candidateId: 'c1' } },
-  { path: '/api/entity-resolution/a1/override',    allowed: ['reviewer', 'admin'], mock: er.override,   body: { candidateId: 'c1', notes: 'n' } },
-  { path: '/api/entity-resolution/a1/propose-new', allowed: ['admin'],             mock: er.proposeNew, body: {} },
+  { path: '/api/venues/00000000-0000-4000-8000-0000000000b1/approve',     allowed: ['reviewer', 'admin'], mock: svc.reviewVenue },
+  { path: '/api/venues/00000000-0000-4000-8000-0000000000b1/reject',      allowed: ['reviewer', 'admin'], mock: svc.reviewVenue },
+  { path: '/api/venues/00000000-0000-4000-8000-0000000000b1/promote',     allowed: ['admin'],             mock: svc.reviewVenue },
+  { path: '/api/activities/00000000-0000-4000-8000-0000000000a1/approve', allowed: ['reviewer', 'admin'], mock: svc.reviewActivity },
+  { path: '/api/activities/00000000-0000-4000-8000-0000000000a1/reject',  allowed: ['reviewer', 'admin'], mock: svc.reviewActivity },
+  { path: '/api/activities/00000000-0000-4000-8000-0000000000a1/promote', allowed: ['admin'],             mock: svc.reviewActivity },
+  { path: '/api/entity-resolution/00000000-0000-4000-8000-0000000000a1/accept',      allowed: ['reviewer', 'admin'], mock: er.accept,     body: { candidateId: 'c1' } },
+  { path: '/api/entity-resolution/00000000-0000-4000-8000-0000000000a1/override',    allowed: ['reviewer', 'admin'], mock: er.override,   body: { candidateId: 'c1', notes: 'n' } },
+  { path: '/api/entity-resolution/00000000-0000-4000-8000-0000000000a1/propose-new', allowed: ['admin'],             mock: er.proposeNew, body: {} },
 ];
 
 describe('rotas PATCH', () => {
@@ -401,16 +401,16 @@ describe('superfície /api/* e variações de caminho', () => {
   });
 
   it.each([
-    '/api/venues/v1/promote/',
-    '/api//venues/v1/promote',
-    '/api/venues/v1//promote',
+    '/api/venues/00000000-0000-4000-8000-0000000000b1/promote/',
+    '/api//venues/00000000-0000-4000-8000-0000000000b1/promote',
+    '/api/venues/00000000-0000-4000-8000-0000000000b1//promote',
     '/api/VENUES/v1/promote',
-    '/api/venues/v1/PROMOTE',
-    '/api/venues/v1/%70romote',
-    '/api/venues/v1/promote?x=1',
-    '/api/venues/v1/promote#x',
-    '/api/entity-resolution/a1/propose-new/',
-    '/api/entity-resolution/a1/%70ropose-new',
+    '/api/venues/00000000-0000-4000-8000-0000000000b1/PROMOTE',
+    '/api/venues/00000000-0000-4000-8000-0000000000b1/%70romote',
+    '/api/venues/00000000-0000-4000-8000-0000000000b1/promote?x=1',
+    '/api/venues/00000000-0000-4000-8000-0000000000b1/promote#x',
+    '/api/entity-resolution/00000000-0000-4000-8000-0000000000a1/propose-new/',
+    '/api/entity-resolution/00000000-0000-4000-8000-0000000000a1/%70ropose-new',
   ])('viewer não chega ao serviço por %s', async (path) => {
     const res = await call('PATCH', path, await tokenFor('viewer'), {});
     expect([403, 404]).toContain(res.status);
@@ -449,8 +449,8 @@ describe('ER accept/override — corpo do pedido inválido', () => {
   }
 
   it.each([
-    ['/api/entity-resolution/a1/accept', 'accept'],
-    ['/api/entity-resolution/a1/override', 'override'],
+    ['/api/entity-resolution/00000000-0000-4000-8000-0000000000a1/accept', 'accept'],
+    ['/api/entity-resolution/00000000-0000-4000-8000-0000000000a1/override', 'override'],
   ] as const)('%s: JSON mal formado → 400 e o serviço não é chamado', async (path, method) => {
     const res = await raw(path, await tokenFor('admin'), '{isto não é json');
     expect(res.status).toBe(400);
@@ -459,19 +459,19 @@ describe('ER accept/override — corpo do pedido inválido', () => {
   });
 
   it.each(['[1,2]', '"texto"', 'null', '42'])('accept: corpo JSON que não é objecto (%s) → 400', async (body) => {
-    const res = await raw('/api/entity-resolution/a1/accept', await tokenFor('admin'), body);
+    const res = await raw('/api/entity-resolution/00000000-0000-4000-8000-0000000000a1/accept', await tokenFor('admin'), body);
     expect(res.status).toBe(400);
     expect(er.accept).not.toHaveBeenCalled();
   });
 
   it('corpo válido continua a chegar ao serviço', async () => {
-    const res = await call('PATCH', '/api/entity-resolution/a1/accept', await tokenFor('reviewer'), { candidateId: 'c1' });
+    const res = await call('PATCH', '/api/entity-resolution/00000000-0000-4000-8000-0000000000a1/accept', await tokenFor('reviewer'), { candidateId: 'c1' });
     expect(res.status).toBe(200);
     expect(er.accept).toHaveBeenCalledTimes(1);
   });
 
   it('sem token continua a dar 401 antes de ler o corpo', async () => {
-    const res = await app.request('/api/entity-resolution/a1/accept', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: '{x' });
+    const res = await app.request('/api/entity-resolution/00000000-0000-4000-8000-0000000000a1/accept', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: '{x' });
     expect(res.status).toBe(401);
   });
 });
@@ -484,32 +484,67 @@ describe('ER — corpo inválido (revisão r0 do #34)', () => {
   }
 
   it.each(['{x', 'null', '[1]', '"t"'])('propose-new: corpo presente que não é objecto (%s) → 400, decisão não executada', async (body) => {
-    const res = await raw('/api/entity-resolution/a1/propose-new', await tokenFor('admin'), body);
+    const res = await raw('/api/entity-resolution/00000000-0000-4000-8000-0000000000a1/propose-new', await tokenFor('admin'), body);
     expect(res.status).toBe(400);
     expect(er.proposeNew).not.toHaveBeenCalled();
   });
 
   it('propose-new: corpo vazio continua permitido (contrato opcional)', async () => {
-    const res = await raw('/api/entity-resolution/a1/propose-new', await tokenFor('admin'), undefined);
+    const res = await raw('/api/entity-resolution/00000000-0000-4000-8000-0000000000a1/propose-new', await tokenFor('admin'), undefined);
     expect(res.status).toBe(200);
-    expect(er.proposeNew).toHaveBeenCalledWith('a1', expect.anything(), null);
+    expect(er.proposeNew).toHaveBeenCalledWith('00000000-0000-4000-8000-0000000000a1', expect.anything(), null);
   });
 
   it('propose-new: notas num objecto continuam a passar', async () => {
-    const res = await raw('/api/entity-resolution/a1/propose-new', await tokenFor('admin'), JSON.stringify({ notes: 'ok' }));
+    const res = await raw('/api/entity-resolution/00000000-0000-4000-8000-0000000000a1/propose-new', await tokenFor('admin'), JSON.stringify({ notes: 'ok' }));
     expect(res.status).toBe(200);
-    expect(er.proposeNew).toHaveBeenCalledWith('a1', expect.anything(), 'ok');
+    expect(er.proposeNew).toHaveBeenCalledWith('00000000-0000-4000-8000-0000000000a1', expect.anything(), 'ok');
   });
 
   it.each(['null', '[1]', '7'])('override: corpo JSON que não é objecto (%s) → 400', async (body) => {
-    const res = await raw('/api/entity-resolution/a1/override', await tokenFor('admin'), body);
+    const res = await raw('/api/entity-resolution/00000000-0000-4000-8000-0000000000a1/override', await tokenFor('admin'), body);
     expect(res.status).toBe(400);
     expect(er.override).not.toHaveBeenCalled();
   });
 
   it('papel sem permissão continua a dar 403 antes de ler um corpo inválido', async () => {
-    const res = await raw('/api/entity-resolution/a1/accept', await tokenFor('viewer'), '{x');
+    const res = await raw('/api/entity-resolution/00000000-0000-4000-8000-0000000000a1/accept', await tokenFor('viewer'), '{x');
     expect(res.status).toBe(403);
     expect(er.accept).not.toHaveBeenCalled();
+  });
+});
+
+// 19/11/2026: ids de caminho têm de ser UUID → 400 (antes: Postgres "invalid input syntax" → 500).
+describe('parâmetros de caminho UUID', () => {
+  const BAD = ['nao-e-uuid', '1', "1' or '1'='1", '00000000-0000-4000-8000-00000000000g'];
+
+  it.each(BAD.flatMap((id) => [
+    ['GET', `/api/venues/${encodeURIComponent(id)}`],
+    ['GET', `/api/activities/${encodeURIComponent(id)}`],
+    ['GET', `/api/entity-resolution/${encodeURIComponent(id)}/candidates`],
+    ['PATCH', `/api/venues/${encodeURIComponent(id)}/approve`],
+    ['PATCH', `/api/activities/${encodeURIComponent(id)}/promote`],
+    ['PATCH', `/api/entity-resolution/${encodeURIComponent(id)}/accept`],
+  ] as const))('%s %s com id inválido → 400, serviço não chamado', async (method, path) => {
+    const res = await call(method, path, await tokenFor('admin'), method === 'PATCH' ? { candidateId: 'c1' } : undefined);
+    expect(res.status).toBe(400);
+    expect(await res.json()).toEqual({ error: 'Identificador inválido' });
+    for (const m of allServiceMocks()) expect(m).not.toHaveBeenCalled();
+  });
+
+  it('rotas fixas de ER (health/queue/stats) não são tratadas como :activityId', async () => {
+    for (const p of ['/api/entity-resolution/health', '/api/entity-resolution/queue', '/api/entity-resolution/stats']) {
+      expect((await call('GET', `${p}?product_key=vivere-60-mais`, await tokenFor('viewer'))).status).toBe(200);
+    }
+  });
+
+  it('ordem mantida: sem token 401 e papel insuficiente 403 antes do 400', async () => {
+    expect((await call('PATCH', '/api/venues/nao-e-uuid/promote')).status).toBe(401);
+    expect((await call('PATCH', '/api/venues/nao-e-uuid/promote', await tokenFor('reviewer'))).status).toBe(403);
+  });
+
+  it('UUID válido em maiúsculas é aceite (o Postgres aceita)', async () => {
+    const res = await call('GET', '/api/venues/00000000-0000-4000-8000-0000000000B1', await tokenFor('viewer'));
+    expect(res.status).toBe(200);
   });
 });
