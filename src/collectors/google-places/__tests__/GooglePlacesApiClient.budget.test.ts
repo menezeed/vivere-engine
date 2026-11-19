@@ -181,3 +181,123 @@ describe('GooglePlacesCollector com o cliente real', () => {
     expect(guard.costSummary().totals).toMatchObject({ spent_count: 2, released_count: 0 });
   });
 });
+
+// Revisão r1 do L5 (BAIXO): o custo reportado pelo collector conta TODAS as
+// tentativas liquidadas como gasto, incluindo as de pedidos que acabam em excepção.
+describe('GooglePlacesCollector — estimated_cost_usd = gasto real por tentativa', () => {
+  const CONFIG: GooglePlacesProductConfig = {
+    product_key: 'qa', source_key: 'google_places', source_priority: 70,
+    regions: [{ key: 'cidade_qa', display_label: 'Cidade QA', lat: -22.9, lng: -42.0, radius_m: 1000 }],
+    categories: [{ key: 'teatro', query_text: 'teatro', kind: 'place_type' }],
+    monthly_budget_usd: 10, hard_stop_enabled: true, alert_threshold_pct: 0.8,
+  };
+
+  it('textSearch falha depois de enviar (respostas perdidas, todas as repetições) → todas as tentativas no custo', async () => {
+    const { guard } = setup();
+    const { f, api } = client(async () => { throw lostResponse(); });
+    const result = await new GooglePlacesCollector(api, guard, CONFIG).collect();
+    const sent = f.mock.calls.length;
+    expect(sent).toBeGreaterThan(1);
+    expect(result.stats.estimated_cost_usd).toBeCloseTo(Math.round(sent * TS * 100) / 100, 6);
+    expect(guard.costSummary().totals.spent_usd).toBeCloseTo(sent * TS, 6);
+  });
+
+  it('recusa de orçamento a meio das repetições → as tentativas já enviadas contam', async () => {
+    const { guard } = setup({ per_run_budget_usd: TS * 1.5 }); // cabe 1 tentativa
+    const { f, api } = client(async () => { throw lostResponse(); });
+    const result = await new GooglePlacesCollector(api, guard, CONFIG).collect();
+    expect(f).toHaveBeenCalledTimes(1);
+    expect(result.stats.queries_skipped_budget).toBe(1);
+    expect(result.stats.estimated_cost_usd).toBeCloseTo(Math.round(TS * 100) / 100, 6);
+  });
+
+  it('falha antes de enviar (ligação recusada) → libertada, custo 0', async () => {
+    const { guard } = setup();
+    const { api } = client(async () => { throw connectRefused(); });
+    const result = await new GooglePlacesCollector(api, guard, CONFIG).collect();
+    expect(result.stats.estimated_cost_usd).toBe(0);
+    expect(guard.costSummary().totals.spent_count).toBe(0);
+  });
+
+  it('caminho feliz: custo igual ao do orçamento (pesquisa + detalhes)', async () => {
+    const { guard } = setup();
+    const place = { id: 'p1', displayName: { text: 'Teatro QA' }, location: { latitude: -22.9, longitude: -42.0 } };
+    const { api } = client(async (url: unknown) =>
+      String(url).includes('searchText')
+        ? new Response(JSON.stringify({ places: [place] }), { status: 200 })
+        : new Response(JSON.stringify({ id: 'p1' }), { status: 200 }),
+    );
+    const result = await new GooglePlacesCollector(api, guard, CONFIG).collect();
+    expect(result.stats.estimated_cost_usd).toBeCloseTo(Math.round(guard.costSummary().totals.spent_usd * 100) / 100, 6);
+  });
+
+  it('duas execuções do mesmo collector não acumulam custo entre si', async () => {
+    const { guard } = setup();
+    const { api } = client(async () => new Response(JSON.stringify({ places: [] }), { status: 200 }));
+    const collector = new GooglePlacesCollector(api, guard, CONFIG);
+    const r1 = await collector.collect();
+    const r2 = await collector.collect();
+    expect(r1.stats.estimated_cost_usd).toBeCloseTo(Math.round(TS * 100) / 100, 6);
+    expect(r2.stats.estimated_cost_usd).toBeCloseTo(Math.round(TS * 100) / 100, 6);
+  });
+});
+
+describe('GooglePlacesCollector — isolamento por execução (revisão r0 do #31)', () => {
+  const CONFIG: GooglePlacesProductConfig = {
+    product_key: 'qa', source_key: 'google_places', source_priority: 70,
+    regions: [{ key: 'cidade_qa', display_label: 'Cidade QA', lat: -22.9, lng: -42.0, radius_m: 1000 }],
+    categories: [{ key: 'teatro', query_text: 'teatro', kind: 'place_type' }],
+    monthly_budget_usd: 10, hard_stop_enabled: true, alert_threshold_pct: 0.8,
+  };
+
+  it('collect() concorrente na mesma instância é recusado; a primeira execução reporta só o seu custo', async () => {
+    const { guard } = setup();
+    let release!: () => void;
+    const gateOpen = new Promise<void>((r) => { release = r; });
+    const { api } = client(async () => { await gateOpen; return new Response(JSON.stringify({ places: [] }), { status: 200 }); });
+    const collector = new GooglePlacesCollector(api, guard, CONFIG);
+    const first = collector.collect();
+    await expect(collector.collect()).rejects.toThrow(/já em curso/);
+    release();
+    const r1 = await first;
+    expect(r1.stats.estimated_cost_usd).toBeCloseTo(Math.round(TS * 100) / 100, 6);
+    const r2 = await collector.collect(); // depois de terminar, volta a aceitar
+    expect(r2.stats.estimated_cost_usd).toBeCloseTo(Math.round(TS * 100) / 100, 6);
+  });
+
+  it('settle() repetido no mesmo ticket conta uma só vez', async () => {
+    const { guard } = setup();
+    const settles: Array<() => Promise<void>> = [];
+    const fakeApi = {
+      textSearch: async (_p: unknown, gate: { begin: (c: string, e: number) => Promise<{ ok: boolean; settle?: (b: 'yes') => Promise<void> }> }) => {
+        const ticket = await gate.begin('textSearch', TS);
+        if (ticket.ok && ticket.settle) { await ticket.settle('yes'); settles.push(() => ticket.settle!('yes')); await ticket.settle('yes'); }
+        return { places: [], costUsd: TS };
+      },
+      getEnrichedDetails: async () => ({ details: null, costUsd: 0 }),
+    } as unknown as GooglePlacesApiClient;
+    const result = await new GooglePlacesCollector(fakeApi, guard, CONFIG).collect();
+    expect(result.stats.estimated_cost_usd).toBeCloseTo(Math.round(TS * 100) / 100, 6);
+  });
+});
+
+it('settle(no) seguido de settle(yes) no mesmo ticket não conta (a primeira liquidação decide)', async () => {
+  const { guard } = setup();
+  const CONFIG: GooglePlacesProductConfig = {
+    product_key: 'qa', source_key: 'google_places', source_priority: 70,
+    regions: [{ key: 'cidade_qa', display_label: 'Cidade QA', lat: -22.9, lng: -42.0, radius_m: 1000 }],
+    categories: [{ key: 'teatro', query_text: 'teatro', kind: 'place_type' }],
+    monthly_budget_usd: 10, hard_stop_enabled: true, alert_threshold_pct: 0.8,
+  };
+  const fakeApi = {
+    textSearch: async (_p: unknown, gate: { begin: (c: string, e: number) => Promise<{ ok: boolean; settle?: (b: 'yes' | 'no' | 'uncertain') => Promise<void> }> }) => {
+      const ticket = await gate.begin('textSearch', TS);
+      if (ticket.ok && ticket.settle) { await ticket.settle('no'); await ticket.settle('yes'); await ticket.settle('uncertain'); }
+      return { places: [], costUsd: 0 };
+    },
+    getEnrichedDetails: async () => ({ details: null, costUsd: 0 }),
+  } as unknown as GooglePlacesApiClient;
+  const result = await new GooglePlacesCollector(fakeApi, guard, CONFIG).collect();
+  expect(result.stats.estimated_cost_usd).toBe(0);
+  expect(guard.costSummary().totals.spent_count).toBe(0);
+});
