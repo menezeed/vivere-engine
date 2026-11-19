@@ -548,3 +548,24 @@ describe('parâmetros de caminho UUID', () => {
     expect(res.status).toBe(200);
   });
 });
+
+describe('parâmetros de caminho UUID — contrato canónico (revisão r0 do #35)', () => {
+  it.each([
+    '000000000000400080000000000000b1',        // sem hífenes (o Postgres aceitaria)
+    '{00000000-0000-4000-8000-0000000000b1}',  // entre chavetas (o Postgres aceitaria)
+  ])('forma não canónica %s → 400', async (id) => {
+    const res = await call('GET', `/api/venues/${encodeURIComponent(id)}`, await tokenFor('viewer'));
+    expect(res.status).toBe(400);
+  });
+
+  it.each([
+    ['/api/entity-resolution/nao-e-uuid/override', { candidateId: 'c1', notes: 'n' }],
+    ['/api/entity-resolution/nao-e-uuid/propose-new', {}],
+    ['/api/venues/nao-e-uuid/reject', undefined],
+    ['/api/activities/nao-e-uuid/approve', undefined],
+  ] as const)('PATCH %s com id inválido → 400, serviço não chamado', async (path, body) => {
+    const res = await call('PATCH', path, await tokenFor('admin'), body);
+    expect(res.status).toBe(400);
+    for (const m of allServiceMocks()) expect(m).not.toHaveBeenCalled();
+  });
+});
