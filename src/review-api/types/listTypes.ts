@@ -63,6 +63,15 @@ export function parseListParams(query: Record<string, string | undefined>): {
   };
 }
 
+/**
+ * Padrão ILIKE "contém" com o termo LITERAL: escapa \, % e _ (o escape por
+ * omissão do ILIKE é a barra invertida). Sem isto, "50%" ou "a_b" eram
+ * curingas. Nota: o PostgREST converte * em %, por isso * continua curinga.
+ */
+export function ilikeContains(term: string): string {
+  return `%${term.replace(/[\\%_]/g, (m) => `\\${m}`)}%`;
+}
+
 export function buildListResponse<T>(
   items: T[],
   totalItems: number,
