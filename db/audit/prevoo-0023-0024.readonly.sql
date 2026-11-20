@@ -1,7 +1,8 @@
--- E2 passo 5 (SO LEITURA): pre-voo das pre-condicoes da 0023 (P1a, P1b, P2) e da 0024 (P1a, P1b, P2),
--- mais alertas de proteccao efectiva (etapa RISCO: escrita com RLS desligado; TRUNCATE).
--- Reproduz as verificacoes dos blocos DO das migracoes (integracao 078510a) como SELECT.
--- Cada linha = um motivo pelo qual a migracao ABORTARIA. 0 linhas = passaria.
+-- E2 passo 5 (SO LEITURA): pre-voo da 0023 e da 0024 (integracao 078510a), como um unico SELECT.
+-- Etapas BLOQUEANTES: 0023 P1a, 0023 P1b, MATRIZ, 0024 P1a, 0024 P1b, 0024 P2, 0024 VF
+-- (verificacao final: default ACL de funcoes e heranca efectiva de papeis).
+-- Esperada nos cenarios B/C: 0023 P2. ALERTAS: RISCO (escrita com RLS desligado; TRUNCATE) e EXCESSO.
+-- Cenarios e decisao: docs/runbooks/production-rollout.md, seccao 3a.
 -- So catalogo; nenhum dado de utilizador. Pode correr com qualquer papel: o "grantor esperado" esta
 -- FIXO em postgres (o papel que aplicara as migracoes no SQL Editor), nao no papel de quem corre.
 -- Nota: a P1a da 0024 assume a 0023 aplicada; sem ela aparece "0023 nao aplicada", o que e normal
@@ -120,14 +121,36 @@ p24vf as (
     and a.grantee <> 0
     and pg_catalog.pg_get_userbyid(a.grantee) not in ('anon', 'authenticated', 'service_role', 'postgres')
 ),
--- Heranca (revisao r1): a 0024 so faz REVOKE directo. Um privilegio que anon/authenticated herdem de
--- outro papel (pg_auth_members) sobrevive e faz a verificacao final reverter. No Supabase estes
--- papeis nao sao membros de nenhum outro; qualquer linha aqui e bloqueante.
+-- Heranca EFECTIVA (revisoes r1/r2): a 0024 so faz REVOKE directo e a verificacao final usa
+-- has_*_privilege (que conta heranca). pg_has_role(..., 'USAGE') segue cadeias indirectas e respeita
+-- INHERIT; uma filiacao sem heranca nao gera linha.
+--  (a) anon ou service_role a herdar de authenticated recebem o EXECUTE das RPC novas (e anon o
+--      UPDATE de activities): a verificacao final exige false e reverte;
+--  (b) anon/authenticated a herdar de outro papel com ACL nos objectos que a 0024 verifica: esse
+--      privilegio sobrevive aos REVOKE directos.
+alvo_her as (
+  select c.relname::text as obj, a.grantee
+  from pg_catalog.pg_class c
+  join pg_catalog.pg_namespace n on n.oid = c.relnamespace and n.nspname = 'public'
+  cross join lateral pg_catalog.aclexplode(c.relacl) a
+  where c.relname in ('activities', 'active_activities', 'activity_interests')
+  union all
+  select 'increment_activity_interest', a.grantee
+  from pg_catalog.pg_proc f
+  cross join lateral pg_catalog.aclexplode(coalesce(f.proacl, pg_catalog.acldefault('f', f.proowner))) a
+  where f.oid = pg_catalog.to_regprocedure('public.increment_activity_interest(uuid, smallint)')
+),
 p24her as (
-  select '0024 VF' as etapa, pg_catalog.pg_get_userbyid(m.member) || ' herda de '
-         || pg_catalog.pg_get_userbyid(m.roleid) || ' (privilegios herdados sobrevivem aos REVOKE)' as motivo
-  from pg_catalog.pg_auth_members m
-  where pg_catalog.pg_get_userbyid(m.member) in ('anon', 'authenticated')
+  select '0024 VF' as etapa, r || ' herda os privilegios de authenticated' as motivo
+  from unnest(array['anon', 'service_role']) r
+  where pg_catalog.pg_has_role(r, 'authenticated', 'USAGE')
+  union
+  select '0024 VF', x || ' herda de ' || pg_catalog.pg_get_userbyid(o.grantee) || ', que tem ACL em ' || o.obj
+  from unnest(array['anon', 'authenticated']) x
+  cross join alvo_her o
+  where o.grantee <> 0
+    and pg_catalog.pg_get_userbyid(o.grantee) not in ('anon', 'authenticated')
+    and pg_catalog.pg_has_role(x, o.grantee, 'USAGE')
 ),
 -- EXCESSO (revisao r0, ALTO; ALERTA): escritas nas 5 tabelas da 0023 alem da matriz da app que o
 -- RLS NAO nega por completo. favorites: a politica ALL deixa authenticated actualizar as proprias
