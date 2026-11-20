@@ -272,12 +272,12 @@ from staging.api_budget_config where provider = 'google_places';
   preservados; se sim, exportar as duas tabelas e **verificar o export**
   (contagens iguais às das tabelas) antes do DROP.
 
-### 9c. Pendências antes da W1 (estado a 20/11/2026)
+### 9c. Pendências antes da W1 (estado a 20/11/2026, com as decisões do PO)
 
 | Item | Estado | Quem |
 |---|---|---|
 | Auditoria E2 da produção (só leitura; CSV) + consulta "Antes" da 9a | por fazer | PO autoriza |
-| Ensaio da 0026 no staging (secção 3, passo 4) | por fazer (`APPLIED.sha256` só regista 0023–0025 e 0029 no staging). Pré-condições P1/P2 da 0026 verificadas no staging a 20/11, só leitura: **passam**. Procedimento: `reviews/PROCEDIMENTO-0026-STAGING.md` | PO autoriza |
-| 0028 no staging + tectos | por fazer (decisão de custo) | PO aprova o tecto |
-| Decisão 9b (colectores pagos em produção?) | em aberto | PO |
+| Ensaio da 0026 no staging (secção 3, passo 4) | **autorizado** (20/11): só staging, terminando no estado 0025 (aplicar → verificar → rollback → verificar). Pré-condições: **passam**. Linha de base do catálogo: auditoria v2 com 387 linhas, md5 `88ede4ce…`, 0 ATENCAO/FALTA. Procedimento: `reviews/PROCEDIMENTO-0026-STAGING.md` | operador executa as escritas; Claude verifica |
+| 0028 no staging + tectos | **fora da janela inicial**. Tectos aprovados para depois: USD 2 por execução e USD 15/mês; o diário ("5") ainda por clarificar: a 0028 só limita em USD, não por número de execuções | PO |
+| Decisão 9b (colectores pagos em produção?) | **decidido (20/11): não no primeiro go-live**. A 0028 não entra na W1 | — |
 | #19 em `main` | sem conflitos desde a sincronização (#39) | PO autoriza |
