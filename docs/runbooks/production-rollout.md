@@ -1,4 +1,4 @@
-# Runbook — Rollout em PRODUÇÃO das migrações 0023–0027 (interesses e conta)
+# Runbook — Rollout em PRODUÇÃO das migrações 0023–0029 (interesses, conta, orçamento e vista)
 
 Estado: PROPOSTA (Lote 3), não executado. Validado só na simulação local
 (`db/audit/local/run-lote3-compat.sh`). Cada passo em produção precisa de REF
@@ -138,3 +138,57 @@ continua durante todo esse tempo.
 Variante: aplicar 0023→0025 **sem** a 0026 (endurece já; a app antiga fica
 com o contador congelado, sem erro). A estratégia (a) com 0026 é a decisão
 Level 2.
+
+## 9. Migrações 0028 e 0029 (não cobertas pelas secções 1–8)
+
+O #19 leva para `main` também a 0028 e a 0029. Nenhuma delas toca nas
+tabelas de interesses/conta, por isso **não entram na regra de ordem da
+secção 1**. Cada uma precisa de REF Level 2 próprio em produção.
+
+### 9a. 0029 — `active_activities` pela data local (necessária para o go-live)
+
+- **Porquê:** sem ela, entre as 21:00 e as 24:00 locais a vista esconde do
+  app os eventos pontuais do próprio dia e as actividades que acabam nesse dia.
+- **Staging:** aplicada a 16/11/2026 (`APPLIED.sha256`; simulação 16 OK /
+  0 FALHA; validação pós sem divergências). Procedimento seguido:
+  `reviews/PROCEDIMENTO-0029-STAGING.md`.
+- **Independente da 0023–0028:** só faz `CREATE OR REPLACE VIEW`, que
+  preserva ACL, dono e `security_invoker`. Pode correr na W1 depois do passo
+  4 (auditoria v2 já feita) ou numa janela própria.
+- **Antes (só leitura):**
+  1. `show timezone` = `UTC` (premissa da revisão r3).
+  2. A auditoria E2 mostra a definição da vista **igual** ao baseline 0000
+     (o texto exacto está na P1 da migração), `security_invoker=true` e
+     comentário NULL. A vista de produção foi criada à mão antes do engine:
+     se divergir, a P1 aborta sem alterar nada. Nesse caso, **PARAR** e
+     pedir decisão; não adaptar a migração na janela.
+  3. Guardar o ACL da vista e a contagem de linhas visíveis.
+- **Executar:** a simulação `db/audit/active-activities-local-date-tests.staging.sql`
+  é só para staging (cria fixtures). Em produção corre-se só o ficheiro da
+  migração, com o SHA-256 de `APPLIED.sha256` confirmado antes.
+- **Depois:** a definição contém `America/Sao_Paulo`; 19 colunas; ACL e
+  `security_invoker` iguais aos guardados; contagem visível ≥ a de antes.
+  Qualquer divergência → `0029_…rollback.sql`.
+- **Efeito no app:** nenhuma linha visível desaparece (o filtro novo é um
+  superconjunto). Lock exclusivo breve só na vista; sem reescrita de dados.
+
+### 9b. 0028 — orçamento persistente das APIs pagas (condicional)
+
+- **Só é precisa** se em produção correrem colectores pagos (Google Places)
+  com `--budget=persistent`. Com o modo por omissão (`--budget=memory`) a
+  produção não depende dela.
+- **Pré-requisito:** aplicada e validada primeiro no **staging**
+  (`reviews/L5-0028-APLICACAO-STAGING-PO.md`), o que ainda está pendente:
+  espera a aprovação do tecto de custo pelo PO.
+- **Rollback apaga** o histórico de gasto e os tectos (ver o cabeçalho do
+  `0028_…rollback.sql`): exportar as duas tabelas antes, se forem precisas.
+
+### 9c. Pendências antes da W1 (estado a 20/11/2026)
+
+| Item | Estado | Quem |
+|---|---|---|
+| Auditoria E2 da produção (só leitura; CSV) | por fazer | PO autoriza |
+| Ensaio da 0026 no staging (secção 3, passo 4) | por fazer: `APPLIED.sha256` só regista 0023–0025 e 0029 no staging | PO autoriza |
+| 0028 no staging | por fazer (tecto de custo) | PO aprova o tecto |
+| Decisão 9b (colectores pagos em produção?) | em aberto | PO |
+| #19 em `main` | depende do PR de sincronização main → integração | PO autoriza |
