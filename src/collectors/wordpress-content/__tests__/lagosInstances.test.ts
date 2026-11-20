@@ -68,10 +68,11 @@ describe('Rio das Ostras — bloco "<strong>SERVIÇO</strong>" (sem dois-pontos)
     expect(item.venue_mention?.raw_text).toBe('Teatro Municipal');
   });
 
-  it('"Data: Domingo, 8 de novembro" (sem ano) NÃO gera data — o motor não infere o ano; o item vai para revisão', () => {
+  it('"Data: Domingo, 8 de novembro" (sem ano): ano inferido pela publicação (regra do ano mais próximo) e dia da semana confere', () => {
     const result = mapToRawActivityItems(toInput(espetaculo!), RIO_DAS_OSTRAS_CONFIG);
-    expect(result.items[0]!.occurrences).toEqual([]);
-    expect(result.skipped.map((s) => s.reason)).toEqual(['structured_subevent_missing_date']);
+    // 08/11/2026 é domingo; a fixture foi publicada em 2026 — sem ambiguidade.
+    expect(result.items[0]!.occurrences).toEqual([{ date: '2026-11-08', time: '17:00', end_date: null, end_time: null }]);
+    expect(result.skipped).toEqual([]);
   });
 
   it('exposição com "Período: Em cartaz até…" também fica sem data e é sinalizada', () => {

@@ -56,8 +56,8 @@ describe('formato "Evento:" sem título em negrito (São Pedro da Aldeia, "Junho
     });
   });
 
-  it('"Quarta-feira (17/06)" NÃO vira data: o ano não é inferido (ADR-0003) → revisão', () => {
-    expect(parseStructuredBlock(html, REF, MARKER).subEvents[0]!.date).toBeNull();
+  it('"Quarta-feira (17/06)": ano inferido pela publicação (ano mais próximo) e o dia da semana confere (17/06/2026 é quarta)', () => {
+    expect(parseStructuredBlock(html, REF, MARKER).subEvents[0]!.date).toBe('2026-06-17');
     const mapped = mapToRawActivityItems(
       { id: 1, title: 'Junho Violeta', contentHtml: html, link: 'https://example.gov.br/1', publishedAt: { ...REF, isoDate: '2026-06-10T13:00:00' }, imageUrl: null },
       SAO_PEDRO_DA_ALDEIA_CONFIG,
@@ -65,9 +65,14 @@ describe('formato "Evento:" sem título em negrito (São Pedro da Aldeia, "Junho
     expect(mapped.extractionMethod).toBe('structured_block');
     expect(mapped.items).toHaveLength(1);
     expect(mapped.items[0]!.title).toBe('Encontro Junho Violeta');
-    expect(mapped.items[0]!.occurrences).toEqual([]);
+    expect(mapped.items[0]!.occurrences).toEqual([{ date: '2026-06-17', time: '08:45', end_date: null, end_time: null }]);
     expect(mapped.items[0]!.venue_mention).toMatchObject({ raw_text: 'Teatro Municipal', confidence_hint: 'explicit_name' });
-    expect(mapped.skipped.map((s) => s.reason)).toEqual(['structured_subevent_missing_date']);
+    expect(mapped.skipped).toEqual([]);
+  });
+
+  it('"Quinta-feira (17/06)" com o dia da semana errado NÃO vira data (fonte incoerente → revisão)', () => {
+    const wrongWeekday = html.replace('Quarta-feira (17/06)', 'Quinta-feira (17/06)');
+    expect(parseStructuredBlock(wrongWeekday, REF, MARKER).subEvents[0]!.date).toBeNull();
   });
 
   it('com data explícita completa, a data é extraída', () => {

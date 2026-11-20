@@ -1,5 +1,22 @@
 import { logger } from '../../lib/logger';
 import type { IngestionSummary } from '../types/persistenceTypes';
+import type { ActivityCollectorError } from '../../types/RawActivityItem';
+
+/**
+ * Agrega erros de collector pela CLASSE: o prefixo "motivo:" da
+ * mensagem quando é um identificador simples (ex.: 'narrative_ambiguous',
+ * 'no_extractable_schedule_found'); qualquer outra forma conta como
+ * 'other'. Nunca guarda o resto da mensagem (títulos/conteúdo dos posts).
+ */
+export function countErrorsByReason(errors: readonly Pick<ActivityCollectorError, 'message'>[]): Record<string, number> {
+  const out: Record<string, number> = {};
+  for (const e of errors) {
+    const m = /^([a-z][a-z0-9_]{0,63}):/.exec(e.message);
+    const key = m ? m[1]! : 'other';
+    out[key] = (out[key] ?? 0) + 1;
+  }
+  return out;
+}
 import type { IRepositorySet } from '../types/repositoryInterfaces';
 import type {
   VenueCollectorContract,
@@ -291,6 +308,7 @@ export class IngestionOrchestrator {
         rawItemsCollected: collected.items.length,
         rawItemsPersisted: persistedRaw.length,
         rawItemsErrored: collected.errors.length,
+        rawItemsErroredByReason: countErrorsByReason(collected.errors),
         stagedItems: stagedCount,
         rejectedItems: 0,
         geoExcludedItems: 0, // activities não têm o Regional Geographic Gate (ADR-0022) — só venues têm lat/lng

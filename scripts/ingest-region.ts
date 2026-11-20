@@ -19,6 +19,7 @@ import { RepositoryFactory } from '../src/persistence/orchestration/RepositoryFa
 import { runRegionIngestion, type RegionIngestionDeps, type RegionIngestionResult } from '../src/ingestion/runRegionIngestion';
 import { formatRunQualitySummary } from '../src/pipeline/metrics/runQualityMetrics';
 import { formatSourceHealthSummary } from '../src/pipeline/health/sourceHealth';
+import { formatDiscardReasons } from '../src/ingestion/assisted/runAssisted';
 
 export interface IngestRegionArgs {
   region: string;
@@ -62,7 +63,7 @@ export function formatRegionResult(result: RegionIngestionResult): string {
   for (const s of result.sources) {
     lines.push(
       s.status === 'success'
-        ? `${s.source_key}: recolhidos ${s.summary!.rawItemsCollected}, gravados ${s.summary!.rawItemsPersisted}, staged ${s.summary!.stagedItems}, descartes ${s.summary!.rawItemsErrored}`
+        ? `${s.source_key}: recolhidos ${s.summary!.rawItemsCollected}, gravados ${s.summary!.rawItemsPersisted}, staged ${s.summary!.stagedItems}, descartes ${s.summary!.rawItemsErrored}${formatDiscardReasons(s.summary!.rawItemsErroredByReason)}`
         : `${s.source_key}: FALHOU — ${s.error}`,
     );
   }

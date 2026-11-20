@@ -43,6 +43,7 @@ tmp/
 .DS_Store
 Thumbs.db
 
-# Manifestos locais de execução (E4) — nunca no git
+# Execução assistida (E4): manifestos e locks locais — nunca no repositório
 runs/
+# Script local do PO (hora da Corrida) — nunca no repositório
 vivere-hora-corrida.cjs

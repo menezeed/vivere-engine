@@ -87,7 +87,8 @@ export function parseTimeRangePt(text: string): { time: string | null; endTime: 
     return { time: parseTimePt(rangeMatch[1]), endTime: parseTimePt(rangeMatch[2]) };
   }
 
-  const withPrepositionMatch = text.match(/(?:a partir d[ae]s?|às|as)\s+(\d{1,2}h\d{0,2})/i);
+  // "às19h30" (sem espaço, gralha frequente em posts reais) também conta.
+  const withPrepositionMatch = text.match(/(?:a partir d[ae]s?\s+|às\s*|as\s+)(\d{1,2}h\d{0,2})/i);
   if (withPrepositionMatch) {
     return { time: parseTimePt(withPrepositionMatch[1]), endTime: null };
   }
