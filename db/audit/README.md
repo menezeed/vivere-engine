@@ -27,6 +27,7 @@ produção. Evidências fora do repositório.
 | Ficheiro | Natureza | Onde |
 |---|---|---|
 | `grants-audit.readonly.sql` | Uma única instrução `SELECT` sobre o catálogo. Não lê linhas da aplicação nem escreve (provado numa sessão `default_transaction_read_only`). | Staging **e** produção, em separado |
+| `prevoo-0023-0024.readonly.sql` | Um `SELECT` sobre o catálogo: reproduz as pré-condições P1/P2 da 0023 e da 0024 (uma linha por motivo de aborto) , a cobertura da matriz da app (`MATRIZ`), o default ACL de funções que faria a verificação final da 0024 reverter (`0024 VF`) e alertas (`RISCO`: escrita com RLS desligado e TRUNCATE; `EXCESSO`: escritas além da matriz que o RLS não nega por completo). O grantor esperado está fixo em `postgres`, por isso pode correr com qualquer papel. Ensaiado no staging a 20/11. | Produção, antes da W1 (runbook §3) |
 | `mobile-access-tests.staging.sql` | 61 testes positivos e negativos como `anon`/`authenticated`, com fixtures sintéticas. Termina sempre com `RAISE EXCEPTION`, que desfaz tudo. | **Só staging** |
 | `local/supabase-sim.sql` | Simulação mínima do Supabase (papéis, schema `auth` com `users`, `sessions`, `identities`, `refresh_tokens` e FK em cascata, default ACL). | **Só PostgreSQL local descartável** |
 | `local/activity-interests-requirements.local.sql` | Experiência dos privilégios exigidos pelo upsert de interesses. Recusa correr fora da simulação. | **Só local** |
