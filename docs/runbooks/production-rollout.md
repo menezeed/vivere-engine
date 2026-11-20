@@ -1,4 +1,4 @@
-# Runbook — Rollout em PRODUÇÃO das migrações 0023–0027 (interesses e conta)
+# Runbook — Rollout em PRODUÇÃO das migrações 0023–0029 (interesses, conta, orçamento e vista)
 
 Estado: PROPOSTA (Lote 3), não executado. Validado só na simulação local
 (`db/audit/local/run-lote3-compat.sh`). Cada passo em produção precisa de REF
@@ -138,3 +138,146 @@ continua durante todo esse tempo.
 Variante: aplicar 0023→0025 **sem** a 0026 (endurece já; a app antiga fica
 com o contador congelado, sem erro). A estratégia (a) com 0026 é a decisão
 Level 2.
+
+## 9. Migrações 0028 e 0029 (não cobertas pelas secções 1–8)
+
+O #19 leva para `main` também a 0028 e a 0029. Nenhuma delas toca nas
+tabelas de interesses/conta, por isso **não entram na regra de ordem da
+secção 1**. Cada uma precisa de REF Level 2 próprio em produção e, antes de
+cada execução, do SHA-256 (LF) do ficheiro confirmado contra `APPLIED.sha256`.
+
+### 9a. 0029 — `active_activities` pela data local (necessária para o go-live)
+
+- **Porquê:** sem ela, entre as 21:00 e as 24:00 locais a vista esconde do
+  app os eventos pontuais do próprio dia e as actividades que acabam nesse dia.
+- **Staging:** aplicada a 16/11/2026 (`APPLIED.sha256`; simulação 16 OK /
+  0 FALHA; validação pós sem divergências). Procedimento seguido:
+  `reviews/PROCEDIMENTO-0029-STAGING.md`.
+- **Interacção com a 0024:** `set_activity_interest` (0024) só deixa
+  **marcar** interesse em actividades presentes em `active_activities`.
+  Enquanto a 0029 não estiver aplicada, das 21:00 às 24:00 locais a RPC
+  responde `activity_not_found` para os eventos desse dia. Não há ordem
+  obrigatória entre a 0029 e a 0024/0026/0027 (estas verificam os
+  privilégios da vista, não o filtro; `CREATE OR REPLACE VIEW` preserva
+  ACL, dono e `security_invoker`). **Recomendação:** na W1, logo a seguir
+  ao passo 4 e **antes** dos testes de aceitação da W1, para que a
+  aceitação já veja o estado final.
+- **Antes (só leitura; guardar o resultado):** tudo tem de dar o esperado,
+  senão **PARAR** e pedir decisão (a vista de produção foi criada à mão
+  antes do engine; não adaptar a migração na janela):
+
+```sql
+select current_setting('TimeZone') as timezone,                       -- UTC
+  md5(btrim(regexp_replace(pg_get_viewdef('public.active_activities'::regclass), '[[:space:]]+', ' ', 'g')))
+    = '03a323f8e96130744f5cd15bba786980' as definicao_baseline,      -- true (md5 do texto da P1)
+  coalesce('security_invoker=true' = any(c.reloptions), false) as security_invoker, -- true
+  obj_description(c.oid, 'pg_class') is null as sem_comentario,        -- true
+  (exists (select 1 from pg_depend d join pg_rewrite r on r.oid = d.objid
+            where r.ev_class = c.oid and d.classid = 'pg_rewrite'::regclass
+              and d.refclassid = 'pg_class'::regclass and d.refobjid = 'public.activities'::regclass)
+   and not exists (select 1 from pg_depend d join pg_rewrite r on r.oid = d.objid
+            where r.ev_class = c.oid and d.classid = 'pg_rewrite'::regclass
+              and d.refclassid = 'pg_class'::regclass
+              and d.refobjid not in ('public.activities'::regclass, c.oid))) as origem_exclusiva, -- true
+  c.relowner::regrole::text as dono, c.relacl::text as acl, c.reloptions::text as opcoes      -- guardar
+from pg_class c where c.oid = 'public.active_activities'::regclass;
+```
+
+  (Ensaiada no staging a 20/11, só leitura: a consulta corre; como lá a 0029
+  já está aplicada, dá `definicao_baseline = false` e `sem_comentario = false`,
+  que é o estado pós-0029.)
+- **Executar:** só o ficheiro da migração, com o SHA-256 confirmado. A
+  simulação `db/audit/active-activities-local-date-tests.staging.sql` é só
+  para staging (cria fixtures) e **não** corre em produção.
+- **Depois (só leitura):**
+  1. Definição, colunas e catálogo (revisão r1 do #40: não basta o
+     booleano do baseline):
+
+```sql
+select md5(btrim(regexp_replace(pg_get_viewdef('public.active_activities'::regclass), '[[:space:]]+', ' ', 'g')))
+         = '38935be4375550a66fef1af44dba18dc' as definicao_0029,   -- true
+       btrim(regexp_replace(pg_get_viewdef('public.active_activities'::regclass), '[[:space:]]+', ' ', 'g')) as definicao, -- ler: só CURRENT_DATE trocado
+       (select count(*) from pg_attribute a where a.attrelid = 'public.active_activities'::regclass
+          and a.attnum > 0 and not a.attisdropped) as colunas,       -- 19
+       c.relowner::regrole::text as dono, c.relacl::text as acl, c.reloptions::text as opcoes -- iguais aos guardados
+from pg_class c where c.oid = 'public.active_activities'::regclass;
+```
+
+     O md5 é o da definição instalada no staging pela 0029 (lida a 20/11,
+     só leitura): o baseline com `CURRENT_DATE` trocado por
+     `((CURRENT_TIMESTAMP AT TIME ZONE 'America/Sao_Paulo'::text))::date`
+     nos dois sítios e nada mais. As duas consultas de md5 pressupõem o
+     `search_path` por omissão (`"$user", public`, o mesmo do staging):
+     `pg_get_viewdef` omite o schema das relações visíveis no caminho. A P1
+     da migração continua a ser a verificação final.
+  2. Os dois filtros comparados **na mesma instrução** (mesmo snapshot,
+     mesmo instante, mesmo papel), o que elimina o falso alarme de
+     escritas concorrentes ou de mudança de data entre consultas:
+
+```sql
+select count(*) filter (where f.antigo) as antigo,
+       count(*) filter (where f.novo) as novo,
+       count(*) filter (where f.antigo and not f.novo) as perdidas,   -- esperado 0
+       (select count(*) from public.active_activities) as vista       -- esperado = novo
+from public.activities a,
+lateral (select
+  ((a.end_date is null or a.end_date >= current_date)
+   and (a.recurrence_type is not null and a.recurrence_type <> 'none'
+        or a.recurrence_type = 'none' and a.start_date >= current_date)) as antigo,
+  ((a.end_date is null or a.end_date >= (current_timestamp at time zone 'America/Sao_Paulo')::date)
+   and (a.recurrence_type is not null and a.recurrence_type <> 'none'
+        or a.recurrence_type = 'none' and a.start_date >= (current_timestamp at time zone 'America/Sao_Paulo')::date)) as novo
+) f;
+```
+
+  (Ensaiada no staging a 20/11: 1059 / 1059 / 0 / 1059.)
+- **Divergência:** **PARAR e diagnosticar**; não reverter automaticamente.
+  O rollback repõe o erro de visibilidade e **preserva o ACL vigente**, por
+  isso não corrige uma divergência de ACL. Reverter só com REF próprio e o
+  SHA-256 do `0029_…rollback.sql` confirmado.
+- **Efeito no app:** nenhuma linha visível desaparece (o filtro novo é um
+  superconjunto). Lock exclusivo breve só na vista; sem reescrita de dados.
+
+### 9b. 0028 — orçamento persistente das APIs pagas (condicional)
+
+- **Só é precisa** se em produção correrem colectores pagos (Google Places)
+  com `--budget=persistent`. Por omissão (`--budget=memory`) a produção não
+  depende dela.
+- **A 0028 sozinha não chega (fail-closed):** cria `staging.api_budget_config`
+  **sem linhas**, e sem linha para o fornecedor a RPC recusa **todas** as
+  reservas. Ordem obrigatória, primeiro no staging e depois em produção:
+  1. aplicar a 0028 (procedimento `reviews/L5-0028-APLICACAO-STAGING-PO.md`);
+  2. o PO aprova os tectos (estimativa de custo:
+     `reviews/ESTIMATIVA-CUSTO-0028-PLACES.md`) e aplica a configuração com
+     REF próprio (`scripts/staging/api_budget_config.seed.example.sql`);
+  3. validar no staging que uma reserva dentro do tecto é aceite e que uma
+     acima do tecto é recusada, **antes** de activar `--budget=persistent`;
+  4. em **produção**, antes de activar o colector, confirmar só por leitura
+     a configuração efectiva (revisão r1 do #40: com `hard_stop_enabled =
+     false` a RPC deixa reservar acima do tecto, mesmo que o ensaio no
+     staging tenha passado):
+
+```sql
+select provider, monthly_budget_usd, daily_budget_usd, per_run_budget_usd,
+       hard_stop_enabled, alert_thresholds_pct
+from staging.api_budget_config where provider = 'google_places';
+-- esperado: 1 linha; os três tectos = os aprovados pelo PO; hard_stop_enabled = true.
+-- 0 linhas → tudo recusado (fail-closed); hard_stop_enabled = false → PARAR.
+```
+- **Hashes:** depois da aplicação no staging, registar em `APPLIED.sha256`
+  os SHA-256 (LF) da migração e do rollback; em produção, confirmá-los antes
+  de cada execução (o SQL tem de ser o ensaiado).
+- **Rollback apaga** o histórico de gasto e os tectos (ver o cabeçalho do
+  `0028_…rollback.sql`). Antes de reverter: confirmar com o PO se devem ser
+  preservados; se sim, exportar as duas tabelas e **verificar o export**
+  (contagens iguais às das tabelas) antes do DROP.
+
+### 9c. Pendências antes da W1 (estado a 20/11/2026)
+
+| Item | Estado | Quem |
+|---|---|---|
+| Auditoria E2 da produção (só leitura; CSV) + consulta "Antes" da 9a | por fazer | PO autoriza |
+| Ensaio da 0026 no staging (secção 3, passo 4) | por fazer (`APPLIED.sha256` só regista 0023–0025 e 0029 no staging). Pré-condições P1/P2 da 0026 verificadas no staging a 20/11, só leitura: **passam**. Procedimento: `reviews/PROCEDIMENTO-0026-STAGING.md` | PO autoriza |
+| 0028 no staging + tectos | por fazer (decisão de custo) | PO aprova o tecto |
+| Decisão 9b (colectores pagos em produção?) | em aberto | PO |
+| #19 em `main` | sem conflitos desde a sincronização (#39) | PO autoriza |
