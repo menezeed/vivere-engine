@@ -31,6 +31,19 @@ verificação de versão mínima no código de c390c92): esta coorte só desapar
 contador a funcionar para eles enquanto a nova versão é adoptada; a 0027
 fecha-o.
 
+**Na produção, a app instalada também escreve directamente em
+`activity_interests`.** Faz `upsert`/`delete` em `ActivityModal.js` e
+`ActivityDetailScreen.js` de c390c92, e por isso a produção concede SELECT e
+INSERT a `anon` e SELECT, INSERT e DELETE a `authenticated` (E2, 20/11). A
+0030/0024 cortam esse caminho. A app ignora o 42501 (o `{ error }` do
+supabase-js não é lido) e segue para o PATCH do contador. Deixam de ser
+gravadas linhas de interesse da app antiga, incluindo as anónimas por
+`device_id`.
+
+Hoje, com a política da 0020 "Qualquer um pode ver interesses"
+(`using (true)`), `anon` lê pela API **todas** as linhas de
+`activity_interests` (`user_id`, `device_id`). A 0030 fecha essa leitura.
+
 Sem a 0026 a app antiga **não rebenta**: o coração muda localmente, o
 contador no servidor não mexe (testado: estado 0024/0025/0027, 42/42).
 
@@ -100,6 +113,24 @@ Um pré-voo limpo cobre as pré-condições e as verificações finais conhecida
 têm verificações finais próprias. Se alguma falhar, a transacção é desfeita e
 aplica-se a coluna "Se abortar" da §4.
 
+**Resultado real (20/11): cenário D1 → resolvido pela 0030 (opção 1 do PO).**
+O pré-voo na produção (53 linhas) dá:
+- `0023 P2` = 11; `MATRIZ` e todas as outras etapas bloqueantes = 0;
+- **`0024 P2` = 20**, todas em `activity_interests` (SELECT/INSERT/DELETE
+  concedidos; TRUNCATE/REFERENCES/TRIGGER/MAINTAIN em falta) e MAINTAIN em
+  `active_activities`;
+- `EXCESSO` = 4; `RISCO` = 18.
+
+A `0030_prod_interest_acl_baseline.sql` leva **só** esses dois objectos ao
+ponto de partida que a P2 da 0024 exige. A 0024 não é alterada. Depois da
+0030, o pré-voo fica sem etapas bloqueantes, o que equivale ao cenário C.
+
+Simulação local, `db/audit/local/run-0030-prod-acl.sh`: 29/29 (inclui recusas: opção de concessão, outro grantor, comentário prévio, rollback sem o marcador da 0030). A fixture
+reproduz exactamente as 20 linhas `0024 P2` e as 4 `EXCESSO` da produção.
+Com a 0030 → 0024 → 0025 → 0026, o estado final é igual ao da cadeia do
+staging fora das 5 tabelas da 0023. Os rollbacks 0026 → 0025 → 0024 → 0030
+devolvem exactamente o ACL da produção.
+
 **O staging tem o mesmo `RISCO`.** O pré-voo (20/11) lista TRUNCATE para
 `anon`/`authenticated` em 9 tabelas de `public`, vindo do default ACL do
 Supabase. O PostgREST não expõe TRUNCATE, mas qualquer caminho SQL que use
@@ -119,6 +150,11 @@ aceitação (passo 4 e §4) tem três partes, todas obrigatórias:
      - `activity_interests` fica sem entradas de ACL para `anon` e `authenticated`;
      - `increment_activity_interest` deixa de ter EXECUTE para `anon` e `authenticated`;
      - `set_activity_interest` e `get_my_interests` têm EXECUTE só para `authenticated` (e `postgres`);
+   - **0030 + 0024, efeito líquido na produção:**
+     - `activity_interests` perde SELECT e INSERT de `anon` e SELECT, INSERT e DELETE de `authenticated`;
+     - nenhum dos dois papéis tem TRUNCATE, REFERENCES, TRIGGER ou MAINTAIN em `activity_interests`: a 0030 concede-os e a 0024 revoga-os;
+     - `active_activities` perde MAINTAIN;
+     - `activity_interests` ganha o comentário marcador da 0030, que o rollback da 0030 exige. Não aparece na auditoria v2; o COMMIT da 0030 prova-o;
    - **0025:** existe `delete_my_account`;
    - **0026, se A8 = sim:**
      - `anon` fica com `UPDATE(interested_count)` de coluna;
@@ -140,9 +176,10 @@ contador; nada rebenta).
 | Passo | Ficheiro | Se abortar |
 |---|---|---|
 | 1 | `0023_mobile_app_table_grants.sql` (**na produção, só no cenário A da §3a**; nos cenários B/C, saltar) | PARAR. Nada mudou. |
-| 2 | `0024_activity_interests_rpc.sql` | PARAR. Nada mudou (0023 fica; é segura sozinha). |
-| 3 | `0025_delete_my_account.sql` | Correr `0024_…rollback.sql` (repõe o caminho legado da 0020) e PARAR. |
-| 4 | `0026_legacy_interest_compat.sql` | Decisão prévia: (a) `0025_…rollback.sql` + `0024_…rollback.sql` (volta ao estado anterior) ou (b) aceitar a app antiga com contador congelado até à 0027. |
+| 1b | `0030_prod_interest_acl_baseline.sql` (**só na produção, cenário D1 da E2**; imediatamente antes da 0024, fora da ordem numérica) | PARAR. Nada mudou. |
+| 2 | `0024_activity_interests_rpc.sql` | PARAR. Nada mudou na 0024. Se a 0030 foi aplicada no passo 1b, correr `0030_…rollback.sql` (repõe o ACL da produção) e PARAR. |
+| 3 | `0025_delete_my_account.sql` | Correr `0024_…rollback.sql` (repõe o caminho legado da 0020) e, **na produção, se o passo 1b foi aplicado**, `0030_…rollback.sql` (repõe o ACL da produção); depois PARAR. |
+| 4 | `0026_legacy_interest_compat.sql` | Decisão prévia: (a) `0025_…rollback.sql` + `0024_…rollback.sql` + (**na produção, com o passo 1b**) `0030_…rollback.sql` (volta ao estado anterior) ou (b) aceitar a app antiga com contador congelado até à 0027. |
 
 Depois do passo 4, auditoria v2. **Esperado no estado 0026** (simulação):
 exactamente 2 desvios conhecidos e transitórios — `I proibido
@@ -154,7 +191,13 @@ compat_interested_count_update removida FALTA`. Qualquer outro `ATENCAO`/`FALTA`
 Rollback de emergência, por ordem inversa: `0026_…rollback.sql` (fecha o
 caminho legado; estado = 0025), depois `0025_…rollback.sql`, depois
 `0024_…rollback.sql`. O rollback da 0024 aborta enquanto a 0026 estiver
-aplicada.
+aplicada. **Na produção, por último** `0030_…rollback.sql`, que aborta enquanto
+a 0024 estiver aplicada.
+
+**Entre o passo 1b e o passo 2**, `anon`/`authenticated` têm TRUNCATE,
+REFERENCES, TRIGGER e MAINTAIN em `activity_interests`. A P2 da 0024 exige-os,
+e a 0024 revoga-os no Run seguinte. O PostgREST não expõe TRUNCATE. Correr os
+dois passos seguidos, sem pausa.
 
 ## 5. Janela W2 — publicar a versão nova; observar
 
@@ -356,7 +399,7 @@ from staging.api_budget_config where provider = 'google_places';
 | Item | Estado | Quem |
 |---|---|---|
 | Auditoria E2 da produção (só leitura) + consulta "Antes" da 9a | **parcial (20/11)**: a auditoria de privilégios correu; as consultas 2–4 foram reproduzidas, mas não certificadas contra os ficheiros. Achados e cenários na §3a. Falta: o md5 de baseline da `active_activities`, a consulta 3 integral e o **pré-voo** `prevoo-0023-0024.readonly.sql` | PO / executor da E2 |
-| Escolha do cenário da 0023/0024 (§3a) | depende do pré-voo. A 0023 aborta na produção; a W1 só avança nos cenários B/C. No C, é preciso uma decisão explícita sobre cada `EXCESSO` | PO (Level 2) |
+| Escolha do cenário da 0023/0024 (§3a) | **D1 na produção (20/11)**. O PO escolheu a opção 1: a `0030` antes da 0024 (preparação técnica; a aplicação exige um REF próprio). Depois da 0030, cenário C: falta uma decisão explícita sobre os 4 `EXCESSO` | PO (Level 2) |
 | Redução dos GRANT amplos e TRUNCATE (produção e staging) | proposta para depois da W1, com migração e ensaio próprios | PO decide |
 | Ensaio da 0026 no staging (secção 3, passo 4) | **autorizado** (20/11): só staging, terminando no estado 0025 (aplicar → verificar → rollback → verificar). Pré-condições: **passam**. Linha de base do catálogo: auditoria v2 com 387 linhas, md5 `88ede4ce…`, 0 ATENCAO/FALTA. Procedimento: `reviews/PROCEDIMENTO-0026-STAGING.md` | operador executa as escritas; Claude verifica |
 | 0028 no staging + tectos | **fora da janela inicial**. Tectos aprovados para depois: USD 2 por execução e USD 15/mês; o diário ("5") ainda por clarificar: a 0028 só limita em USD, não por número de execuções | PO |
