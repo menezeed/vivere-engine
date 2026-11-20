@@ -37,6 +37,8 @@ describe('ilikeContains', () => {
     ['50%', '%50\\%%'],
     ['a_b', '%a\\_b%'],
     ['c:\\x', '%c:\\\\x%'],
+    ['*', '%_%'],            // * → _ (r0 do #37): o PostgREST tornaria * em %
+    ['a*b_', '%a_b\\_%'],
   ])('%s → %s', (term, expected) => {
     expect(ilikeContains(term)).toBe(expected);
   });
@@ -44,9 +46,10 @@ describe('ilikeContains', () => {
 
 describe('ActivityReviewRepository.list — pesquisa por título no servidor', () => {
   it('envia ilike em raw_activity_items.title e não volta a filtrar em memória', async () => {
-    // O servidor já filtrou e contou (37 em todas as páginas): os totais vêm
-    // do count do PostgREST e a página 2 é pedida ao servidor.
-    const { db, calls } = fakeDb({ data: [activityRow('Corrida da Virada')], count: 37 });
+    // O servidor é a autoridade (filtrou e contou 37 em todas as páginas).
+    // A linha devolvida NÃO contém o termo: se o filtro em memória voltar,
+    // é descartada e o teste falha (revisão r0 do #37).
+    const { db, calls } = fakeDb({ data: [activityRow('Passeio no Portinho')], count: 37 });
     const res = await new ActivityReviewRepository(db).list({ search: 'corrida', page: 2, pageSize: 20 });
 
     expect(calls).toContainEqual(['ilike', 'raw_activity_items.title', '%corrida%']);
