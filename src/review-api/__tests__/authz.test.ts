@@ -646,3 +646,67 @@ describe('parâmetros de paginação na query string', () => {
     expect((await call('GET', '/api/venues?page=1000000000', t)).status).toBe(400);
   });
 });
+
+// 20/11/2026: tipos dos campos do corpo das rotas de ER → 400 (antes:
+// notes não-texto no override → TypeError em notes.trim() → 500).
+describe('ER — tipos dos campos do corpo', () => {
+  const A = '/api/entity-resolution/00000000-0000-4000-8000-0000000000a1';
+  const CASES = [
+    ['accept', { candidateId: 5 }, 'candidateId'],
+    ['accept', { candidateId: { id: 'c1' } }, 'candidateId'],
+    ['accept', { candidateId: 'c1', notes: 5 }, 'notes'],
+    ['accept', { candidateId: 'c1', notes: ['x'] }, 'notes'],
+    ['override', { candidateId: 'c1', notes: {} }, 'notes'],
+    ['override', { candidateId: 'c1', notes: 42 }, 'notes'],
+    ['override', { candidateId: true, notes: 'motivo' }, 'candidateId'],
+    ['propose-new', { notes: 5 }, 'notes'],
+    ['propose-new', { notes: false }, 'notes'],
+  ] as const;
+
+  it.each(CASES)('%s com %j → 400 (%s), serviço não chamado', async (action, body, field) => {
+    const res = await call('PATCH', `${A}/${action}`, await tokenFor('admin'), body);
+    expect(res.status).toBe(400);
+    expect(await res.json()).toEqual({ error: `Corpo do pedido inválido: ${field} tem de ser texto` });
+    for (const m of allServiceMocks()) expect(m).not.toHaveBeenCalled();
+  });
+
+  it('formatos do admin-panel continuam aceites (texto e null)', async () => {
+    const t = await tokenFor('admin');
+    expect((await call('PATCH', `${A}/accept`, t, { candidateId: 'c1', notes: null })).status).toBe(200);
+    expect(er.accept).toHaveBeenLastCalledWith(expect.any(String), 'c1', expect.anything(), null);
+    expect((await call('PATCH', `${A}/override`, t, { candidateId: 'c1', notes: 'motivo' })).status).toBe(200);
+    expect((await call('PATCH', `${A}/propose-new`, t, { notes: null })).status).toBe(200);
+    expect((await call('PATCH', `${A}/propose-new`, t, { notes: 'nova' })).status).toBe(200);
+  });
+
+  it('papel sem permissão continua a dar 403 antes do 400', async () => {
+    expect((await call('PATCH', `${A}/accept`, await tokenFor('viewer'), { candidateId: 5 })).status).toBe(403);
+  });
+});
+
+describe('ER — limites do corpo (revisão r0 do #38)', () => {
+  const A = '/api/entity-resolution/00000000-0000-4000-8000-0000000000a1';
+
+  it.each(['accept', 'override', 'propose-new'] as const)('%s: notes com 2000 caracteres aceite; 2001 → 400', async (action) => {
+    const t = await tokenFor('admin');
+    const body = (notes: string) => (action === 'propose-new' ? { notes } : { candidateId: 'c1', notes });
+    expect((await call('PATCH', `${A}/${action}`, t, body('x'.repeat(2000)))).status).toBe(200);
+    allServiceMocks().forEach((m) => m.mockClear());
+    const res = await call('PATCH', `${A}/${action}`, t, body('x'.repeat(2001)));
+    expect(res.status).toBe(400);
+    expect(await res.json()).toEqual({ error: 'Corpo do pedido inválido: notes excede 2000 caracteres' });
+    for (const m of allServiceMocks()) expect(m).not.toHaveBeenCalled();
+  });
+
+  it.each(['accept', 'override', 'propose-new'] as const)('%s: corpo acima de 16 KB → 413, serviço não chamado', async (action) => {
+    const res = await call('PATCH', `${A}/${action}`, await tokenFor('admin'), { candidateId: 'c1', notes: 'x'.repeat(17 * 1024) });
+    expect(res.status).toBe(413);
+    expect(await res.json()).toEqual({ error: 'Corpo do pedido demasiado grande' });
+    for (const m of allServiceMocks()) expect(m).not.toHaveBeenCalled();
+  });
+
+  it('papel sem permissão: 403 antes do 413', async () => {
+    const res = await call('PATCH', `${A}/accept`, await tokenFor('viewer'), { candidateId: 'c1', notes: 'x'.repeat(17 * 1024) });
+    expect(res.status).toBe(403);
+  });
+});
