@@ -5,8 +5,9 @@
 #   T1 fidelidade: o pré-voo sobre a fixture da produção devolve EXACTAMENTE
 #      as 20 linhas 0024 P2 e as 4 EXCESSO da E2; 0023 P2 = 11; bloqueantes 0
 #   T2 na fixture, 0023 e 0024 abortam sem alterar o catálogo
-#   T3 a 0030 aborta no estado do staging (0000→0022) e o rollback da 0030
-#      aborta na fixture; nada muda
+#   T3 a 0030 aborta no estado do staging (0000→0022), com opção de concessão
+#      e com comentário prévio; o rollback da 0030 aborta sem o marcador
+#      (fixture e estado do staging); nada muda
 #   T4 0030 na fixture: o pré-voo fica sem etapas bloqueantes
 #   T5 rollback da 0030 → catálogo IGUAL ao da fixture; reaplicar OK
 #   T6 0030 → 0024 → 0025 → 0026: catálogo IGUAL ao da cadeia do staging
@@ -19,6 +20,7 @@
 set -u
 PFX="${1:?prefixo p30_*}"; ENG="${2:?raiz do repo}"
 case "$PFX" in p30_*) ;; *) echo "Recusado: prefixo tem de ser p30_*"; exit 2;; esac
+printf '%s' "$PFX" | grep -qE '^p30_[a-z0-9_]{1,40}$' || { echo "Recusado: prefixo invalido"; exit 2; }
 case "${PGHOST:-}" in 127.0.0.1|localhost) ;; *) echo "Recusado: PGHOST tem de ser local"; exit 2;; esac
 PSQL="${PSQL:-psql}"; T="${P30_TMP:?P30_TMP}"; mkdir -p "$T"
 HERE="$(cd "$(dirname "$0")" && pwd)"
@@ -29,9 +31,10 @@ PASS=0; FAILS=0
 ok()  { echo "PASS | $1"; PASS=$((PASS+1)); }
 bad() { echo "FAIL | $1"; FAILS=$((FAILS+1)); }
 
-ROLES_DONE=0
-newdb() { # base [template]
-  su -d postgres -c "drop database if exists $1" >/dev/null 2>&1
+newdb() { # base [template] -- nunca apaga: recusa nomes ja existentes
+  printf '%s' "$1" | grep -qE '^p30_[a-z0-9_]+$' || { echo "Recusado: nome de base invalido $1"; exit 2; }
+  if [ "$(su -d postgres -Atc "select count(*) from pg_database where datname = '$1'")" != "0" ]; then
+    echo "Recusado: a base $1 ja existe (usar um prefixo novo; o runner nunca apaga bases)"; exit 2; fi
   if [ -n "${2:-}" ]; then su -d postgres -c "create database $1 template $2" >/dev/null || exit 1
   else
     su -d postgres -c "create database $1" >/dev/null || exit 1
@@ -67,7 +70,10 @@ apply_abort() { # descr base ficheiro padrão
     else bad "$1 (abortou mas o catálogo mudou)"; fi
   else bad "$1 (erro inesperado)"; cat "$T/apply.log"; fi
 }
-preflight() { su -d "$1" -At -F '|' -f "$PRE" | cut -d'|' -f2- | sort > "$T/$2.pre"; }
+preflight() { # uma falha da consulta e FAIL e termina (nunca conta como "0 linhas")
+  if su -d "$1" -At -F '|' -f "$PRE" > "$T/$2.raw" 2> "$T/$2.err"; then cut -d'|' -f2- "$T/$2.raw" | sort > "$T/$2.pre"
+  else bad "pre-voo falhou em $1"; cat "$T/$2.err"; echo "TOTAL $PASS PASS, $FAILS FAIL"; exit 1; fi
+}
 count() { grep -c "^$2|" "$T/$1.pre" || true; }
 BLOCK='^(0023 P1a|0023 P1b|MATRIZ|0024 P1a|0024 P1b|0024 P2|0024 VF)\|'
 
@@ -77,7 +83,12 @@ M25="$M/0025_delete_my_account.sql";        M26="$M/0026_legacy_interest_compat.
 M30="$M/0030_prod_interest_acl_baseline.sql"; R30="$M/0030_prod_interest_acl_baseline.rollback.sql"
 R24="$M/0024_activity_interests_rpc.rollback.sql"; R25="$M/0025_delete_my_account.rollback.sql"
 R26F="$M/0026_legacy_interest_compat.rollback.sql"
-FIVE='public\.(categories|venues|partners|favorites|suggestions)\b'
+# Ignora as 5 tabelas da 0023 e o comentario (marcador da 0030) de activity_interests; o marcador e
+# verificado a parte em T6.
+FIVE='public\.(categories|venues|partners|favorites|suggestions)\b|^comment\|pg_class\|table activity_interests\|'
+# Instancia de simulacao: recusa clusters com bases que nao sejam do sistema ou p30_/l3c_
+OUT=$(su -d postgres -Atc "select coalesce(string_agg(datname, ','), '') from pg_database where datname not in ('postgres', 'template0', 'template1') and datname !~ '^(p30|l3c)_'") || exit 1
+[ -z "$OUT" ] || { echo "Recusado: o cluster tem bases que nao sao da simulacao: $OUT"; exit 2; }
 
 echo "== bases"
 newdb "$R22"; chain "$R22" 0022 || exit 1
@@ -99,7 +110,15 @@ apply_abort "0024 aborta (P2)" "$FX" "$M24" "0024 abortada (P2"
 
 echo "== T3 a 0030 recusa estados errados"
 apply_abort "0030 aborta no estado do staging (0000→0022)" "$R22" "$M30" "0030 abortada (P2"
-apply_abort "rollback 0030 aborta na fixture" "$FX" "$R30" "rollback 0030 abortado (R2"
+apply_abort "rollback 0030 aborta na fixture (sem marcador)" "$FX" "$R30" "rollback 0030 abortado (R1): marcador"
+apply_abort "rollback 0030 aborta no estado do staging (mesmo ACL, sem marcador)" "$R22" "$R30" "rollback 0030 abortado (R1): marcador"
+newdb "${X}g" "$FX"; pg "${X}g" -c "grant select on public.activity_interests to anon with grant option" >/dev/null
+apply_abort "0030 aborta com opcao de concessao" "${X}g" "$M30" "com opcao de concessao"
+newdb "${X}c" "$FX"; pg "${X}c" -c "comment on table public.activity_interests is 'outro'" >/dev/null
+apply_abort "0030 aborta se activity_interests ja tiver comentario" "${X}c" "$M30" "ja tem comentario"
+newdb "${X}o" "$FX"
+pg "${X}o" -c "grant select on public.activity_interests to service_role with grant option" -c "set role service_role" -c "grant select on public.activity_interests to anon" >/dev/null
+apply_abort "0030 aborta com entrada de outro grantor" "${X}o" "$M30" "grantor diferente"
 
 echo "== T4 0030 na fixture"
 apply_ok "0030 aplica" "$FX" "$M30"
@@ -111,7 +130,7 @@ echo "== T5 rollback da 0030 e reaplicação"
 apply_ok "rollback 0030 aplica" "$FX" "$R30"; snap "$FX" sfx_rb
 same "rollback 0030 = fixture" sfx sfx_rb
 apply_ok "0030 reaplica" "$FX" "$M30"
-apply_abort "0030 não é idempotente" "$FX" "$M30" "0030 abortada (P2"
+apply_abort "0030 não é idempotente (marcador)" "$FX" "$M30" "0030 abortada (P1)"
 
 echo "== T6 0024 → 0025 → 0026 sobre a 0030"
 apply_ok "0024 aplica" "$FX" "$M24"
@@ -119,6 +138,8 @@ apply_abort "0030 aborta depois da 0024" "$FX" "$M30" "0030 abortada (P1"
 apply_abort "rollback 0030 aborta com a 0024 aplicada" "$FX" "$R30" "rollback 0030 abortado (R1"
 apply_ok "0025 aplica" "$FX" "$M25"
 apply_ok "0026 aplica" "$FX" "$M26"; snap "$FX" sfx26
+[ "$(su -d "$FX" -Atc "select obj_description('public.activity_interests'::regclass, 'pg_class') like 'vivere:0030 aplicada%'")" = "t" ] \
+  && ok "marcador da 0030 presente no estado final" || bad "marcador da 0030 em falta no estado final"
 same "estado final = cadeia do staging 0000→0026 (fora das 5 tabelas da 0023)" s26 sfx26 "$FIVE"
 
 echo "== T7 rollback de emergência 0026 → 0025 → 0024 → 0030"

@@ -125,7 +125,7 @@ A `0030_prod_interest_acl_baseline.sql` leva **só** esses dois objectos ao
 ponto de partida que a P2 da 0024 exige. A 0024 não é alterada. Depois da
 0030, o pré-voo fica sem etapas bloqueantes, o que equivale ao cenário C.
 
-Simulação local, `db/audit/local/run-0030-prod-acl.sh`: 24/24. A fixture
+Simulação local, `db/audit/local/run-0030-prod-acl.sh`: 29/29 (inclui recusas: opção de concessão, outro grantor, comentário prévio, rollback sem o marcador da 0030). A fixture
 reproduz exactamente as 20 linhas `0024 P2` e as 4 `EXCESSO` da produção.
 Com a 0030 → 0024 → 0025 → 0026, o estado final é igual ao da cadeia do
 staging fora das 5 tabelas da 0023. Os rollbacks 0026 → 0025 → 0024 → 0030
@@ -154,6 +154,7 @@ aceitação (passo 4 e §4) tem três partes, todas obrigatórias:
      - `activity_interests` perde SELECT e INSERT de `anon` e SELECT, INSERT e DELETE de `authenticated`;
      - nenhum dos dois papéis tem TRUNCATE, REFERENCES, TRIGGER ou MAINTAIN em `activity_interests`: a 0030 concede-os e a 0024 revoga-os;
      - `active_activities` perde MAINTAIN;
+     - `activity_interests` ganha o comentário marcador da 0030, que o rollback da 0030 exige. Não aparece na auditoria v2; o COMMIT da 0030 prova-o;
    - **0025:** existe `delete_my_account`;
    - **0026, se A8 = sim:**
      - `anon` fica com `UPDATE(interested_count)` de coluna;
@@ -177,8 +178,8 @@ contador; nada rebenta).
 | 1 | `0023_mobile_app_table_grants.sql` (**na produção, só no cenário A da §3a**; nos cenários B/C, saltar) | PARAR. Nada mudou. |
 | 1b | `0030_prod_interest_acl_baseline.sql` (**só na produção, cenário D1 da E2**; imediatamente antes da 0024, fora da ordem numérica) | PARAR. Nada mudou. |
 | 2 | `0024_activity_interests_rpc.sql` | PARAR. Nada mudou na 0024. Se a 0030 foi aplicada no passo 1b, correr `0030_…rollback.sql` (repõe o ACL da produção) e PARAR. |
-| 3 | `0025_delete_my_account.sql` | Correr `0024_…rollback.sql` (repõe o caminho legado da 0020) e PARAR. |
-| 4 | `0026_legacy_interest_compat.sql` | Decisão prévia: (a) `0025_…rollback.sql` + `0024_…rollback.sql` (volta ao estado anterior) ou (b) aceitar a app antiga com contador congelado até à 0027. |
+| 3 | `0025_delete_my_account.sql` | Correr `0024_…rollback.sql` (repõe o caminho legado da 0020) e, **na produção, se o passo 1b foi aplicado**, `0030_…rollback.sql` (repõe o ACL da produção); depois PARAR. |
+| 4 | `0026_legacy_interest_compat.sql` | Decisão prévia: (a) `0025_…rollback.sql` + `0024_…rollback.sql` + (**na produção, com o passo 1b**) `0030_…rollback.sql` (volta ao estado anterior) ou (b) aceitar a app antiga com contador congelado até à 0027. |
 
 Depois do passo 4, auditoria v2. **Esperado no estado 0026** (simulação):
 exactamente 2 desvios conhecidos e transitórios — `I proibido
