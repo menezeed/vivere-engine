@@ -97,6 +97,8 @@ export function entityResolutionRoutes(erService: EntityResolutionService): Hono
       // SyntaxError caía no ramo genérico → 500 "Erro interno" + log de erro).
       const body = await readJsonObject<{ candidateId?: string; notes?: string }>(c);
       if (body === null) return c.json({ error: 'Corpo do pedido inválido: é esperado um objecto JSON' }, 400);
+      const badField = nonStringField(body, ['candidateId', 'notes']);
+      if (badField) return c.json({ error: `Corpo do pedido inválido: ${badField} tem de ser texto` }, 400);
       await erService.accept(
         c.req.param('activityId'),
         body.candidateId ?? '',
@@ -123,6 +125,8 @@ export function entityResolutionRoutes(erService: EntityResolutionService): Hono
       // SyntaxError caía no ramo genérico → 500 "Erro interno" + log de erro).
       const body = await readJsonObject<{ candidateId?: string; notes?: string }>(c);
       if (body === null) return c.json({ error: 'Corpo do pedido inválido: é esperado um objecto JSON' }, 400);
+      const badField = nonStringField(body, ['candidateId', 'notes']);
+      if (badField) return c.json({ error: `Corpo do pedido inválido: ${badField} tem de ser texto` }, 400);
       await erService.override(
         c.req.param('activityId'),
         body.candidateId ?? '',
@@ -150,6 +154,8 @@ export function entityResolutionRoutes(erService: EntityResolutionService): Hono
       // JSON mal formado era engolido e a decisão executada; 'null' dava 500).
       const body = await readOptionalJsonObject<{ notes?: string }>(c);
       if (body === null) return c.json({ error: 'Corpo do pedido inválido: é esperado um objecto JSON' }, 400);
+      const badField = nonStringField(body, ['notes']);
+      if (badField) return c.json({ error: `Corpo do pedido inválido: ${badField} tem de ser texto` }, 400);
       await erService.proposeNew(
         c.req.param('activityId'),
         user,
@@ -165,6 +171,20 @@ export function entityResolutionRoutes(erService: EntityResolutionService): Hono
   });
 
   return router;
+}
+
+/**
+ * Primeiro campo presente que não é texto nem null (null/ausente são aceites:
+ * o serviço trata a obrigatoriedade). Antes, notes: 5 ou {} no override dava
+ * TypeError em notes.trim() → 500, e no accept chegava à base como não-texto.
+ */
+function nonStringField(body: object, names: readonly string[]): string | null {
+  const rec = body as Record<string, unknown>;
+  for (const name of names) {
+    const v = rec[name];
+    if (v !== undefined && v !== null && typeof v !== 'string') return name;
+  }
+  return null;
 }
 
 /** Corpo opcional: vazio → {}; senão tem de ser objecto JSON (null se não for). */
