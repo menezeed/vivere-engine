@@ -190,8 +190,26 @@ from pg_class c where c.oid = 'public.active_activities'::regclass;
   simulação `db/audit/active-activities-local-date-tests.staging.sql` é só
   para staging (cria fixtures) e **não** corre em produção.
 - **Depois (só leitura):**
-  1. A consulta "Antes" de novo: `dono`, `acl` e `opcoes` **iguais** aos
-     guardados; a definição contém `America/Sao_Paulo`; 19 colunas.
+  1. Definição, colunas e catálogo (revisão r1 do #40: não basta o
+     booleano do baseline):
+
+```sql
+select md5(btrim(regexp_replace(pg_get_viewdef('public.active_activities'::regclass), '[[:space:]]+', ' ', 'g')))
+         = '38935be4375550a66fef1af44dba18dc' as definicao_0029,   -- true
+       btrim(regexp_replace(pg_get_viewdef('public.active_activities'::regclass), '[[:space:]]+', ' ', 'g')) as definicao, -- ler: só CURRENT_DATE trocado
+       (select count(*) from pg_attribute a where a.attrelid = 'public.active_activities'::regclass
+          and a.attnum > 0 and not a.attisdropped) as colunas,       -- 19
+       c.relowner::regrole::text as dono, c.relacl::text as acl, c.reloptions::text as opcoes -- iguais aos guardados
+from pg_class c where c.oid = 'public.active_activities'::regclass;
+```
+
+     O md5 é o da definição instalada no staging pela 0029 (lida a 20/11,
+     só leitura): o baseline com `CURRENT_DATE` trocado por
+     `((CURRENT_TIMESTAMP AT TIME ZONE 'America/Sao_Paulo'::text))::date`
+     nos dois sítios e nada mais. As duas consultas de md5 pressupõem o
+     `search_path` por omissão (`"$user", public`, o mesmo do staging):
+     `pg_get_viewdef` omite o schema das relações visíveis no caminho. A P1
+     da migração continua a ser a verificação final.
   2. Os dois filtros comparados **na mesma instrução** (mesmo snapshot,
      mesmo instante, mesmo papel), o que elimina o falso alarme de
      escritas concorrentes ou de mudança de data entre consultas:
@@ -233,7 +251,19 @@ lateral (select
      `reviews/ESTIMATIVA-CUSTO-0028-PLACES.md`) e aplica a configuração com
      REF próprio (`scripts/staging/api_budget_config.seed.example.sql`);
   3. validar no staging que uma reserva dentro do tecto é aceite e que uma
-     acima do tecto é recusada, **antes** de activar `--budget=persistent`.
+     acima do tecto é recusada, **antes** de activar `--budget=persistent`;
+  4. em **produção**, antes de activar o colector, confirmar só por leitura
+     a configuração efectiva (revisão r1 do #40: com `hard_stop_enabled =
+     false` a RPC deixa reservar acima do tecto, mesmo que o ensaio no
+     staging tenha passado):
+
+```sql
+select provider, monthly_budget_usd, daily_budget_usd, per_run_budget_usd,
+       hard_stop_enabled, alert_thresholds_pct
+from staging.api_budget_config where provider = 'google_places';
+-- esperado: 1 linha; os três tectos = os aprovados pelo PO; hard_stop_enabled = true.
+-- 0 linhas → tudo recusado (fail-closed); hard_stop_enabled = false → PARAR.
+```
 - **Hashes:** depois da aplicação no staging, registar em `APPLIED.sha256`
   os SHA-256 (LF) da migração e do rollback; em produção, confirmá-los antes
   de cada execução (o SQL tem de ser o ensaiado).
