@@ -80,7 +80,7 @@ existem, e há mais do que esses. Por isso a 0023 aborta sem alterar nada. Uma
 exige que a **matriz completa** da app já exista: é a etapa `MATRIZ` do
 pré-voo, que inclui o SELECT em `activities` exigido pela verificação final
 da 0024. O que decide a W1 é a **0024**: a P1, a P2 e a verificação final
-(etapa `0024 VF`: default ACL de funções).
+(etapa `0024 VF`: default ACL de funções e privilégios herdados por `anon`/`authenticated` de outro papel, que sobrevivem aos REVOKE directos).
 
 Etapas do pré-voo:
 - **bloqueantes:** `0023 P1a`, `0023 P1b`, `MATRIZ`, `0024 P1a`, `0024 P1b`, `0024 P2` e `0024 VF`;
@@ -89,10 +89,10 @@ Etapas do pré-voo:
 
 | Cenário (pela saída do pré-voo) | 0023 | 0024 | Acção (Level 2) |
 |---|---|---|---|
-| **A.** Só `0024 P1a: 0023 nao aplicada`, mais `MATRIZ` com toda a matriz em falta | aplica | aplica | W1 como na §4. **Descartado** pelos achados |
+| **A.** Só `0024 P1a: 0023 nao aplicada` e linhas `MATRIZ` apenas de privilégios que a 0023 concede (não de SELECT em `activities`); todas as outras etapas bloqueantes vazias, sem `0023 P2`. **Excluído do D1** | aplica | aplica | W1 como na §4. **Descartado** pelos achados |
 | **B.** Linhas `0023 P2`; **todas** as etapas bloqueantes vazias, incluindo `MATRIZ` e qualquer `0024 P1a`; sem `EXCESSO` | aborta | aplica | **Saltar a 0023 na produção** (registado no REF; regra da §1). O rollback da 0023 não se aplica |
 | **C.** Como B, mas com linhas `EXCESSO` | aborta | aplica | Como B, **mais uma decisão explícita do PO** sobre cada `EXCESSO`, antes da janela: (i) aceitar até à redução pós-W1, ou (ii) reduzir antes da W1, com migração própria ensaiada no staging. O `EXCESSO` lista as escritas além da matriz que o RLS **não** nega por completo: UPDATE em `favorites` (a política ALL deixa alterar as próprias linhas) e INSERT de colunas fora da matriz em `favorites` e `suggestions`. As escritas em `categories`, `venues` e `partners` são negadas pelo RLS, desde que a `0023 P1b` venha vazia |
-| **D1.** Qualquer linha `0024 P1a`, `0024 P1b`, `0024 P2`, `0024 VF` ou `MATRIZ`. Inclui `0023 nao aplicada` com a matriz incompleta | — | **aborta** (ou reverte na verificação final) | **Bloqueia a W1.** Causas prováveis: privilégios em `activity_interests`, outro grantor (ex.: `supabase_admin`), políticas diferentes, default ACL de funções, ou a matriz da app incompleta. Exige uma migração de normalização com REF próprio, ensaiada no staging |
+| **D1.** Fora do cenário A: qualquer linha `0024 P1a`, `0024 P1b`, `0024 P2`, `0024 VF` ou `MATRIZ`. Inclui `0023 nao aplicada` com `0023 P2` | — | **aborta** (ou reverte na verificação final). Se a falha for **só** de `MATRIZ` (ex.: falta INSERT numa coluna de `suggestions`), a 0024 **pode aplicar**, mas a **W1 fica bloqueada**: a app ficaria sem um privilégio de que precisa | **Bloqueia a W1.** Causas prováveis: privilégios em `activity_interests`, outro grantor (ex.: `supabase_admin`), políticas diferentes, default ACL de funções, ou a matriz da app incompleta. Exige uma migração de normalização com REF próprio, ensaiada no staging |
 | **D2.** `0023 P1a` ou `0023 P1b`, com o resto como em B/C | aborta | pode aplicar | **Bloqueio operacional**, não técnico. Com políticas diferentes das da 0020, os GRANT amplos não têm a protecção avaliada. Decisão do PO depois de analisar as políticas reais |
 
 Um pré-voo limpo cobre as pré-condições e as verificações finais conhecidas da
@@ -121,9 +121,9 @@ aceitação (passo 4 e §4) tem três partes, todas obrigatórias:
      - `set_activity_interest` e `get_my_interests` têm EXECUTE só para `authenticated` (e `postgres`);
    - **0025:** existe `delete_my_account`;
    - **0026, se A8 = sim:**
-     - a política compat é recriada com o comentário de transição;
      - `anon` fica com `UPDATE(interested_count)` de coluna;
-     - sem a 0026, a política fica removida.
+     - a política compat volta **igual** à do baseline (mesmos papéis e predicados), por isso a linha dela na auditoria pode **não** mudar. Não se exige diferença nessa linha. Exige-se a presença da política no estado final e o comentário de transição. O comentário não aparece na auditoria v2, mas a verificação final da 0026 confirma-o no catálogo; o COMMIT da 0026 prova-o;
+     - sem a 0026, a política fica removida (diferença obrigatória).
 3. **Nada mais.** Qualquer outra diferença, ou uma mudança obrigatória em
    falta ou diferente, → PARAR.
 

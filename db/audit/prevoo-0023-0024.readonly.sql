@@ -120,6 +120,15 @@ p24vf as (
     and a.grantee <> 0
     and pg_catalog.pg_get_userbyid(a.grantee) not in ('anon', 'authenticated', 'service_role', 'postgres')
 ),
+-- Heranca (revisao r1): a 0024 so faz REVOKE directo. Um privilegio que anon/authenticated herdem de
+-- outro papel (pg_auth_members) sobrevive e faz a verificacao final reverter. No Supabase estes
+-- papeis nao sao membros de nenhum outro; qualquer linha aqui e bloqueante.
+p24her as (
+  select '0024 VF' as etapa, pg_catalog.pg_get_userbyid(m.member) || ' herda de '
+         || pg_catalog.pg_get_userbyid(m.roleid) || ' (privilegios herdados sobrevivem aos REVOKE)' as motivo
+  from pg_catalog.pg_auth_members m
+  where pg_catalog.pg_get_userbyid(m.member) in ('anon', 'authenticated')
+),
 -- EXCESSO (revisao r0, ALTO; ALERTA): escritas nas 5 tabelas da 0023 alem da matriz da app que o
 -- RLS NAO nega por completo. favorites: a politica ALL deixa authenticated actualizar as proprias
 -- linhas se tiver UPDATE. suggestions: a politica de INSERT aceita colunas fora da matriz se houver
@@ -269,6 +278,7 @@ union all select current_user, etapa, motivo from p23
 union all select current_user, etapa, motivo from risco
 union all select current_user, etapa, motivo from matriz
 union all select current_user, etapa, motivo from p24vf
+union all select current_user, etapa, motivo from p24her
 union all select current_user, etapa, motivo from excesso
 union all select current_user, etapa, motivo from p24a
 union all select current_user, etapa, motivo from p24b
