@@ -8,10 +8,11 @@
 -- AVISO: repõe o excesso (escolha de id, schedule e created_at por anon).
 -- Só para voltar atrás se a 0031 partir um cliente.
 --
--- R1 Corre como postgres; o MARCADOR da 0031 (comentário em suggestions)
+-- R1 Corre como postgres; o MARCADOR EXACTO da 0031 (comentário em suggestions)
 --    tem de existir. Sem ele, recusa: o staging (0023) tem o mesmo ACL por
 --    coluna e não deve ganhar INSERT de tabela.
--- R2 ACL exacto deixado pela 0031: sem INSERT de tabela para anon/
+-- R2 RLS ligado e política da 0020 iguais (revalidados sob o lock); ACL
+--    exacto deixado pela 0031: sem INSERT de tabela para anon/
 --    authenticated/PUBLIC; INSERT por coluna exactamente nas 6 colunas,
 --    grantor postgres, sem opção de concessão; nenhum outro privilégio de
 --    coluna.
@@ -34,8 +35,34 @@ begin
   if current_user <> 'postgres' then
     raise exception 'rollback 0031 abortado (R1): correr como postgres (current_user=%)', current_user;
   end if;
-  if coalesce(pg_catalog.obj_description(v_tbl, 'pg_class'), '') not like 'vivere:0031 aplicada%' then
-    raise exception 'rollback 0031 abortado (R1): marcador da 0031 ausente; a 0031 nao foi aplicada neste ambiente';
+  -- Marcador EXACTO escrito pela 0031 (revisão r0: um prefixo não basta)
+  if pg_catalog.obj_description(v_tbl, 'pg_class') is distinct from
+     'vivere:0031 aplicada (INSERT so nas colunas da app). Retirar so com 0031_suggestions_insert_columns.rollback.sql.' then
+    raise exception 'rollback 0031 abortado (R1): marcador da 0031 ausente ou diferente; a 0031 nao foi aplicada neste ambiente';
+  end if;
+
+  -- RLS e política revalidados sob o lock (revisão r0, ALTO): repor INSERT de tabela sem o
+  -- with check (status pending, título não vazio) abriria a tabela.
+  select string_agg(p, '; ' order by p) into v_problems from (
+    select 'rls desligado em suggestions' as p
+    where not (select c.relrowsecurity from pg_catalog.pg_class c where c.oid = v_tbl)
+    union all
+    select 'politica esperada ausente/diferente'
+    where not exists (
+      select 1 from pg_catalog.pg_policies p
+      where p.schemaname = 'public' and p.tablename = 'suggestions'
+        and p.policyname = 'Publico pode enviar sugestao pendente' and p.cmd = 'INSERT' and p.permissive = 'PERMISSIVE'
+        and pg_catalog.array_to_string(array(select r::text from unnest(p.roles) r order by 1), ',') = 'public'
+        and p.qual is null
+        and p.with_check = '((status = ''pending''::text) AND (length(TRIM(BOTH FROM title)) > 0))')
+    union all
+    select 'politica inesperada: ' || p.policyname
+    from pg_catalog.pg_policies p
+    where p.schemaname = 'public' and p.tablename = 'suggestions'
+      and p.policyname <> 'Publico pode enviar sugestao pendente'
+  ) x;
+  if v_problems is not null then
+    raise exception 'rollback 0031 abortado (R2, RLS/politica diferentes; nada alterado): %', v_problems;
   end if;
 
   select string_agg(p, '; ' order by p) into v_problems from (

@@ -31,7 +31,8 @@
 -- PRÉ-CONDIÇÕES (abortam tudo antes de qualquer alteração)
 --  P1 Corre como postgres; suggestions existe, com RLS ligado e EXACTAMENTE
 --     a política da 0020; as 6 colunas existem; suggestions sem comentário
---     (o comentário é o marcador desta migração).
+--     (o comentário é o marcador desta migração); defaults de que o cliente
+--     depende: id = gen_random_uuid(), status = 'pending', created_at = now().
 --  P2 anon e authenticated com INSERT de TABELA, grantor postgres, sem
 --     opção de concessão; nenhum INSERT de outro grantor nem para PUBLIC;
 --     nenhum privilégio de COLUNA em suggestions para anon/authenticated/
@@ -89,6 +90,14 @@ begin
     from pg_catalog.pg_policies p
     where p.schemaname = 'public' and p.tablename = 'suggestions'
       and p.policyname <> 'Publico pode enviar sugestao pendente'
+    union all
+    -- Defaults de que o cliente depende (revisão r0): o insert da app omite id, status e created_at
+    select 'default em falta ou diferente: ' || d.col || ' (esperado ' || d.expr || ')'
+    from (values ('id', 'gen_random_uuid()'), ('status', '''pending''::text'), ('created_at', 'now()')) d(col, expr)
+    where not exists (select 1 from pg_catalog.pg_attribute a
+                      join pg_catalog.pg_attrdef ad on ad.adrelid = a.attrelid and ad.adnum = a.attnum
+                      where a.attrelid = v_tbl and a.attname = d.col and not a.attisdropped
+                        and pg_catalog.pg_get_expr(ad.adbin, ad.adrelid) = d.expr)
   ) x;
   if v_problems is not null then
     raise exception '0031 abortada (P1): %', v_problems;
@@ -163,7 +172,8 @@ begin
                and pg_catalog.pg_get_userbyid(a.grantor) = 'postgres' and not a.is_grantable)
     union all
     select 'marcador da 0031 em falta'
-    where coalesce(pg_catalog.obj_description(v_tbl, 'pg_class'), '') not like 'vivere:0031 aplicada%'
+    where pg_catalog.obj_description(v_tbl, 'pg_class') is distinct from
+          'vivere:0031 aplicada (INSERT so nas colunas da app). Retirar so com 0031_suggestions_insert_columns.rollback.sql.'
   ) x;
   if v_problems is not null then
     raise exception '0031 incompleta (verificacao final), transaccao desfeita: %', v_problems;

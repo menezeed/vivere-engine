@@ -79,25 +79,28 @@ preflight() {
   else bad "pre-voo falhou em $1"; cat "$T/$2.err"; echo "TOTAL $PASS PASS, $FAILS FAIL"; exit 1; fi
 }
 # Insercao como cliente: devolve OK ou o SQLSTATE. Corre numa transaccao desfeita (nao deixa linhas).
-ins() { # base papel colunas-extra-sql valores-extra-sql
+ins() { # base papel colunas-extra-sql valores-extra-sql [titulo]
   "$PSQL" -U postgres -d "$1" -X -At -v ON_ERROR_STOP=1 >"$T/ins.out" 2>&1 <<SQL
+\set VERBOSITY verbose
 begin;
 set local role $2;
 insert into public.suggestions (title, location, phone, comment, email, language$3)
-values ('Sugestao teste', 'Local', '000', null, 'teste@example.invalid', 'pt'$4);
+values ('${5:-Sugestao teste}', 'Local', '000', null, 'teste@example.invalid', 'pt'$4);
 rollback;
 SQL
   local rc=$?
+  # Com VERBOSITY verbose a linha do erro traz o SQLSTATE: "ERROR:  42501: ..."
   if [ $rc -eq 0 ]; then echo OK
-  elif grep -q "permission denied" "$T/ins.out"; then echo "permission denied"
-  elif grep -q "row-level security" "$T/ins.out"; then echo "row-level security"
+  elif grep -q "ERROR:  42501: permission denied" "$T/ins.out"; then echo "42501 permissao"
+  elif grep -q "ERROR:  42501: new row violates row-level security" "$T/ins.out"; then echo "42501 rls"
   else grep -m1 "ERROR" "$T/ins.out" | tr -d '\r'; fi
 }
-expect_ins() { # descr esperado base papel cols vals
-  local r; r=$(ins "$3" "$4" "$5" "$6")
+expect_ins() { # descr esperado base papel cols vals [titulo]
+  local r; r=$(ins "$3" "$4" "$5" "$6" "${7:-}")
   case "$2" in
     OK) [ "$r" = "OK" ] && ok "$1" || bad "$1 (obtido: $r)";;
-    DENY) [ "$r" = "permission denied" ] && ok "$1 (42501)" || bad "$1 (obtido: $r)";;
+    DENY) [ "$r" = "42501 permissao" ] && ok "$1 (SQLSTATE 42501, privilégio)" || bad "$1 (obtido: $r)";;
+    RLS) [ "$r" = "42501 rls" ] && ok "$1 (SQLSTATE 42501, RLS)" || bad "$1 (obtido: $r)";;
   esac
 }
 
@@ -127,6 +130,8 @@ newdb "${X}p" "$FX"; pg "${X}p" -c "create policy extra on public.suggestions fo
 apply_abort "0031 aborta com politica a mais" "${X}p" "$M31" "politica inesperada"
 newdb "${X}k" "$FX"; pg "${X}k" -c "grant update (status) on public.suggestions to anon" >/dev/null
 apply_abort "0031 aborta com privilegio de coluna previo" "${X}k" "$M31" "privilegio de coluna"
+newdb "${X}d" "$FX"; pg "${X}d" -c "alter table public.suggestions alter column status drop default" >/dev/null
+apply_abort "0031 aborta sem o default de status" "${X}d" "$M31" "default em falta ou diferente: status"
 
 echo "== T3 0031 na fixture"
 apply_ok "0031 aplica" "$FX" "$M31"; snap "$FX" sfx31
@@ -144,8 +149,17 @@ for r in anon authenticated; do
   expect_ins "$r: com schedule -> negado" DENY "$FX" $r ", schedule" ", 'x'"
   expect_ins "$r: com status -> negado" DENY "$FX" $r ", status" ", 'pending'"
 done
-st=$("$PSQL" -U postgres -d "$FX" -X -At -q -c "begin; set local role anon; insert into public.suggestions (title, location, phone, comment, email, language) values ('S', 'L', '0', null, 'a@example.invalid', 'pt'); reset role; select status from public.suggestions where title = 'S'; rollback;" 2>&1 | tail -1)
-[ "$st" = "pending" ] && ok "default status = pending" || bad "status obtido: $st"
+st=$("$PSQL" -U postgres -d "$FX" -X -At -q -c "begin; set local role anon; insert into public.suggestions (title, location, phone, comment, email, language) values ('S', 'L', '0', null, 'a@example.invalid', 'pt'); reset role; select status || '|' || (id is not null) || '|' || (created_at is not null) from public.suggestions where title = 'S'; rollback;" 2>&1 | tr -d '\r' | tail -1)
+[ "$st" = "pending|true|true" ] && ok "defaults aplicados: status = pending, id e created_at preenchidos" || bad "defaults obtidos: $st"
+expect_ins "anon: título só com espaços -> recusado pelo RLS" RLS "$FX" anon "" "" "   "
+
+echo "== T4b rollback com marcador válido chega ao R2 e recusa estados divergentes"
+newdb "${X}r" "$FX"; pg "${X}r" -c "grant update (status) on public.suggestions to anon" >/dev/null
+apply_abort "rollback 0031 aborta com privilegio inesperado (R2)" "${X}r" "$R31" "rollback 0031 abortado (R2"
+newdb "${X}s" "$FX"; pg "${X}s" -c "alter table public.suggestions disable row level security" >/dev/null
+apply_abort "rollback 0031 aborta com RLS desligado (R2)" "${X}s" "$R31" "rls desligado"
+newdb "${X}m" "$FX"; pg "${X}m" -c "comment on table public.suggestions is 'vivere:0031 aplicada (forjado)'" >/dev/null
+apply_abort "rollback 0031 aborta com marcador forjado (prefixo)" "${X}m" "$R31" "marcador da 0031 ausente ou diferente"
 
 echo "== T5 rollback, reaplicação"
 apply_ok "rollback 0031 aplica" "$FX" "$R31"; snap "$FX" sfx_rb

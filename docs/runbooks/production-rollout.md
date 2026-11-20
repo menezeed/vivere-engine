@@ -184,7 +184,7 @@ e 4 (`favorites`) ficam para depois da W1.
   `select`/`upsert`/`update`. O supabase-js v2 usa `return=minimal`. O engine,
   o painel admin e os scripts não escrevem em `suggestions`. Os defaults (`id`,
   `status = 'pending'`, `created_at`) continuam a aplicar-se.
-- **Simulação local:** `db/audit/local/run-0031-suggestions.sh`, 34/34 a 20/11:
+- **Simulação local:** `db/audit/local/run-0031-suggestions.sh`, 39/39 a 20/11:
   - recusas: estado do staging, opção de concessão, comentário prévio, política
     a mais, privilégio de coluna prévio e rollback sem marcador;
   - o insert da app passa como `anon` e como `authenticated`; com `created_at`,
@@ -430,7 +430,7 @@ from staging.api_budget_config where provider = 'google_places';
 |---|---|---|
 | Auditoria E2 da produção (só leitura) + consulta "Antes" da 9a | **parcial (20/11)**: a auditoria de privilégios correu; as consultas 2–4 foram reproduzidas, mas não certificadas contra os ficheiros. Achados e cenários na §3a. Falta: o md5 de baseline da `active_activities`, a consulta 3 integral e o **pré-voo** `prevoo-0023-0024.readonly.sql` | PO / executor da E2 |
 | Escolha do cenário da 0023/0024 (§3a) | **D1 na produção (20/11)**. O PO escolheu a opção 1: a `0030` antes da 0024 (preparação técnica; a aplicação exige um REF próprio). Depois da 0030, cenário C: falta uma decisão explícita sobre os 4 `EXCESSO` | PO (Level 2) |
-| 0031 (`suggestions`, §3b) antes da W1 | **preparada** (simulação 34/34); aplicação com REF próprio | PO autoriza |
+| 0031 (`suggestions`, §3b) antes da W1 | **preparada** (simulação 39/39); aplicação com REF próprio | PO autoriza |
 | `favorites` (`EXCESSO` 3 e 4) | depois da W1, com uma migração própria (`AVALIACAO-EXCESSO`) | PO |
 | Redução dos GRANT amplos e TRUNCATE (produção e staging) | proposta para depois da W1, com migração e ensaio próprios | PO decide |
 | Ensaio da 0026 no staging (secção 3, passo 4) | **autorizado** (20/11): só staging, terminando no estado 0025 (aplicar → verificar → rollback → verificar). Pré-condições: **passam**. Linha de base do catálogo: auditoria v2 com 387 linhas, md5 `88ede4ce…`, 0 ATENCAO/FALTA. Procedimento: `reviews/PROCEDIMENTO-0026-STAGING.md` | operador executa as escritas; Claude verifica |
