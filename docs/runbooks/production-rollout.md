@@ -52,6 +52,47 @@ select (select tgenabled = 'O' and tgtype = 19 from pg_catalog.pg_trigger
 4. Ensaio completo no staging (0024 → 0025 → 0026 e, mais tarde, 0027) com a
    auditoria v2 e `db/audit/mobile-access-tests.staging.sql`.
 5. Decidir com antecedência (Level 2) o plano de contingência da secção 4.
+6. Correr `db/audit/prevoo-0023-0024.readonly.sql` na produção (só catálogo)
+   e escolher o cenário da secção 3a **antes** da janela.
+
+### 3a. Resultado da E2 na produção (20/11/2026) e cenários da 0023/0024
+
+**Achados.** A auditoria original de privilégios foi executada. As consultas 2
+a 4 foram reproduzidas com SQL equivalente, mas ainda **não** estão
+certificadas contra os ficheiros originais.
+
+| Achado | Leitura |
+|---|---|
+| PostgreSQL 17.6 | major igual ao staging (17.11) e à simulação: há `MAINTAIN` (P2 da 0024) |
+| `active_activities`: UTC, `security_invoker`, definição com `CURRENT_DATE` | coerente com a P1 da 0029; **falta** o md5 de baseline da consulta "Antes" (§9a) |
+| RPC da 0024 e da 0025 ausentes; `compat_interested_count_update` presente | é a P1 que a 0024 exige; a 0024 remove a política e a P1 da 0025 exige que já não exista |
+| RLS ligado nas tabelas da app auditadas | P1a da 0023 provavelmente OK; a P1b (conjunto exacto de políticas) está por confirmar |
+| **GRANT amplos de escrita** a `anon`/`authenticated` (`activities`, `categories`, `venues`, `favorites`, …) | a **P2 da 0023 aborta** na produção (era a previsão do cabeçalho da 0023) |
+| 0 dados de QA nos padrões verificados | P0-7a fechado, depois de certificada a consulta 4 |
+| FK de `favorites` e `activity_interests` para `auth.users` com `ON DELETE CASCADE` | pressuposto da 0025 cumprido |
+
+**Consequência.** Na produção, os privilégios que a 0023 concederia já
+existem, e há mais do que esses. Por isso a 0023 aborta sem alterar nada. A P1a da 0024 só
+verifica "anon com SELECT em `categories`", e isso fica satisfeito pelo GRANT preexistente. O que
+decide a W1 é a **P2 da 0024**.
+
+| Cenário (pela saída do pré-voo) | 0023 | 0024 | Acção (Level 2) |
+|---|---|---|---|
+| **A.** Pré-voo só com `0024 P1a: 0023 nao aplicada` | aplica | aplica | W1 como na §4. **Descartado** pelos achados |
+| **B.** Linhas `0023 P2` só; `0023 P1a/P1b` e `0024 *` vazios | aborta | aplica | **Saltar a 0023 na produção** (decisão registada no REF). Os GRANT existentes já cobrem a matriz da app. O rollback da 0023 não se aplica |
+| **C.** Como B, mais escritas amplas nas 5 tabelas da 0023 | aborta | aplica | Como B. As escritas a mais só estão travadas pelo RLS. Se a `0023 P1b` vier vazia, as políticas são as da 0020 e negam a escrita via PostgREST. Fica o `RISCO` TRUNCATE (o RLS não se aplica). Proposta: uma migração de redução de privilégios **depois** da W1, ensaiada no staging |
+| **D.** Qualquer linha `0024 P1a` (excepto "0023 nao aplicada"), `0024 P1b` ou `0024 P2`, ou `0023 P1a/P1b` | — | **aborta** | **Bloqueia a W1.** Causas prováveis: GRANT SELECT/INSERT/UPDATE/DELETE em `activity_interests`, GRANT por outro grantor (ex.: `supabase_admin`), ou políticas diferentes. Exige uma migração de normalização com REF próprio, ensaiada no staging |
+
+**O staging tem o mesmo `RISCO`.** O pré-voo (20/11) lista TRUNCATE para
+`anon`/`authenticated` em 9 tabelas de `public`, vindo do default ACL do
+Supabase. O PostgREST não expõe TRUNCATE, mas qualquer caminho SQL que use
+esses papéis pode executá-lo. É endurecimento pós-W1, não pré-requisito.
+
+**Critério de aceitação na produção.** Os GRANT amplos fazem a auditoria v2
+mostrar `ATENCAO` além dos 2 desvios ensaiados. Por isso, na produção, a
+aceitação (passo 4 e §4) é a **diferença** entre a auditoria "antes" (passo
+0) e a "depois". Só podem mudar as linhas que a 0024–0026 alteram. Qualquer
+outra diferença → PARAR.
 
 ## 4. Janela W1 — 0023 → 0024 → 0025 → 0026 (uma sessão, seguidas)
 
@@ -61,7 +102,7 @@ contador; nada rebenta).
 
 | Passo | Ficheiro | Se abortar |
 |---|---|---|
-| 1 | `0023_mobile_app_table_grants.sql` | PARAR. Nada mudou. |
+| 1 | `0023_mobile_app_table_grants.sql` (**na produção, só no cenário A da §3a**; nos cenários B/C, saltar) | PARAR. Nada mudou. |
 | 2 | `0024_activity_interests_rpc.sql` | PARAR. Nada mudou (0023 fica; é segura sozinha). |
 | 3 | `0025_delete_my_account.sql` | Correr `0024_…rollback.sql` (repõe o caminho legado da 0020) e PARAR. |
 | 4 | `0026_legacy_interest_compat.sql` | Decisão prévia: (a) `0025_…rollback.sql` + `0024_…rollback.sql` (volta ao estado anterior) ou (b) aceitar a app antiga com contador congelado até à 0027. |
@@ -70,7 +111,8 @@ Depois do passo 4, auditoria v2. **Esperado no estado 0026** (simulação):
 exactamente 2 desvios conhecidos e transitórios — `I proibido
 public.activities anon UPDATE real=C ATENCAO` e `K cadeia 0024 policy
 compat_interested_count_update removida FALTA`. Qualquer outro `ATENCAO`/`FALTA`
-→ PARAR e reportar.
+→ PARAR e reportar. **Na produção:** comparar com a auditoria "antes"
+(critério da §3a), não com o estado do staging.
 
 Rollback de emergência, por ordem inversa: `0026_…rollback.sql` (fecha o
 caminho legado; estado = 0025), depois `0025_…rollback.sql`, depois
@@ -276,7 +318,9 @@ from staging.api_budget_config where provider = 'google_places';
 
 | Item | Estado | Quem |
 |---|---|---|
-| Auditoria E2 da produção (só leitura; CSV) + consulta "Antes" da 9a | por fazer | PO autoriza |
+| Auditoria E2 da produção (só leitura) + consulta "Antes" da 9a | **parcial (20/11)**: a auditoria de privilégios correu; as consultas 2–4 foram reproduzidas, mas não certificadas contra os ficheiros. Achados e cenários na §3a. Falta: o md5 de baseline da `active_activities`, a consulta 3 integral e o **pré-voo** `prevoo-0023-0024.readonly.sql` | PO / executor da E2 |
+| Escolha do cenário da 0023/0024 (§3a) | depende do pré-voo. A 0023 aborta na produção; a W1 só avança nos cenários B/C | PO (Level 2) |
+| Redução dos GRANT amplos e TRUNCATE (produção e staging) | proposta para depois da W1, com migração e ensaio próprios | PO decide |
 | Ensaio da 0026 no staging (secção 3, passo 4) | **autorizado** (20/11): só staging, terminando no estado 0025 (aplicar → verificar → rollback → verificar). Pré-condições: **passam**. Linha de base do catálogo: auditoria v2 com 387 linhas, md5 `88ede4ce…`, 0 ATENCAO/FALTA. Procedimento: `reviews/PROCEDIMENTO-0026-STAGING.md` | operador executa as escritas; Claude verifica |
 | 0028 no staging + tectos | **fora da janela inicial**. Tectos aprovados para depois: USD 2 por execução e USD 15/mês; o diário ("5") ainda por clarificar: a 0028 só limita em USD, não por número de execuções | PO |
 | Decisão 9b (colectores pagos em produção?) | **decidido (20/11): não no primeiro go-live**. A 0028 não entra na W1 | — |
