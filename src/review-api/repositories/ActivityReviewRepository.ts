@@ -1,7 +1,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { ReviewContext, ActivityStagingRow } from '../types/reviewTypes';
 import { ALLOWED_TRANSITIONS } from '../types/reviewTypes';
-import { parseListParams, buildListResponse, type ListResponse } from '../types/listTypes';
+import { parseListParams, buildListResponse, ilikeContains, type ListResponse } from '../types/listTypes';
 import { logger } from '../../lib/logger';
 
 export interface ActivityListQuery {
@@ -92,15 +92,16 @@ export class ActivityReviewRepository {
     if (product_key)             q = q.eq('product_key', product_key);
     if (query.venue_resolution)  q = q.eq('venue_resolution_status', query.venue_resolution);
     if (query.source)            q = q.eq('raw_activity_items.source_key', query.source);
+    // Pesquisa por título NO SERVIDOR (o embed é !inner, logo o filtro
+    // restringe as linhas-pai, como o de source acima). Antes filtrava em
+    // memória só a página já cortada por .range(): a pesquisa ignorava as
+    // outras páginas e totalItems/totalPages não reflectiam o filtro.
+    if (search)                  q = q.ilike('raw_activity_items.title', ilikeContains(search));
 
     const { data, error, count } = await q;
     if (error) throw new Error(`ActivityReviewRepository.list: ${error.message}`);
 
-    let items = (data ?? []).map(row => flattenRow(row as Record<string, unknown>));
-    if (search) {
-      const term = search.toLowerCase();
-      items = items.filter(a => a.title?.toLowerCase().includes(term));
-    }
+    const items = (data ?? []).map(row => flattenRow(row as Record<string, unknown>));
 
     return buildListResponse(items, count ?? 0, page, pageSize);
   }
