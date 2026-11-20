@@ -9,7 +9,10 @@ primeiro erro e não reparar a meio.
 
 **Nenhuma versão nova da app (que usa `set_activity_interest`,
 `get_my_interests` ou `delete_my_account`) é publicada em produção antes de
-0023 → 0024 → 0025 → 0026 estarem aplicadas em produção.** Sem elas a versão
+0023 → 0024 → 0025 → 0026 estarem aplicadas em produção.** Nos cenários B/C
+da §3a, a 0023 conta como cumprida **sem** ser aplicada, desde que o pré-voo
+prove a matriz completa (`MATRIZ` vazia), com registo no REF e sem rollback da
+0023. Sem elas a versão
 nova recebe `PGRST202` (função inexistente) ao marcar interesse e ao apagar a
 conta.
 
@@ -72,16 +75,30 @@ certificadas contra os ficheiros originais.
 | FK de `favorites` e `activity_interests` para `auth.users` com `ON DELETE CASCADE` | pressuposto da 0025 cumprido |
 
 **Consequência.** Na produção, os privilégios que a 0023 concederia já
-existem, e há mais do que esses. Por isso a 0023 aborta sem alterar nada. A P1a da 0024 só
-verifica "anon com SELECT em `categories`", e isso fica satisfeito pelo GRANT preexistente. O que
-decide a W1 é a **P2 da 0024**.
+existem, e há mais do que esses. Por isso a 0023 aborta sem alterar nada. Uma
+única linha `0023 P2` só prova que existe **um** privilégio-alvo. Saltar a 0023
+exige que a **matriz completa** da app já exista: é a etapa `MATRIZ` do
+pré-voo, que inclui o SELECT em `activities` exigido pela verificação final
+da 0024. O que decide a W1 é a **0024**: a P1, a P2 e a verificação final
+(etapa `0024 VF`: default ACL de funções).
+
+Etapas do pré-voo:
+- **bloqueantes:** `0023 P1a`, `0023 P1b`, `MATRIZ`, `0024 P1a`, `0024 P1b`, `0024 P2` e `0024 VF`;
+- **alertas:** `RISCO` e `EXCESSO`;
+- **esperada nos cenários B/C:** `0023 P2`.
 
 | Cenário (pela saída do pré-voo) | 0023 | 0024 | Acção (Level 2) |
 |---|---|---|---|
-| **A.** Pré-voo só com `0024 P1a: 0023 nao aplicada` | aplica | aplica | W1 como na §4. **Descartado** pelos achados |
-| **B.** Linhas `0023 P2` só; `0023 P1a/P1b` e `0024 *` vazios | aborta | aplica | **Saltar a 0023 na produção** (decisão registada no REF). Os GRANT existentes já cobrem a matriz da app. O rollback da 0023 não se aplica |
-| **C.** Como B, mais escritas amplas nas 5 tabelas da 0023 | aborta | aplica | Como B. As escritas a mais só estão travadas pelo RLS. Se a `0023 P1b` vier vazia, as políticas são as da 0020 e negam a escrita via PostgREST. Fica o `RISCO` TRUNCATE (o RLS não se aplica). Proposta: uma migração de redução de privilégios **depois** da W1, ensaiada no staging |
-| **D.** Qualquer linha `0024 P1a` (excepto "0023 nao aplicada"), `0024 P1b` ou `0024 P2`, ou `0023 P1a/P1b` | — | **aborta** | **Bloqueia a W1.** Causas prováveis: GRANT SELECT/INSERT/UPDATE/DELETE em `activity_interests`, GRANT por outro grantor (ex.: `supabase_admin`), ou políticas diferentes. Exige uma migração de normalização com REF próprio, ensaiada no staging |
+| **A.** Só `0024 P1a: 0023 nao aplicada`, mais `MATRIZ` com toda a matriz em falta | aplica | aplica | W1 como na §4. **Descartado** pelos achados |
+| **B.** Linhas `0023 P2`; **todas** as etapas bloqueantes vazias, incluindo `MATRIZ` e qualquer `0024 P1a`; sem `EXCESSO` | aborta | aplica | **Saltar a 0023 na produção** (registado no REF; regra da §1). O rollback da 0023 não se aplica |
+| **C.** Como B, mas com linhas `EXCESSO` | aborta | aplica | Como B, **mais uma decisão explícita do PO** sobre cada `EXCESSO`, antes da janela: (i) aceitar até à redução pós-W1, ou (ii) reduzir antes da W1, com migração própria ensaiada no staging. O `EXCESSO` lista as escritas além da matriz que o RLS **não** nega por completo: UPDATE em `favorites` (a política ALL deixa alterar as próprias linhas) e INSERT de colunas fora da matriz em `favorites` e `suggestions`. As escritas em `categories`, `venues` e `partners` são negadas pelo RLS, desde que a `0023 P1b` venha vazia |
+| **D1.** Qualquer linha `0024 P1a`, `0024 P1b`, `0024 P2`, `0024 VF` ou `MATRIZ`. Inclui `0023 nao aplicada` com a matriz incompleta | — | **aborta** (ou reverte na verificação final) | **Bloqueia a W1.** Causas prováveis: privilégios em `activity_interests`, outro grantor (ex.: `supabase_admin`), políticas diferentes, default ACL de funções, ou a matriz da app incompleta. Exige uma migração de normalização com REF próprio, ensaiada no staging |
+| **D2.** `0023 P1a` ou `0023 P1b`, com o resto como em B/C | aborta | pode aplicar | **Bloqueio operacional**, não técnico. Com políticas diferentes das da 0020, os GRANT amplos não têm a protecção avaliada. Decisão do PO depois de analisar as políticas reais |
+
+Um pré-voo limpo cobre as pré-condições e as verificações finais conhecidas da
+0024, mas não garante o COMMIT de todas as migrações. A 0025, a 0026 e a 0029
+têm verificações finais próprias. Se alguma falhar, a transacção é desfeita e
+aplica-se a coluna "Se abortar" da §4.
 
 **O staging tem o mesmo `RISCO`.** O pré-voo (20/11) lista TRUNCATE para
 `anon`/`authenticated` em 9 tabelas de `public`, vindo do default ACL do
@@ -90,9 +107,29 @@ esses papéis pode executá-lo. É endurecimento pós-W1, não pré-requisito.
 
 **Critério de aceitação na produção.** Os GRANT amplos fazem a auditoria v2
 mostrar `ATENCAO` além dos 2 desvios ensaiados. Por isso, na produção, a
-aceitação (passo 4 e §4) é a **diferença** entre a auditoria "antes" (passo
-0) e a "depois". Só podem mudar as linhas que a 0024–0026 alteram. Qualquer
-outra diferença → PARAR.
+aceitação (passo 4 e §4) tem três partes, todas obrigatórias:
+1. **Valores finais.** Cada migração chegou ao COMMIT, o que prova que as
+   suas verificações finais passaram (0024, 0025 e 0026; a 0029 pelas
+   consultas "Depois" da §9a).
+2. **Mudanças obrigatórias.** A diferença entre a auditoria "antes" (passo 0)
+   e a "depois" contém **todas** estas mudanças:
+   - **0024:**
+     - `anon` perde o UPDATE de tabela em `activities`; `authenticated` mantém-no;
+     - em `active_activities`, `anon` e `authenticated` ficam só com SELECT;
+     - `activity_interests` fica sem entradas de ACL para `anon` e `authenticated`;
+     - `increment_activity_interest` deixa de ter EXECUTE para `anon` e `authenticated`;
+     - `set_activity_interest` e `get_my_interests` têm EXECUTE só para `authenticated` (e `postgres`);
+   - **0025:** existe `delete_my_account`;
+   - **0026, se A8 = sim:**
+     - a política compat é recriada com o comentário de transição;
+     - `anon` fica com `UPDATE(interested_count)` de coluna;
+     - sem a 0026, a política fica removida.
+3. **Nada mais.** Qualquer outra diferença, ou uma mudança obrigatória em
+   falta ou diferente, → PARAR.
+
+As linhas `RISCO` e `EXCESSO` do pré-voo não entram nesta comparação: são
+tratadas à parte (cenário C e §9c). No cenário A, que está descartado, as
+mudanças da 0023 seriam também obrigatórias.
 
 ## 4. Janela W1 — 0023 → 0024 → 0025 → 0026 (uma sessão, seguidas)
 
@@ -319,7 +356,7 @@ from staging.api_budget_config where provider = 'google_places';
 | Item | Estado | Quem |
 |---|---|---|
 | Auditoria E2 da produção (só leitura) + consulta "Antes" da 9a | **parcial (20/11)**: a auditoria de privilégios correu; as consultas 2–4 foram reproduzidas, mas não certificadas contra os ficheiros. Achados e cenários na §3a. Falta: o md5 de baseline da `active_activities`, a consulta 3 integral e o **pré-voo** `prevoo-0023-0024.readonly.sql` | PO / executor da E2 |
-| Escolha do cenário da 0023/0024 (§3a) | depende do pré-voo. A 0023 aborta na produção; a W1 só avança nos cenários B/C | PO (Level 2) |
+| Escolha do cenário da 0023/0024 (§3a) | depende do pré-voo. A 0023 aborta na produção; a W1 só avança nos cenários B/C. No C, é preciso uma decisão explícita sobre cada `EXCESSO` | PO (Level 2) |
 | Redução dos GRANT amplos e TRUNCATE (produção e staging) | proposta para depois da W1, com migração e ensaio próprios | PO decide |
 | Ensaio da 0026 no staging (secção 3, passo 4) | **autorizado** (20/11): só staging, terminando no estado 0025 (aplicar → verificar → rollback → verificar). Pré-condições: **passam**. Linha de base do catálogo: auditoria v2 com 387 linhas, md5 `88ede4ce…`, 0 ATENCAO/FALTA. Procedimento: `reviews/PROCEDIMENTO-0026-STAGING.md` | operador executa as escritas; Claude verifica |
 | 0028 no staging + tectos | **fora da janela inicial**. Tectos aprovados para depois: USD 2 por execução e USD 15/mês; o diário ("5") ainda por clarificar: a 0028 só limita em USD, não por número de execuções | PO |

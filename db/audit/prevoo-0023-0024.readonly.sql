@@ -80,6 +80,69 @@ risco as (
   cross join unnest(array['anon', 'authenticated']) r
   where c.relkind in ('r', 'p') and pg_catalog.has_table_privilege(r, c.oid, 'TRUNCATE')
 ),
+-- MATRIZ (revisao r0, ALTO): se a 0023 for saltada na producao, os privilegios que a app usa tem de
+-- existir TODOS (a P2 da 0023 aborta com um so). Inclui o SELECT em activities que a verificacao final
+-- da 0024 exige ('perdeu SELECT') e que a P2 dela nao verifica. Qualquer linha = cenario B/C invalido.
+matriz as (
+  select 'MATRIZ' as etapa, 'em falta: ' || m.rol || ' ' || m.priv || ' em ' || m.tbl
+         || coalesce('(' || m.col || ')', '') as motivo
+  from (values
+    ('categories', 'anon', 'SELECT', null), ('categories', 'authenticated', 'SELECT', null),
+    ('venues', 'anon', 'SELECT', null), ('venues', 'authenticated', 'SELECT', null),
+    ('partners', 'anon', 'SELECT', null), ('partners', 'authenticated', 'SELECT', null),
+    ('favorites', 'authenticated', 'SELECT', null), ('favorites', 'authenticated', 'DELETE', null),
+    ('favorites', 'authenticated', 'INSERT', 'user_id'), ('favorites', 'authenticated', 'INSERT', 'activity_id'),
+    ('suggestions', 'anon', 'INSERT', 'title'), ('suggestions', 'anon', 'INSERT', 'location'),
+    ('suggestions', 'anon', 'INSERT', 'phone'), ('suggestions', 'anon', 'INSERT', 'comment'),
+    ('suggestions', 'anon', 'INSERT', 'email'), ('suggestions', 'anon', 'INSERT', 'language'),
+    ('suggestions', 'authenticated', 'INSERT', 'title'), ('suggestions', 'authenticated', 'INSERT', 'location'),
+    ('suggestions', 'authenticated', 'INSERT', 'phone'), ('suggestions', 'authenticated', 'INSERT', 'comment'),
+    ('suggestions', 'authenticated', 'INSERT', 'email'), ('suggestions', 'authenticated', 'INSERT', 'language'),
+    ('activities', 'anon', 'SELECT', null), ('activities', 'authenticated', 'SELECT', null)) m(tbl, rol, priv, col)
+  where pg_catalog.to_regclass('public.' || m.tbl) is null
+     or (m.col is null and not pg_catalog.has_table_privilege(m.rol, pg_catalog.to_regclass('public.' || m.tbl), m.priv))
+     or (m.col is not null and not coalesce(pg_catalog.has_column_privilege(m.rol, pg_catalog.to_regclass('public.' || m.tbl), m.col, m.priv), false))
+),
+-- Verificacao final da 0024 (revisao r0): o ACL das RPC novas tem de ser exactamente
+-- {authenticated, postgres}. Um default ACL de funcoes em public (do papel postgres ou global) que
+-- conceda EXECUTE a outro papel faz a 0024 reverter no fim. A 0024 so revoga de PUBLIC, anon,
+-- authenticated e service_role.
+p24vf as (
+  select '0024 VF' as etapa, 'default ACL de funcoes concede EXECUTE a ' || pg_catalog.pg_get_userbyid(a.grantee)
+         || ' (dono ' || pg_catalog.pg_get_userbyid(d.defaclrole) || ', esquema '
+         || case when d.defaclnamespace = 0 then '(todos)' else d.defaclnamespace::regnamespace::text end || ')' as motivo
+  from pg_catalog.pg_default_acl d
+  cross join lateral pg_catalog.aclexplode(d.defaclacl) a
+  where d.defaclobjtype = 'f'
+    and d.defaclrole = (select v_me from me)
+    and (d.defaclnamespace = 0 or d.defaclnamespace = 'public'::regnamespace)
+    and a.privilege_type = 'EXECUTE'
+    and a.grantee <> 0
+    and pg_catalog.pg_get_userbyid(a.grantee) not in ('anon', 'authenticated', 'service_role', 'postgres')
+),
+-- EXCESSO (revisao r0, ALTO; ALERTA): escritas nas 5 tabelas da 0023 alem da matriz da app que o
+-- RLS NAO nega por completo. favorites: a politica ALL deixa authenticated actualizar as proprias
+-- linhas se tiver UPDATE. suggestions: a politica de INSERT aceita colunas fora da matriz se houver
+-- INSERT de tabela. Decisao explicita do PO antes de adiar a reducao.
+excesso as (
+  select 'EXCESSO' as etapa, x.rol || ' ' || x.priv || ' em ' || x.tbl || ': ' || x.efeito as motivo
+  from (values
+    ('favorites', 'authenticated', 'UPDATE', null::text[], 'altera as proprias linhas (politica ALL)'),
+    ('favorites', 'authenticated', 'INSERT*', array['user_id', 'activity_id'], 'insere com colunas fora de (user_id, activity_id)'),
+    ('suggestions', 'anon', 'INSERT*', array['title', 'location', 'phone', 'comment', 'email', 'language'],
+      'insere com colunas fora da matriz (o RLS so exige status pending e titulo)'),
+    ('suggestions', 'authenticated', 'INSERT*', array['title', 'location', 'phone', 'comment', 'email', 'language'],
+      'insere com colunas fora da matriz (o RLS so exige status pending e titulo)')) x(tbl, rol, priv, permitidas, efeito)
+  where case
+          when x.priv = 'INSERT*' then exists (
+            select 1 from pg_catalog.pg_attribute att
+            where att.attrelid = pg_catalog.to_regclass('public.' || x.tbl) and att.attnum > 0 and not att.attisdropped
+              and att.attname::text <> all (x.permitidas)
+              and pg_catalog.has_column_privilege(x.rol, att.attrelid, att.attnum, 'INSERT'))
+          else coalesce(pg_catalog.has_table_privilege(x.rol, pg_catalog.to_regclass('public.' || x.tbl), x.priv), false)
+               or coalesce(pg_catalog.has_any_column_privilege(x.rol, pg_catalog.to_regclass('public.' || x.tbl), x.priv), false)
+        end
+),
 p24a as (
   select '0024 P1a' as etapa, p as motivo from (
     select '0023 nao aplicada (anon sem SELECT em public.categories)' as p
@@ -204,6 +267,9 @@ select current_user as papel, etapa, motivo from p23a
 union all select current_user, etapa, motivo from p23b
 union all select current_user, etapa, motivo from p23
 union all select current_user, etapa, motivo from risco
+union all select current_user, etapa, motivo from matriz
+union all select current_user, etapa, motivo from p24vf
+union all select current_user, etapa, motivo from excesso
 union all select current_user, etapa, motivo from p24a
 union all select current_user, etapa, motivo from p24b
 union all select current_user, etapa, motivo from p24c
