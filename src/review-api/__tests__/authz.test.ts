@@ -683,3 +683,30 @@ describe('ER — tipos dos campos do corpo', () => {
     expect((await call('PATCH', `${A}/accept`, await tokenFor('viewer'), { candidateId: 5 })).status).toBe(403);
   });
 });
+
+describe('ER — limites do corpo (revisão r0 do #38)', () => {
+  const A = '/api/entity-resolution/00000000-0000-4000-8000-0000000000a1';
+
+  it.each(['accept', 'override', 'propose-new'] as const)('%s: notes com 2000 caracteres aceite; 2001 → 400', async (action) => {
+    const t = await tokenFor('admin');
+    const body = (notes: string) => (action === 'propose-new' ? { notes } : { candidateId: 'c1', notes });
+    expect((await call('PATCH', `${A}/${action}`, t, body('x'.repeat(2000)))).status).toBe(200);
+    allServiceMocks().forEach((m) => m.mockClear());
+    const res = await call('PATCH', `${A}/${action}`, t, body('x'.repeat(2001)));
+    expect(res.status).toBe(400);
+    expect(await res.json()).toEqual({ error: 'Corpo do pedido inválido: notes excede 2000 caracteres' });
+    for (const m of allServiceMocks()) expect(m).not.toHaveBeenCalled();
+  });
+
+  it.each(['accept', 'override', 'propose-new'] as const)('%s: corpo acima de 16 KB → 413, serviço não chamado', async (action) => {
+    const res = await call('PATCH', `${A}/${action}`, await tokenFor('admin'), { candidateId: 'c1', notes: 'x'.repeat(17 * 1024) });
+    expect(res.status).toBe(413);
+    expect(await res.json()).toEqual({ error: 'Corpo do pedido demasiado grande' });
+    for (const m of allServiceMocks()) expect(m).not.toHaveBeenCalled();
+  });
+
+  it('papel sem permissão: 403 antes do 413', async () => {
+    const res = await call('PATCH', `${A}/accept`, await tokenFor('viewer'), { candidateId: 'c1', notes: 'x'.repeat(17 * 1024) });
+    expect(res.status).toBe(403);
+  });
+});

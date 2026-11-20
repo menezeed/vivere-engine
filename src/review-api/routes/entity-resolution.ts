@@ -5,15 +5,20 @@
  * Routes finas: parsing de params → service → resposta/erro.
  */
 
-import { Hono } from 'hono';
+import { Hono, type Context } from 'hono';
 import type { EntityResolutionService } from '../services/EntityResolutionService.js';
 import { NotFoundError, ForbiddenError } from '../services/ReviewService.js';
 import type { AuthUser } from '../types/reviewTypes.js';
 import { logger } from '../../lib/logger.js';
+import { bodyLimit } from 'hono/body-limit';
 import { requireUuidParam } from '../middleware/uuidParam.js';
 import { rejectInvalidIntQuery } from '../middleware/paginationQuery.js';
 
 type Env = { Variables: { user: AuthUser } };
+
+/** Tecto do corpo das decisões de ER (bytes) e de notes (caracteres). */
+export const ER_BODY_MAX_BYTES = 16 * 1024;
+export const ER_NOTES_MAX_LENGTH = 2000;
 
 export function entityResolutionRoutes(erService: EntityResolutionService): Hono<Env> {
   const router = new Hono<Env>();
@@ -21,6 +26,14 @@ export function entityResolutionRoutes(erService: EntityResolutionService): Hono
   // também casaria /health, /queue e /stats (o '*' aceita sufixo vazio).
   for (const suffix of ['candidates', 'accept', 'override', 'propose-new']) {
     router.use(`/:activityId/${suffix}`, requireUuidParam('activityId'));
+  }
+  // Corpo das decisões limitado (revisão r0 do #38): sem isto um corpo enorme
+  // era lido por inteiro e notes persistido sem tecto (coluna TEXT).
+  for (const suffix of ['accept', 'override', 'propose-new']) {
+    router.use(`/:activityId/${suffix}`, bodyLimit({
+      maxSize: ER_BODY_MAX_BYTES,
+      onError: (c) => c.json({ error: 'Corpo do pedido demasiado grande' }, 413),
+    }));
   }
 
   // ── GET /api/entity-resolution/health ────────────────────────────────────
@@ -99,6 +112,8 @@ export function entityResolutionRoutes(erService: EntityResolutionService): Hono
       if (body === null) return c.json({ error: 'Corpo do pedido inválido: é esperado um objecto JSON' }, 400);
       const badField = nonStringField(body, ['candidateId', 'notes']);
       if (badField) return c.json({ error: `Corpo do pedido inválido: ${badField} tem de ser texto` }, 400);
+      const tooLong = notesTooLong(c, body);
+      if (tooLong) return tooLong;
       await erService.accept(
         c.req.param('activityId'),
         body.candidateId ?? '',
@@ -127,6 +142,8 @@ export function entityResolutionRoutes(erService: EntityResolutionService): Hono
       if (body === null) return c.json({ error: 'Corpo do pedido inválido: é esperado um objecto JSON' }, 400);
       const badField = nonStringField(body, ['candidateId', 'notes']);
       if (badField) return c.json({ error: `Corpo do pedido inválido: ${badField} tem de ser texto` }, 400);
+      const tooLong = notesTooLong(c, body);
+      if (tooLong) return tooLong;
       await erService.override(
         c.req.param('activityId'),
         body.candidateId ?? '',
@@ -156,6 +173,8 @@ export function entityResolutionRoutes(erService: EntityResolutionService): Hono
       if (body === null) return c.json({ error: 'Corpo do pedido inválido: é esperado um objecto JSON' }, 400);
       const badField = nonStringField(body, ['notes']);
       if (badField) return c.json({ error: `Corpo do pedido inválido: ${badField} tem de ser texto` }, 400);
+      const tooLong = notesTooLong(c, body);
+      if (tooLong) return tooLong;
       await erService.proposeNew(
         c.req.param('activityId'),
         user,
@@ -183,6 +202,15 @@ function nonStringField(body: object, names: readonly string[]): string | null {
   for (const name of names) {
     const v = rec[name];
     if (v !== undefined && v !== null && typeof v !== 'string') return name;
+  }
+  return null;
+}
+
+/** 400 se notes exceder ER_NOTES_MAX_LENGTH (revisão r0 do #38); senão null. */
+function notesTooLong(c: Context, body: object): Response | null {
+  const notes = (body as Record<string, unknown>)['notes'];
+  if (typeof notes === 'string' && notes.length > ER_NOTES_MAX_LENGTH) {
+    return c.json({ error: `Corpo do pedido inválido: notes excede ${ER_NOTES_MAX_LENGTH} caracteres` }, 400);
   }
   return null;
 }
