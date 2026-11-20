@@ -92,6 +92,7 @@ import type {
   PublicActivityId,
   EngineActivityId,
   PublicationRunId,
+  PublicVenueId,
 } from '../types/domain.js';
 import type { IVenueResolutionDecisionRepository } from '../../entity-resolution/repositories/interfaces.js';
 import type { ActivityStagingId as ERActivityStagingId } from '../../entity-resolution/types/domain.js';
@@ -119,6 +120,9 @@ export type ActivityDecision =
   // venue_resolution_decisions. Nunca insert/update. Ver nota completa no
   // cabeçalho do módulo.
   | { readonly action: 'skip_missing_human_decision'; readonly activity: PublishableActivity }
+  // 15/11/2026 (G2) — nunca publicada e sem venue (proposed_new): o app
+  // mostra actividades sem lat/lng em qualquer raio. Nunca insert.
+  | { readonly action: 'skip_no_location'; readonly activity: PublishableActivity }
   | { readonly action: 'error';           readonly activity: PublishableActivity; readonly reason: string };
 
 export class ActivityPublisher {
@@ -136,6 +140,26 @@ export class ActivityPublisher {
      * = 'matched'.
      */
     private readonly decisionRepo?: IVenueResolutionDecisionRepository,
+    /**
+     * 15/11/2026 (G2) — opcional. Com requireVenueForNew (publish.ts), uma
+     * activity NUNCA publicada só é inserida se tiver venue público com
+     * coordenadas: o app (withinRadius) mostra uma activity sem lat/lng a
+     * utilizadores de qualquer cidade. Sem local → skip_no_location:
+     *  - proposed_new (venue_id sempre NULL);
+     *  - venue público resolvido mas sem lat/lng (revisão r0: matched).
+     *  - matched sem venue público (revisão r1): em publish() o VenuePublisher
+     *    corre antes, por isso o id só fica NULL se a promoção falhou.
+     * No preview, um matched cujo venue só será promovido nesta run aparece
+     * como skip_no_location: o preview é conservador (a execução real pode
+     * inseri-la se o venue for promovido com coordenadas), nunca optimista.
+     * Activities já publicadas não são afectadas.
+     * Ausente: comportamento anterior (testes existentes).
+     */
+    private readonly options: {
+      readonly requireVenueForNew?: {
+        readonly venueHasCoordinates: (venueId: PublicVenueId) => Promise<boolean>;
+      };
+    } = {},
   ) {}
 
   /**
@@ -170,7 +194,7 @@ export class ActivityPublisher {
         if (decision.action === 'insert') activitiesPublished++;
         else if (decision.action === 'update') activitiesUpdated++;
         else if (decision.action === 'archive_expired') activitiesArchived++;
-        else activitiesSkipped++; // skip_not_dirty, skip_expired, skip_missing_human_decision
+        else activitiesSkipped++; // skip_not_dirty, skip_expired, skip_missing_human_decision, skip_no_location
       } catch {
         errors++;
       }
@@ -280,6 +304,18 @@ export class ActivityPublisher {
           reason: `activity ${activity.stagingId} tem promotedActivityId=${activity.promotedActivityId} mas nenhum public.activities encontrado para a identidade estável ${engineActivityId}`,
         };
       }
+      // G2 — sem venue com coordenadas: não inserir (ver construtor).
+      const g2 = this.options.requireVenueForNew;
+      if (g2) {
+        // Sem venue público (proposed_new, ou matched cujo venue não foi
+        // promovido — p.ex. falha individual no VenuePublisher) → nunca insert.
+        if (activity.resolvedPublicVenueId === null) {
+          return { action: 'skip_no_location', activity };
+        }
+        if (!(await g2.venueHasCoordinates(activity.resolvedPublicVenueId))) {
+          return { action: 'skip_no_location', activity };
+        }
+      }
       // Nunca publicada, promotedActivityId null — candidata legítima a insert.
       const operational = PublicationTransformer.transformActivity(activity, now, now);
       if (operational === null) {
@@ -376,6 +412,7 @@ export class ActivityPublisher {
       case 'skip_not_dirty':
       case 'skip_expired':
       case 'skip_missing_human_decision':
+      case 'skip_no_location':
       case 'error':
         return; // zero writes, zero eventos
     }

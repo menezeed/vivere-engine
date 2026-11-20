@@ -3,6 +3,23 @@ import { parseStructuredBlock, type StructuredSubEvent, type StructuredBlockRevi
 import { parseNarrativeFallback, type NarrativeReviewReason } from './parsers/narrativeFallbackParser';
 import { stripHtmlToText } from './parsers/sharedTextUtils';
 import type { WordPressContentSourceConfig } from './config/WordPressContentSourceConfig';
+import type { PublicationReference } from './parsers/datePt';
+import { parseWordPressGmtDate } from '../../lib/wordpressDates';
+
+/**
+ * Referência temporal do post para os parsers: ano/mês (como antes) e o
+ * INSTANTE de publicação em UTC (date_gmt via parseWordPressGmtDate —
+ * PR #10), usado na inferência de ano/mês das datas sem ano. Se isoDate
+ * for inválido ou não bater com ano/mês fornecidos, o instante é omitido
+ * e os parsers usam o dia 1 do mês (comportamento determinístico).
+ */
+function publicationReference(post: WordPressPostInput): PublicationReference {
+  const { year, month, isoDate } = post.publishedAt;
+  const instant = parseWordPressGmtDate(isoDate);
+  const consistent =
+    !Number.isNaN(instant.getTime()) && instant.getUTCFullYear() === year && instant.getUTCMonth() + 1 === month;
+  return consistent ? { year, month, referenceDate: instant } : { year, month };
+}
 
 /**
  * Orquestração das duas camadas de extração:
@@ -70,7 +87,7 @@ const CONFIDENCE_STRUCTURED_BLOCK = 0.9;
 
 function structuredSubEventToOccurrence(ev: StructuredSubEvent): RawOccurrence | null {
   if (!ev.date) return null;
-  return { date: ev.date, time: ev.time, end_date: null, end_time: ev.endTime };
+  return { date: ev.date, time: ev.time, end_date: ev.endDate, end_time: ev.endTime };
 }
 
 function buildItemFromStructuredSubEvent(
@@ -133,7 +150,7 @@ function buildItemFromNarrative(
   sourceKey: string,
 ): RawActivityItem {
   const occurrence: RawOccurrence | null = narrative.date
-    ? { date: narrative.date, time: narrative.time, end_date: null, end_time: narrative.endTime }
+    ? { date: narrative.date, time: narrative.time, end_date: narrative.endDate, end_time: narrative.endTime }
     : null;
 
   return {
@@ -181,7 +198,7 @@ export function mapToRawActivityItems(
 ): MapResult {
   const structuredResult = parseStructuredBlock(
     post.contentHtml,
-    { year: post.publishedAt.year, month: post.publishedAt.month },
+    publicationReference(post),
     sourceConfig.structured_block_marker,
   );
 
@@ -213,10 +230,7 @@ export function mapToRawActivityItems(
   // Camada 1 não encontrou nada utilizável (marcador ausente, ou
   // presente mas sem sub-evento com título reconhecível): tenta a
   // camada 2, e SÓ a camada 2 — nunca em conjunto com a 1.
-  const narrative = parseNarrativeFallback(post.contentHtml, {
-    year: post.publishedAt.year,
-    month: post.publishedAt.month,
-  });
+  const narrative = parseNarrativeFallback(post.contentHtml, publicationReference(post));
 
   if (narrative.status === 'extracted') {
     return {

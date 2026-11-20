@@ -15,6 +15,27 @@ import type {
   EngineStatus,
 } from '../../types/domain.js';
 
+/**
+ * G2 (15/11/2026): o venue público tem lat e lng utilizáveis? Lê só
+ * lat/lng de public.venues. Erro de leitura → excepção (a activity conta
+ * como erro e não é publicada); venue inexistente ou sem coordenadas → false.
+ */
+export function venueCoordinatesChecker(db: SupabaseClient): (venueId: string) => Promise<boolean> {
+  return async (venueId) => {
+    const { data, error } = await db.from('venues').select('lat, lng').eq('id', venueId).maybeSingle();
+    if (error) throw new Error(`venueCoordinatesChecker: ${error.message}`);
+    return hasUsableCoordinates(data as { lat: unknown; lng: unknown } | null);
+  };
+}
+
+/** Mesma noção do app (withinRadius): lat e lng numéricos e diferentes de zero. */
+export function hasUsableCoordinates(v: { lat: unknown; lng: unknown } | null): boolean {
+  if (!v || v.lat === null || v.lng === null || v.lat === undefined || v.lng === undefined) return false;
+  const lat = Number(v.lat);
+  const lng = Number(v.lng);
+  return Number.isFinite(lat) && Number.isFinite(lng) && lat !== 0 && lng !== 0;
+}
+
 export class PublicVenueRepository implements IPublicVenueRepository {
   constructor(private readonly db: SupabaseClient) {}
 

@@ -73,9 +73,11 @@ export class WordPressContentCollector {
     let postsNarrativeFallback = 0;
     let postsAmbiguous = 0;
     let postsNoSchedule = 0;
+    let itemsMissingDate = 0;
 
     const pageGenerator = fetchPostsSince(this.apiClient, {
       categoryId: this.sourceConfig.category_id,
+      ...(this.sourceConfig.extra_category_ids?.length ? { extraCategoryIds: this.sourceConfig.extra_category_ids } : {}),
       sinceDate,
       perPage: this.sourceConfig.per_page,
       maxPages,
@@ -108,6 +110,17 @@ export class WordPressContentCollector {
           if (skip.reason === 'narrative_ambiguous') postsAmbiguous++;
           if (skip.reason === 'no_extractable_schedule_found') postsNoSchedule++;
 
+          // Um sub-evento sem data CONTINUA a gerar item (com
+          // review_reasons 'structured_subevent_missing_date' e contado
+          // como "sem data" no L4). Contá-lo também em errors[] fazia o
+          // mesmo item aparecer em "recolhidos" E em "descartes" —
+          // descartes > recolhidos no dry-run de Rio das Ostras
+          // (11/2026). errors[] fica só com posts sem nenhum item.
+          if (skip.reason === 'structured_subevent_missing_date') {
+            itemsMissingDate++;
+            continue;
+          }
+
           errors.push({
             source_item_id: String(post.id),
             message: `${skip.reason}: ${skip.context}`,
@@ -134,6 +147,8 @@ export class WordPressContentCollector {
         postsNoSchedule,
         itemsReturned: items.length,
         itemsNeedingReview: itemsNeedingReview.length,
+        itemsMissingDate,
+        postsDiscarded: errors.length,
       },
       'coleta WordPress finalizada',
     );

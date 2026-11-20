@@ -10,9 +10,10 @@
  * Definições (deliberadamente simples e auditáveis):
  *   - com data:  o item tem pelo menos 1 RawOccurrence (date é
  *                obrigatório em RawOccurrence). Itens cuja data não foi
- *                extraída — por exemplo "8 de novembro" sem ano, que o
- *                motor não infere — chegam com occurrences: [] e contam
- *                como SEM data.
+ *                extraída — por exemplo uma lista "10, 11 e 12 de
+ *                outubro" ou um dia da semana incoerente com o
+ *                calendário — chegam com occurrences: [] e contam como
+ *                SEM data.
  *   - com hora:  pelo menos 1 ocorrência com time !== null.
  *   - com local: venue_mention !== null.
  *   - local geocodificável: venue_mention com endereço textual

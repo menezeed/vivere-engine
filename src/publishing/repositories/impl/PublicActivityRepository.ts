@@ -31,6 +31,17 @@ import type {
   EngineStatus,
 } from '../../types/domain.js';
 
+/**
+ * end_date gravado ao arquivar: início do dia UTC de há DOIS dias. Com um
+ * só dia, um relógio do processo adiantado poucos segundos perto da
+ * meia-noite UTC gravaria um end_date igual ao current_date da base, que a
+ * vista ainda mostra (revisão r0). Dois dias toleram até 24 h de desvio.
+ */
+export const ARCHIVE_END_DATE_DAYS_BACK = 2;
+export function archivedEndDate(now: Date): Date {
+  return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - ARCHIVE_END_DATE_DAYS_BACK));
+}
+
 export class PublicActivityRepository implements IPublicActivityRepository {
   constructor(private readonly db: SupabaseClient) {}
 
@@ -84,6 +95,8 @@ export class PublicActivityRepository implements IPublicActivityRepository {
         recurrence_type:   activity.recurrenceType ?? 'none',
         recurrence_days:   activity.recurrenceDays ?? null,
         recurrence_time:   activity.recurrenceTime ?? null,
+        // Uma activity arquivada que volta a ser publicada fica activa outra vez.
+        engine_status:     'active',
         last_published_at: new Date().toISOString(),
       })
       .eq('id', publicActivityId);
@@ -91,10 +104,26 @@ export class PublicActivityRepository implements IPublicActivityRepository {
     if (error) throw new Error(`PublicActivityRepository.update: ${error.message}`);
   }
 
+  /**
+   * Arquiva a activity pública (engine_status = archived) E esconde-a no app.
+   *
+   * 15/11/2026 — a vista public.active_activities (baseline 0000), que é o
+   * que o app lê, NÃO filtra engine_status: só end_date, start_date e
+   * recurrence_type. Marcar só engine_status deixava a activity arquivada
+   * visível no app (retirar conteúdo errado não tinha efeito). Sem
+   * migration: fecha-se também end_date dois dias antes (UTC), que a vista
+   * exclui por `end_date >= current_date` para qualquer recurrence_type.
+   * Uma republicação posterior (update) repõe end_date e engine_status.
+   */
   async archive(publicActivityId: PublicActivityId): Promise<void> {
+    const now = new Date();
     const { error } = await this.db
       .from('activities')
-      .update({ engine_status: 'archived', last_published_at: new Date().toISOString() })
+      .update({
+        engine_status:     'archived',
+        end_date:          archivedEndDate(now).toISOString(),
+        last_published_at: now.toISOString(),
+      })
       .eq('id', publicActivityId);
 
     if (error) throw new Error(`PublicActivityRepository.archive: ${error.message}`);

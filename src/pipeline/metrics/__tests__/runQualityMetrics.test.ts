@@ -107,18 +107,18 @@ describe('computeRunQualityMetrics — fixtures das 4 fontes WordPress', () => {
     expect(g.with_geocodable_venue).toEqual({ count: 3, pct: 100 });
   });
 
-  it('Rio das Ostras: datas sem ano ("8 de novembro") contam como SEM data', () => {
+  it('Rio das Ostras: "Data: Domingo, 8 de novembro" ganha ano (ano mais próximo da publicação); "Em cartaz até…" continua SEM data', () => {
     const g = group('prefeitura_rio_das_ostras');
     expect(g.total_items).toBe(2);
-    expect(g.with_date).toEqual({ count: 0, pct: 0 });
-    expect(g.with_time).toEqual({ count: 0, pct: 0 });
+    expect(g.with_date).toEqual({ count: 1, pct: 50 });
+    expect(g.with_time).toEqual({ count: 1, pct: 50 });
     expect(g.with_venue_mention).toEqual({ count: 2, pct: 100 });
   });
 
-  it('São Pedro: "Evento:" com "(17/06)" sem ano e item só com recorrência → sem data; só o local explícito é geocodificável', () => {
+  it('São Pedro: "Evento:" com "Quarta-feira (17/06)" ganha data; item só com recorrência → sem data; só o local explícito é geocodificável', () => {
     const g = group('prefeitura_sao_pedro_da_aldeia');
     expect(g.total_items).toBe(2);
-    expect(g.with_date.count).toBe(0);
+    expect(g.with_date.count).toBe(1);
     expect(g.with_venue_mention.count).toBe(2);
     expect(g.with_geocodable_venue.count).toBe(1);
   });
@@ -133,8 +133,8 @@ describe('computeRunQualityMetrics — fixtures das 4 fontes WordPress', () => {
 
   it('totais da execução', () => {
     expect(report.totals.total_items).toBe(8);
-    expect(report.totals.with_date).toEqual({ count: 4, pct: 50 });
-    expect(report.totals.with_time).toEqual({ count: 4, pct: 50 });
+    expect(report.totals.with_date).toEqual({ count: 6, pct: 75 });
+    expect(report.totals.with_time).toEqual({ count: 6, pct: 75 });
     expect(report.totals.with_venue_mention).toEqual({ count: 7, pct: 87.5 });
     expect(report.totals.with_geocodable_venue).toEqual({ count: 6, pct: 75 });
     expect(report.totals.duplicates).toEqual({ count: 0, pct: 0 });
@@ -157,7 +157,7 @@ describe('computeRunQualityMetrics — fixtures das 4 fontes WordPress', () => {
     const summary = formatRunQualitySummary(report);
     expect(summary).toContain('Execução dry-run-fixtures');
     expect(summary).toContain('prefeitura_rio_das_ostras (Rio das Ostras): 2 itens');
-    expect(summary).toContain('com data: 0 (0.0%)');
+    expect(summary).toContain('com data: 1 (50.0%)');
     expect(summary).toContain('TOTAL: 8 itens');
     expect(summary).toContain('Gate geográfico: não aplicável a actividades');
   });

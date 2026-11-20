@@ -62,8 +62,16 @@ const CONFIG: WordPressContentSourceConfig = {
   structured_block_marker: /<strong>\s*servi[çc]o:?\s*<\/strong>/i,
 };
 
-/** Bloco estruturado cujo dia "(26)" é combinado com o ano/mês de publicação. */
-const ARRAIA = '<p><strong>SERVIÇO:</strong></p><p><strong>Arraiá de Teste</strong> – Praça Central – 16h<br>sexta (26)</p>';
+/**
+ * Bloco estruturado cujo dia "(26)" é resolvido a partir da publicação.
+ * No WordPressContentCollector o mês sai de resolveDayWithWeekday (mês
+ * anterior/actual/seguinte; só conta a data cujo dia da semana coincide),
+ * por isso cada caso usa o dia da semana REAL do dia 26 no mês esperado:
+ * 26/06/2026 sexta, 26/07/2026 domingo, 26/12/2026 sábado.
+ */
+const arraia = (weekday: string): string =>
+  `<p><strong>SERVIÇO:</strong></p><p><strong>Arraiá de Teste</strong> – Praça Central – 16h<br>${weekday} (26)</p>`;
+const ARRAIA = arraia('sexta');
 
 // Janela muito larga: o filtro since_days não interfere nos testes de mês.
 const WIDE = { sinceDays: 100000 };
@@ -78,18 +86,25 @@ describe('date_gmt é UTC — mês/ano de referência (WordPressContentCollector
 
   it('fuso a leste (UTC+9): 01/07 00:30 UTC continua a ser JULHO', async () => {
     setTz('Asia/Tokyo');
-    const collector = new WordPressContentCollector(fakeClient([makePost(2, '2026-07-01T00:30:00', ARRAIA)]), CONFIG);
+    const collector = new WordPressContentCollector(fakeClient([makePost(2, '2026-07-01T00:30:00', arraia('domingo'))]), CONFIG);
     const result = await collector.collect(WIDE);
     expect(result.items[0]!.occurrences[0]!.date).toBe('2026-07-26');
   });
 
   it('viragem do ano (UTC-3): 31/12 23:30 UTC continua a ser 2026', async () => {
     setTz('America/Sao_Paulo');
-    const collector = new WordPressContentCollector(fakeClient([makePost(3, '2026-12-31T23:30:00', ARRAIA)]), CONFIG);
+    const collector = new WordPressContentCollector(fakeClient([makePost(3, '2026-12-31T23:30:00', arraia('sábado'))]), CONFIG);
     const result = await collector.collect(WIDE);
     expect(result.items[0]!.occurrences[0]!.date).toBe('2026-12-26');
   });
 
+  it('dia da semana incoerente com o dia 26 em todos os meses candidatos → sem data (nunca o mês da publicação "à força")', async () => {
+    setTz('Asia/Tokyo');
+    // 26/06 sexta, 26/07 domingo, 26/08 quarta: "segunda (26)" não bate com nenhum.
+    const collector = new WordPressContentCollector(fakeClient([makePost(4, '2026-07-01T00:30:00', arraia('segunda'))]), CONFIG);
+    const result = await collector.collect(WIDE);
+    expect(result.items[0]!.occurrences).toEqual([]);
+  });
 });
 
 describe('date_gmt é UTC — mês de referência (PrefeituraAgendaCulturalCollector)', () => {

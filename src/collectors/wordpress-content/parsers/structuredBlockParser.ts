@@ -1,10 +1,20 @@
+import { parseTimeRangePt, stripHtmlToText } from './sharedTextUtils';
 import {
-  parseExplicitDatePt,
-  parseTimeRangePt,
-  combineDayWithReference,
-  extractParentheticalDayNumber,
-  stripHtmlToText,
-} from './sharedTextUtils';
+  scanDateMentionsPt,
+  distinctDates,
+  parseSingleLabeledDate,
+  referenceInstant,
+  type PublicationReference,
+} from './datePt';
+
+/** Data de "sexta (26)" (dia entre parênteses com dia da semana), validada; null se 0, >1 ou incoerente. */
+function parentheticalWeekdayDate(text: string, reference: Date): string | null {
+  const scan = scanDateMentionsPt(text, reference);
+  const parenthetical = scan.mentions.filter((m) => m.kind === 'weekday_day' && !m.until && m.matchedText.includes('('));
+  const hasBadParenthetical = scan.inconsistencies.some((i) => i.matchedText.includes('('));
+  const dates = distinctDates(parenthetical);
+  return dates.length === 1 && !hasBadParenthetical ? dates[0]!.date : null;
+}
 
 /**
  * Parser de bloco estruturado — camada 1 (alta confiança) do extrator
@@ -33,6 +43,7 @@ export type StructuredBlockReviewReason = 'schedule_grouping_detected';
 export interface StructuredSubEvent {
   title: string;
   date: string | null;
+  endDate: string | null;  // data final de um intervalo explícito ("De 10 a 12 de outubro"); senão null
   time: string | null;
   endTime: string | null;
   venueName: string | null;
@@ -180,6 +191,26 @@ function isGenericInformationalLabel(title: string): boolean {
   return true;
 }
 
+/**
+ * Uma parte que começa com <strong>Rótulo:</strong> (ou
+ * <strong>Rótulo</strong>:) seguido de um VALOR na mesma linha. O
+ * rótulo é curto (≤ 3 palavras, sem dígitos) — estrutura de campo
+ * "Rótulo: valor", nunca um título de evento (que não termina em ":").
+ */
+function isInlineFieldLabel(part: string): boolean {
+  const m = part.match(/^<strong>([\s\S]*?)<\/strong>([\s\S]*)$/i);
+  if (!m) return false;
+  const inner = stripHtmlToText(m[1]!).trim();
+  const afterHtml = m[2]!;
+  const colonInside = inner.endsWith(':');
+  const colonAfter = /^\s*:/.test(stripHtmlToText(afterHtml.split(/<br\s*\/?>|<\/p>/i)[0] ?? ''));
+  if (!colonInside && !colonAfter) return false;
+  const label = inner.replace(/:$/, '').trim();
+  if (label.length === 0 || /\d/.test(label) || label.split(/\s+/).length > 3) return false;
+  const restOfLine = stripHtmlToText((afterHtml.split(/<br\s*\/?>|<\/p>/i)[0] ?? '')).replace(/^\s*:/, '').trim();
+  return restOfLine.length > 0;
+}
+
 function splitStructuredHtmlIntoSubBlocks(servicoHtml: string): string[] {
   // Divide a string nas posições de abertura de <strong>, mantendo o
   // conteúdo de cada sub-bloco a partir daquele ponto até o próximo.
@@ -194,8 +225,18 @@ function splitStructuredHtmlIntoSubBlocks(servicoHtml: string): string[] {
   for (const part of rawParts) {
     const strongMatch = part.match(/<strong>(.*?)<\/strong>/i);
     const isLabelOnly = strongMatch ? isPureLabelText(stripHtmlToText(strongMatch[1])) : false;
+    const previousHasTitle = merged.length > 0 && /<strong>/i.test(merged[merged.length - 1]!);
 
     if (isLabelOnly && merged.length > 0) {
+      merged[merged.length - 1] += part;
+    } else if (previousHasTitle && isInlineFieldLabel(part)) {
+      // Rótulo de campo em negrito com valor na mesma linha
+      // ("<strong>Atração:</strong> Fulano", "<strong>Endereço</strong>: Rua X",
+      // "<strong>Início:</strong> 5/11/2026") — é um campo do sub-evento
+      // anterior, não o início de um sub-evento novo. Caso real
+      // (Cabo Frio/Rio das Ostras, 11/2026): sem esta fusão, o
+      // "Data:" seguinte ficava atribuído a um "evento" chamado
+      // "Atração:" e o evento verdadeiro ficava sem data.
       merged[merged.length - 1] += part;
     } else {
       merged.push(part);
@@ -208,7 +249,63 @@ function splitStructuredHtmlIntoSubBlocks(servicoHtml: string): string[] {
   return merged.filter((p) => /<strong>/i.test(p));
 }
 
-function parseSubBlock(blockHtml: string): StructuredSubEvent {
+// Rótulos de DATA de um sub-evento. "Início:" só é usado quando não há
+// "Dia:"/"Data:" (cursos: a data da primeira sessão). "Dia e Horário:"
+// traz data e hora na mesma linha ("Sábado, 26 de Setembro – 18h").
+const DATE_LABEL_PATTERN = /^(?:dia|data)(?:\s+e\s+hor[áa]rio)?\s*:\s*/i;
+const START_LABEL_PATTERN = /^in[íi]cio\s*:\s*/i;
+
+// Linha SEM rótulo que começa por uma data por extenso, opcionalmente
+// precedida de dia da semana: "Sábado, 10 de outubro, às 16h",
+// "De 10 a 12 de outubro, das 13h às 17h".
+const LEADING_DATE_LINE = new RegExp(
+  '^(?:(?:domingo|segunda|ter[çc]a|quarta|quinta|sexta|s[áa]bado)(?:-feira)?\\s*,?\\s*)?' +
+    '(?:de\\s+)?\\d{1,2}(?:º|°)?\\s+(?:(?:a|até)\\s+\\d{1,2}(?:º|°)?\\s+)?de\\s+' +
+    '(?:janeiro|fevereiro|mar[çc]o|abril|maio|junho|julho|agosto|setembro|outubro|novembro|dezembro)(?![\\p{L}])',
+  'iu',
+);
+
+interface LabeledSchedule {
+  date: string | null;
+  endDate: string | null;
+  /** Horário lido da própria linha da data (ex.: "Dia e Horário: … – 18h"). */
+  time: string | null;
+  endTime: string | null;
+}
+
+/**
+ * Data de um sub-evento a partir das suas linhas de texto. Regras
+ * (conservadoras — ADR-0003):
+ *   - linhas "Dia:"/"Data:"/"Dia e Horário:"; se não houver, "Início:";
+ *     se não houver nenhuma, UMA linha sem rótulo que comece por data;
+ *   - cada valor tem de conter exactamente uma data (ou um intervalo)
+ *     e nenhuma inconsistência (dia da semana errado, data impossível);
+ *   - várias linhas de data com datas DIFERENTES → sem data (o sub-evento
+ *     tem várias sessões; nunca se escolhe uma).
+ */
+function resolveLabeledSchedule(lines: readonly string[], reference: Date): LabeledSchedule {
+  const none: LabeledSchedule = { date: null, endDate: null, time: null, endTime: null };
+  let values = lines.filter((l) => DATE_LABEL_PATTERN.test(l)).map((l) => l.replace(DATE_LABEL_PATTERN, ''));
+  if (values.length === 0) values = lines.filter((l) => START_LABEL_PATTERN.test(l)).map((l) => l.replace(START_LABEL_PATTERN, ''));
+  if (values.length === 0) {
+    const leading = lines.filter((l) => LEADING_DATE_LINE.test(l.trim()));
+    if (leading.length !== 1) return none;
+    values = [leading[0]!.trim()];
+  }
+
+  const parsed = values.map((v) => parseSingleLabeledDate(v, reference));
+  if (parsed.some((p) => p === null)) return none;
+  const distinct = new Set(parsed.map((p) => `${p!.date}|${p!.endDate ?? ''}`));
+  if (distinct.size !== 1) return none;
+
+  const first = parsed[0]!;
+  // Horário na mesma linha, depois da data: "– 18h", ", às 16h", ", das 13h às 17h".
+  const rest = first.rest.replace(/^[\s,;–-]+/, '').trim();
+  const { time, endTime } = values.length === 1 && rest ? parseTimeRangePt(rest) : { time: null, endTime: null };
+  return { date: first.date, endDate: first.endDate, time, endTime };
+}
+
+function parseSubBlock(blockHtml: string, reference: Date): StructuredSubEvent {
   const text = stripHtmlToText(blockHtml);
   const lines = text.split('\n').filter((l) => l.trim().length > 0);
 
@@ -218,12 +315,14 @@ function parseSubBlock(blockHtml: string): StructuredSubEvent {
   const strongMatch = blockHtml.match(/<strong>(.*?)<\/strong>/i);
   const title = strongMatch ? stripHtmlToText(strongMatch[1]).trim() : (lines[0] ?? '').trim();
 
-  const dayLine = lines.find((l) => /^(dia|data)\s*:/i.test(l));
   const timeLine = lines.find((l) => /^hor[áa]rio\s*:/i.test(l));
   const localLine = lines.find((l) => /^local\s*:/i.test(l));
 
-  // Caminho rotulado (formato "Yoga no Forte")
-  let date = dayLine ? parseExplicitDatePt(dayLine) : null;
+  // Caminho rotulado (formato "Yoga no Forte"); a 1ª linha (título +
+  // complemento compacto) nunca é lida como linha de data sem rótulo.
+  const schedule = resolveLabeledSchedule(lines.slice(1), reference);
+  const date = schedule.date;
+  const endDate = schedule.endDate;
   // O rótulo "Horário:" já delimita o campo, por isso o horário é lido
   // só do VALOR depois do rótulo — assim um horário solto como
   // "Horário: 17h" é reconhecido pelo mesmo fallback "bare" que o
@@ -233,6 +332,12 @@ function parseSubBlock(blockHtml: string): StructuredSubEvent {
     ? parseTimeRangePt(timeLine.replace(/^hor[áa]rio\s*:\s*/i, '').trim())
     : { time: null, endTime: null };
   let venueName = localLine ? localLine.replace(/^local\s*:\s*/i, '').trim() || null : null;
+  // Sem "Horário:", o horário pode vir na própria linha da data
+  // ("Dia e Horário: Sábado, 26 de Setembro – 18h").
+  if (!time && schedule.time) {
+    time = schedule.time;
+    endTime = schedule.endTime;
+  }
 
   // Caminho compacto (formato "Arraiá"): local e hora vêm em texto
   // solto imediatamente após o </strong> de fechamento, separados
@@ -269,6 +374,7 @@ function parseSubBlock(blockHtml: string): StructuredSubEvent {
   return {
     title,
     date,
+    endDate,
     time,
     endTime,
     venueName,
@@ -288,7 +394,7 @@ const EVENTO_LABEL_PATTERN = /^evento\s*:\s*(.*)$/i;
  * formato rotulado; o caminho compacto ("Título – Local – Hora") não
  * se aplica aqui. Um "Evento:" vazio não gera sub-evento.
  */
-function parseEventoLabeledSubEvents(afterMarkerHtml: string): StructuredSubEvent[] {
+function parseEventoLabeledSubEvents(afterMarkerHtml: string, reference: Date): StructuredSubEvent[] {
   const lines = stripHtmlToText(afterMarkerHtml)
     .split('\n')
     .map((l) => l.trim())
@@ -309,17 +415,19 @@ function parseEventoLabeledSubEvents(afterMarkerHtml: string): StructuredSubEven
 
   return segments.filter((s) => s.title.length > 0).map(({ title, segment }) => {
 
-    const dayLine = segment.find((l) => /^(dia|data)\s*:/i.test(l));
+    const schedule = resolveLabeledSchedule(segment.slice(1), reference);
     const timeLine = segment.find((l) => /^hor[áa]rio\s*:/i.test(l));
     const localLine = segment.find((l) => /^local\s*:/i.test(l));
 
-    const { time, endTime } = timeLine
+    const fromTimeLine = timeLine
       ? parseTimeRangePt(timeLine.replace(/^hor[áa]rio\s*:\s*/i, '').trim())
       : { time: null, endTime: null };
+    const { time, endTime } = fromTimeLine.time ? fromTimeLine : { time: schedule.time, endTime: schedule.endTime };
 
     return {
       title,
-      date: dayLine ? parseExplicitDatePt(dayLine) : null,
+      date: schedule.date,
+      endDate: schedule.endDate,
       time,
       endTime,
       venueName: localLine ? localLine.replace(/^local\s*:\s*/i, '').trim() || null : null,
@@ -339,7 +447,7 @@ function parseEventoLabeledSubEvents(afterMarkerHtml: string): StructuredSubEven
  */
 export function parseStructuredBlock(
   htmlContent: string,
-  postPublishedAt: { year: number; month: number },
+  postPublishedAt: PublicationReference,
   structuredBlockMarker: RegExp,
 ): StructuredBlockParseResult {
   const markerMatch = htmlContent.match(structuredBlockMarker);
@@ -347,6 +455,7 @@ export function parseStructuredBlock(
   if (!markerMatch) {
     return { found: false, subEvents: [] };
   }
+  const reference = referenceInstant(postPublishedAt);
 
   const afterMarkerHtml = htmlContent.slice(markerMatch.index! + markerMatch[0].length);
   const subBlocksHtml = splitStructuredHtmlIntoSubBlocks(afterMarkerHtml);
@@ -356,8 +465,8 @@ export function parseStructuredBlock(
   // "Evento:". Só é usado quando o bloco não tem nenhum sub-bloco com
   // <strong> — nunca se mistura com os formatos já suportados.
   const parsedSubEvents = subBlocksHtml.length > 0
-    ? subBlocksHtml.map(parseSubBlock)
-    : parseEventoLabeledSubEvents(afterMarkerHtml);
+    ? subBlocksHtml.map((html) => parseSubBlock(html, reference))
+    : parseEventoLabeledSubEvents(afterMarkerHtml, reference);
 
   const subEvents = parsedSubEvents
     .filter((ev) => ev.title.length > 0)
@@ -383,15 +492,16 @@ export function parseStructuredBlock(
     });
 
   // Fallback de data: se um sub-evento não tem data explícita mas o
-  // bloco contém um dia entre parênteses (ex: "sexta (26)"), usa a
-  // data de publicação do post como referência de ano/mês — NUNCA
-  // adivinha o mês a partir do nada.
+  // bloco contém um dia entre parênteses com dia da semana (ex: "sexta
+  // (26)"), o mês é resolvido pela publicação com VALIDAÇÃO do dia da
+  // semana (resolveDayWithWeekday: mês anterior/actual/seguinte, só a
+  // data cujo dia da semana coincide, a mais próxima). Antes usava-se
+  // sempre o mês de publicação, o que dava datas erradas perto da
+  // viragem do mês ("terça (03)" publicado a 29/10 → 03/10, um sábado).
+  // Vários dias distintos ou dia da semana incoerente → sem data.
   for (const ev of subEvents) {
     if (!ev.date) {
-      const dayNumber = extractParentheticalDayNumber(ev.rawBlockText) ?? extractParentheticalDayNumber(ev.title);
-      if (dayNumber !== null) {
-        ev.date = combineDayWithReference(dayNumber, postPublishedAt.year, postPublishedAt.month);
-      }
+      ev.date = parentheticalWeekdayDate(ev.rawBlockText, reference) ?? parentheticalWeekdayDate(ev.title, reference);
     }
   }
 

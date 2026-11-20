@@ -1,0 +1,122 @@
+# =====================================================================
+# MODELO — NÃO ACTIVO. Evolução futura (opção A do ADR rascunho do E4).
+#
+# Este ficheiro vive em docs/ de propósito: o GitHub só executa
+# workflows em .github/workflows/. Para o activar é preciso cumprir a
+# checklist de activação em RUNBOOK-EXECUCAO-ASSISTIDA.md (secção 6),
+# com decisão explícita do PO, e copiá-lo num PR revisto.
+#
+# Regras deste modelo:
+#  - só workflow_dispatch (manual); o schedule está comentado;
+#  - só fontes WordPress (sem custo); APIs pagas nunca (L5 por fazer);
+#  - environment "staging" com reviewers obrigatórios (configurado no
+#    GitHub, não aqui);
+#  - permissions: contents: read; concurrency por região;
+#  - segredos referenciados só pelo NOME, só no passo que os usa,
+#    nunca impressos (sem echo, sem set -x, sem `env` / `printenv`);
+#  - nunca produção: VIVERE_ENV fixo em staging, guarda explícita antes
+#    de qualquer passo com segredos e o envGuard do Engine (fail-closed);
+#  - sem pull_request / pull_request_target: forks e PRs nunca correm isto.
+# =====================================================================
+name: Ingestão WordPress (staging) — assistida
+
+on:
+  workflow_dispatch:
+    inputs:
+      region:
+        description: Região (só regiões com fontes WordPress)
+        type: choice
+        required: true
+        options:
+          - cabo_frio
+          - sao_pedro_da_aldeia
+          - buzios
+          - rio_das_ostras
+      dry_run:
+        description: Dry-run (recolhe e calcula L4/E7 sem gravar)
+        type: boolean
+        default: true
+      since_days:
+        description: Janela de recolha (dias)
+        type: string
+        default: '30'
+  # Agendamento: SÓ depois da checklist de activação e de decisão do PO.
+  # schedule:
+  #   - cron: '0 6 * * *'   # diário às 06:00 UTC (região fixa por job/matriz)
+
+permissions:
+  contents: read
+
+concurrency:
+  # Uma execução por região de cada vez; nunca cancelar uma em curso.
+  group: ingest-wordpress-${{ inputs.region }}
+  cancel-in-progress: false
+
+jobs:
+  ingest:
+    name: Ingestão ${{ inputs.region }}
+    # Nunca em forks; só a partir do main.
+    if: ${{ github.event.repository.fork == false && github.ref == 'refs/heads/main' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    # Environment protegido no GitHub: reviewers obrigatórios, só o branch main.
+    # Os segredos vivem AQUI (Environment secrets), nunca como Repository secrets.
+    environment: staging
+    env:
+      VIVERE_ENV: staging
+    steps:
+      # Recomendação: fixar as actions por SHA de commit antes de activar.
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx tsc --noEmit
+
+      - name: Guarda — nunca produção
+        # Sem segredos neste passo. Falha se o ambiente declarado não for staging.
+        run: |
+          if [ "$VIVERE_ENV" != "staging" ]; then
+            echo "VIVERE_ENV tem de ser staging"; exit 1
+          fi
+          if [ -n "${VIVERE_PRODUCTION_CONFIRM:-}" ]; then
+            echo "VIVERE_PRODUCTION_CONFIRM não pode existir neste workflow"; exit 1
+          fi
+
+      - name: Pré-voo (sem rede)
+        env:
+          SUPABASE_URL: ${{ vars.STAGING_SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.STAGING_SUPABASE_SERVICE_KEY }}
+          REGION: ${{ inputs.region }}
+          DRY_RUN: ${{ inputs.dry_run }}
+        run: |
+          flags=""
+          if [ "$DRY_RUN" = "true" ]; then flags="--dry-run"; fi
+          npx tsx scripts/run-assisted.ts --region "$REGION" --preflight $flags
+
+      - name: Execução assistida
+        env:
+          SUPABASE_URL: ${{ vars.STAGING_SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.STAGING_SUPABASE_SERVICE_KEY }}
+          REGION: ${{ inputs.region }}
+          DRY_RUN: ${{ inputs.dry_run }}
+          SINCE_DAYS: ${{ inputs.since_days }}
+        # Código de saída != 0 (fonte falhada, E7 critical, recusa) falha o job
+        # e gera a notificação nativa do GitHub.
+        run: |
+          case "$SINCE_DAYS" in (''|*[!0-9]*) echo "since_days inválido"; exit 1;; esac
+          flags=""
+          if [ "$DRY_RUN" = "true" ]; then flags="--dry-run"; fi
+          npx tsx scripts/run-assisted.ts --region "$REGION" --since-days="$SINCE_DAYS" $flags
+
+      - name: Manifesto (só agregados; repo público)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: manifesto-${{ inputs.region }}-${{ github.run_id }}
+          path: runs/manifests/*.json
+          if-no-files-found: ignore
+          retention-days: 30

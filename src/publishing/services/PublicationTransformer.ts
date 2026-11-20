@@ -46,6 +46,7 @@ import type {
   OperationalVenueInput,
   OperationalActivityInput,
   RecurrenceType,
+  ActivityOccurrence,
 } from '../types/domain.js';
 import { selectNextOccurrence, occurrenceToDateRange } from './occurrenceSelection.js';
 import { deriveEngineActivityId } from './activityIdentity.js';
@@ -82,6 +83,19 @@ function isValidStructuredRecurrence(
   if (!VALID_RECURRENCE_TYPES.has(type)) return false;
   if ((type === 'weekly' || type === 'biweekly') && (!days || days.length === 0)) return false;
   return true;
+}
+
+/**
+ * 15/11/2026 — hora de um evento pontual para recurrence_time, a partir da
+ * ocorrência seleccionada (a mesma que dá start_date). Só aceita 'HH:MM'
+ * válido (00:00–23:59); qualquer outra coisa → null (nunca inventada nem
+ * "corrigida"). Sem ocorrência → null.
+ */
+export function eventTimeFromOccurrence(occurrence: ActivityOccurrence | null): string | null {
+  const time = occurrence?.time ?? null;
+  if (time === null) return null;
+  const m = /^([01]\d|2[0-3]):([0-5]\d)$/.exec(time);
+  return m ? `${m[1]}:${m[2]}` : null;
 }
 
 export class PublicationTransformer {
@@ -197,7 +211,15 @@ export class PublicationTransformer {
       // nunca publicado como uma regra estruturada quebrada.
       recurrence_type: hasValidRecurrence ? (activity.recurrenceType as RecurrenceType) : 'none',
       recurrence_days: hasValidRecurrence ? activity.recurrenceDays : null,
-      recurrence_time: hasValidRecurrence ? activity.recurrenceTime : null,
+      // 15/11/2026 — evento pontual (recurrence_type='none'): o app mostra a
+      // hora a partir de recurrence_time e usa start_date só pela data
+      // (slice(0,10)). Sem isto, a hora da ocorrência (ex.: 06:00 da Corrida
+      // da Virada) perdia-se no app. A hora vem da MESMA ocorrência que dá o
+      // start_date, só se for HH:MM válido; nunca inventada. O ramo
+      // recorrente fica exactamente como estava (ver eventTimeFromOccurrence).
+      recurrence_time: hasValidRecurrence
+        ? activity.recurrenceTime
+        : eventTimeFromOccurrence(nextOccurrence),
     };
   }
 }
