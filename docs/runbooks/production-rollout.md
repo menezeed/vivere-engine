@@ -80,7 +80,7 @@ certificadas contra os ficheiros originais.
 | Achado | Leitura |
 |---|---|
 | PostgreSQL 17.6 | major igual ao staging (17.11) e à simulação: há `MAINTAIN` (P2 da 0024) |
-| `active_activities`: UTC, `security_invoker`, definição com `CURRENT_DATE` | coerente com a P1 da 0029; **falta** o md5 de baseline da consulta "Antes" (§9a) |
+| `active_activities`: UTC, `security_invoker`, definição com `CURRENT_DATE` | **P1 da 0029 confirmada (20/11):** `md5(pg_get_viewdef(v, true))` = `6b935a11…` e `(v, false)` = `8859893f…` na produção, exactamente iguais à vista da cadeia 0000→0028 na simulação local, cuja forma normalizada é o baseline `03a323f8…` |
 | RPC da 0024 e da 0025 ausentes; `compat_interested_count_update` presente | é a P1 que a 0024 exige; a 0024 remove a política e a P1 da 0025 exige que já não exista |
 | RLS ligado nas tabelas da app auditadas | P1a da 0023 provavelmente OK; a P1b (conjunto exacto de políticas) está por confirmar |
 | **GRANT amplos de escrita** a `anon`/`authenticated` (`activities`, `categories`, `venues`, `favorites`, …) | a **P2 da 0023 aborta** na produção (era a previsão do cabeçalho da 0023) |
@@ -166,6 +166,36 @@ aceitação (passo 4 e §4) tem três partes, todas obrigatórias:
 As linhas `RISCO` e `EXCESSO` do pré-voo não entram nesta comparação: são
 tratadas à parte (cenário C e §9c). No cenário A, que está descartado, as
 mudanças da 0023 seriam também obrigatórias.
+
+### 3b. Janela prévia (antes da W1): 0031, INSERT de `suggestions` só por coluna
+
+**Decisão do PO (20/11):** reduzir antes da W1 os `EXCESSO` 1 e 2, porque
+`anon` e `authenticated` têm INSERT de tabela em `suggestions`. Os `EXCESSO` 3
+e 4 (`favorites`) ficam para depois da W1.
+
+- **Ficheiro:** `0031_suggestions_insert_columns.sql`, só para a produção, com
+  REF Level 2 próprio, numa janela curta e independente da W1. Faz REVOKE do
+  INSERT de tabela e GRANT INSERT nas 6 colunas da app (`title, location,
+  phone, comment, email, language`). Deixa um marcador (comentário) em
+  `suggestions`. No staging aborta, porque a 0023 já fez o mesmo.
+- **Compatibilidade:** a app (Android e iOS, o mesmo código; c390c92, `main`
+  e todos os ramos, 71 ocorrências) só faz
+  `insert({title, location, phone, comment, email, language})`, sem
+  `select`/`upsert`/`update`. O supabase-js v2 usa `return=minimal`. O engine,
+  o painel admin e os scripts não escrevem em `suggestions`. Os defaults (`id`,
+  `status = 'pending'`, `created_at`) continuam a aplicar-se.
+- **Simulação local:** `db/audit/local/run-0031-suggestions.sh`, 39/39 a 20/11:
+  - recusas: estado do staging, opção de concessão, comentário prévio, política
+    a mais, privilégio de coluna prévio e rollback sem marcador;
+  - o insert da app passa como `anon` e como `authenticated`; com `created_at`,
+    `id`, `schedule` ou `status` → 42501;
+  - o rollback devolve o catálogo da fixture;
+  - composição 0031 → 0030 → 0024 → 0025 → 0026 OK.
+- **Verificação depois:** pré-voo sem `EXCESSO` de `suggestions` e o resto igual.
+- **Se algo partir:** `0031_…rollback.sql` repõe o INSERT de tabela, e com ele
+  o excesso.
+- **Efeito na W1:** o pré-voo do passo 0 passa a esperar `EXCESSO` = 2 (só
+  `favorites`). As migrações da W1 não tocam em `suggestions`.
 
 ## 4. Janela W1 — 0023 → 0024 → 0025 → 0026 (uma sessão, seguidas)
 
@@ -400,6 +430,8 @@ from staging.api_budget_config where provider = 'google_places';
 |---|---|---|
 | Auditoria E2 da produção (só leitura) + consulta "Antes" da 9a | **parcial (20/11)**: a auditoria de privilégios correu; as consultas 2–4 foram reproduzidas, mas não certificadas contra os ficheiros. Achados e cenários na §3a. Falta: o md5 de baseline da `active_activities`, a consulta 3 integral e o **pré-voo** `prevoo-0023-0024.readonly.sql` | PO / executor da E2 |
 | Escolha do cenário da 0023/0024 (§3a) | **D1 na produção (20/11)**. O PO escolheu a opção 1: a `0030` antes da 0024 (preparação técnica; a aplicação exige um REF próprio). Depois da 0030, cenário C: falta uma decisão explícita sobre os 4 `EXCESSO` | PO (Level 2) |
+| 0031 (`suggestions`, §3b) antes da W1 | **preparada** (simulação 39/39); aplicação com REF próprio | PO autoriza |
+| `favorites` (`EXCESSO` 3 e 4) | depois da W1, com uma migração própria (`AVALIACAO-EXCESSO`) | PO |
 | Redução dos GRANT amplos e TRUNCATE (produção e staging) | proposta para depois da W1, com migração e ensaio próprios | PO decide |
 | Ensaio da 0026 no staging (secção 3, passo 4) | **autorizado** (20/11): só staging, terminando no estado 0025 (aplicar → verificar → rollback → verificar). Pré-condições: **passam**. Linha de base do catálogo: auditoria v2 com 387 linhas, md5 `88ede4ce…`, 0 ATENCAO/FALTA. Procedimento: `reviews/PROCEDIMENTO-0026-STAGING.md` | operador executa as escritas; Claude verifica |
 | 0028 no staging + tectos | **fora da janela inicial**. Tectos aprovados para depois: USD 2 por execução e USD 15/mês; o diário ("5") ainda por clarificar: a 0028 só limita em USD, não por número de execuções | PO |
