@@ -4,6 +4,7 @@ import { NotFoundError, ForbiddenError } from '../services/ReviewService';
 import type { AuthUser } from '../types/reviewTypes';
 import { logger } from '../../lib/logger';
 import { requireUuidParam } from '../middleware/uuidParam';
+import { rejectInvalidIntQuery } from '../middleware/paginationQuery';
 
 type Env = { Variables: { user: AuthUser } };
 
@@ -14,6 +15,8 @@ export function activityRoutes(reviewService: ReviewService): Hono<Env> {
   router.use('/:id/*', requireUuidParam('id'));
 
   router.get('/', async (c) => {
+    const invalid = rejectInvalidIntQuery(c, ['page', 'pageSize']);
+    if (invalid) return invalid;
     try {
       const result = await reviewService.listActivities({
         page:             c.req.query('page')             ? Number(c.req.query('page'))             : undefined,
