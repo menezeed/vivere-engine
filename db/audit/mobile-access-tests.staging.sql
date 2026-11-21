@@ -59,7 +59,7 @@ declare
   v_ref     text := 'NAO_CONFIRMADO';   -- <<< escrever o ref que aparece no URL do Dashboard
   v_user_a  uuid := null;               -- <<< UUID da conta de teste A (staging)
   v_user_b  uuid := null;               -- <<< UUID da conta de teste B (staging)
-  v_cat uuid; v_ven uuid; v_par uuid; v_act uuid;
+  v_cat uuid; v_ven uuid; v_par uuid; v_act uuid; v_act_rpc uuid;
   v_dev text := 'sec-o-016-dev-' || substr(md5(random()::text), 1, 8);
   v_report text;
   v_fail int;
@@ -137,6 +137,13 @@ begin
     returning id into v_act;
   insert into public.favorites(user_id, activity_id) values (v_user_b, v_act);
   insert into public.activity_interests(activity_id, user_id) values (v_act, v_user_b);
+  -- Fixture PROPRIA das RPC da 0024 (U-22..U-26): contador 5 e B interessado. Isolada dos testes
+  -- do caminho legado (A-07, A-08, U-16), que no estado 0026 alteram o contador de v_act e ficam
+  -- na transaccao ate ao ROLLBACK final (ensaio A6 no staging, 21/11: U-22/23/25 herdavam o +1).
+  insert into public.activities(title, venue_id, start_date, recurrence_type, interested_count)
+    values ('SEC-O-016 fixture activity RPC', v_ven, now() + interval '7 days', 'none', 5)
+    returning id into v_act_rpc;
+  insert into public.activity_interests(activity_id, user_id) values (v_act_rpc, v_user_b);
 
   -- ---------- anon: catálogo ----------
   perform pg_temp.t('A-01', 'anon', null, format('select 1 from public.categories where id = %L', v_cat), 'rows>=1');  -- [0023]
@@ -238,17 +245,17 @@ begin
   perform pg_temp.t('U-20', 'authenticated', v_user_a, 'select 1 from public.suggestions limit 1', 'deny_grant');
   perform pg_temp.t('U-21', 'authenticated', v_user_a, 'select 1 from staging.ingestion_runs limit 1', 'deny_grant');
 
-  -- ---------- authenticated: RPC de interesses (0024; fixture: contador 5, B interessado) ----------
+  -- ---------- authenticated: RPC de interesses (0024; fixture PROPRIA v_act_rpc: contador 5, B interessado) ----------
   perform pg_temp.t('U-22', 'authenticated', v_user_a, format(
-    'select 1 from public.set_activity_interest(%L, true) where interested and interested_count = 6', v_act), 'rows=1'); -- [0024]
+    'select 1 from public.set_activity_interest(%L, true) where interested and interested_count = 6', v_act_rpc), 'rows=1'); -- [0024]
   perform pg_temp.t('U-23', 'authenticated', v_user_a, format(
-    'select 1 from public.set_activity_interest(%L, true) where interested and interested_count = 6', v_act), 'rows=1'); -- [0024] idempotente
+    'select 1 from public.set_activity_interest(%L, true) where interested and interested_count = 6', v_act_rpc), 'rows=1'); -- [0024] idempotente
   perform pg_temp.t('U-24', 'authenticated', v_user_a, format(
-    'select 1 from public.get_my_interests(array[%L]::uuid[])', v_act), 'rows=1');                                    -- [0024]
+    'select 1 from public.get_my_interests(array[%L]::uuid[])', v_act_rpc), 'rows=1');                                    -- [0024]
   perform pg_temp.t('U-25', 'authenticated', v_user_a, format(
-    'select 1 from public.set_activity_interest(%L, false) where not interested and interested_count = 5', v_act), 'rows=1'); -- [0024]
+    'select 1 from public.set_activity_interest(%L, false) where not interested and interested_count = 5', v_act_rpc), 'rows=1'); -- [0024]
   perform pg_temp.t('U-26', 'authenticated', v_user_a, format(
-    'select 1 from public.get_my_interests(array[%L]::uuid[])', v_act), 'rows=0');                                    -- [0024] a linha de B não aparece
+    'select 1 from public.get_my_interests(array[%L]::uuid[])', v_act_rpc), 'rows=0');                                    -- [0024] a linha de B não aparece
   perform pg_temp.t('U-27', 'authenticated', v_user_a, format(
     'select public.increment_activity_interest(%L, 1::smallint)', v_act), 'deny_grant');                               -- [0024]
   perform pg_temp.t('U-28', 'authenticated', v_user_a, format(
