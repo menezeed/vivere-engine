@@ -1,6 +1,14 @@
 # Runbook — Rollout em PRODUÇÃO das migrações 0023–0029 (interesses, conta, orçamento e vista)
 
-Estado: PROPOSTA (Lote 3), não executado. Validado só na simulação local
+Estado: **W0 e W1 EXECUTADAS EM PRODUÇÃO a 21/11/2026** (Issue #46). Registo:
+- A1: backup v5 da produção + restauro isolado ACEITE (auditoria 536 = 536), com as limitações declaradas.
+- W0: 0031. W1: 0030 → 0024 → 0025 → 0026 → 0029, por esta ordem; a **0023 não foi aplicada** (cenário B/C).
+  Os blob SHA aplicados são iguais aos de `948eff4`; sem rollback.
+- Aceitação: 0029 §9a PASS (md5 `38935be4…`, 19 colunas, 0 perdidas). Na auditoria v2 "depois", face à "antes",
+  só são novos os 2 desvios transitórios do estado 0026. Smoke (app e admin) 3/3 PASS.
+- Seguem-se a W2 (versão nova da app; a regra da §1 já está cumprida) e a W3 (0027, pelos critérios da §5).
+
+Texto original (proposta): validado só na simulação local
 (`db/audit/local/run-lote3-compat.sh`). Cada passo em produção precisa de REF
 Level 2 próprio. Projecto de produção: ref `ccpqngyupukdefaqvzgl`. Parar ao
 primeiro erro e não reparar a meio.
