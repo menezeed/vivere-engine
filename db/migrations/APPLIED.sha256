@@ -5,9 +5,15 @@
 # Formato: <sha256>  <ficheiro>  <ambiente e referência>
 770fb028e4e256990d6128d175864b740ebbf2d5733536dbc5589de168465df6  0023_mobile_app_table_grants.sql  staging 2026-11-07 SEC-O-020
 001dac0c02b410711e2b994b06add540cd82674bc9db86a5ff7ff2041d6de95a  0023_mobile_app_table_grants.rollback.sql  rollback da 0023 aplicada (não executado; congelado com ela)
-a1da5ed3059837b7d77d10a6a11a2bdafdd9d36f4d053ed95f4f65e6de93d44d  0024_activity_interests_rpc.sql  staging 2026-11-08 Lote 3 (auditoria pós IGUAL 378/378)
+a1da5ed3059837b7d77d10a6a11a2bdafdd9d36f4d053ed95f4f65e6de93d44d  0024_activity_interests_rpc.sql  staging 2026-11-08 Lote 3 (auditoria pós IGUAL 378/378) | PRODUÇÃO 2026-11-21 W1 (Issue #46; auditoria pós = só os desvios previstos)
 2e1b5d70db02205ba833a3ece44ac73183fb49c47c2296b2542c915afae357a9  0024_activity_interests_rpc.rollback.sql  rollback da 0024 aplicada (não executado com efeito; congelado com ela)
-298aba5b83273956623f72f192779a511ee553d716068f53a6b54149e5e5f1b9  0025_delete_my_account.sql  staging 2026-11-08 Lote 3 (auditoria pós IGUAL 381/381; testes de acesso 0 FAIL de 61)
+298aba5b83273956623f72f192779a511ee553d716068f53a6b54149e5e5f1b9  0025_delete_my_account.sql  staging 2026-11-08 Lote 3 (auditoria pós IGUAL 381/381; testes de acesso 0 FAIL de 61) | PRODUÇÃO 2026-11-21 W1 (Issue #46; auditoria pós = só os desvios previstos)
 c2f01e2b12fb8d3f7a409cb799fde99a608c1c10c3567a71de4825d750ca18ac  0025_delete_my_account.rollback.sql  rollback da 0025 aplicada (não executado; congelado com ela)
-d798df4c46a1ce877acd19943f90e90ae5e9ebb0458c5ff9fdbcf00719232c2a  0029_active_activities_local_date.sql  staging 2026-11-16 (simulação 16 OK/0 FALHA; validação pós: definição local, 19 colunas, ACL/dono/opções iguais, 1059 visíveis = antes)
+d798df4c46a1ce877acd19943f90e90ae5e9ebb0458c5ff9fdbcf00719232c2a  0029_active_activities_local_date.sql  staging 2026-11-16 (simulação 16 OK/0 FALHA; validação pós: definição local, 19 colunas, ACL/dono/opções iguais, 1059 visíveis = antes) | PRODUÇÃO 2026-11-21 W1 (Issue #46; auditoria pós = só os desvios previstos)
 11b723a3d6d660b3cadb692571fab9509476f34e2c8886013a169d6ec855e975  0029_active_activities_local_date.rollback.sql  rollback da 0029 aplicada (não executado; congelado com ela)
+0f960277be18feaac9f51938ee98df8caa172d101cdb7c836e9d053b0c23e096  0030_prod_interest_acl_baseline.sql  PRODUÇÃO 2026-11-21 W1 passo 1b (Issue #46; só produção)
+605009c9de0024e0c93d4c388d8d200322668d710ba1d87802df753418f65de9  0030_prod_interest_acl_baseline.rollback.sql  rollback da 0030 aplicada (não executado; congelado com a 0030)
+9384d044c8366bf86a61fac3bc56b62ef7194d79ddf9167635c9fc46d030e8bd  0026_legacy_interest_compat.sql  PRODUÇÃO 2026-11-21 W1 passo 4 (Issue #46; A6 PASS no staging, revertido)
+8e600ce5d8e428c3b447cef4dbf56dba3099b3e829c3a935d425f1cbe4824d6d  0026_legacy_interest_compat.rollback.sql  rollback da 0026 aplicada (executado só no staging no A6; congelado)
+0d5fe590ca163716d1f47fd62773695b6f1069b4a3490aca3ef750d5eaeb04a4  0031_suggestions_insert_columns.sql  PRODUÇÃO 2026-11-21 W0 (Issue #46; só produção)
+4f964c766090c1ef73f15462388752c68a67ab1d28d1c1927a2f4e31086dac9f  0031_suggestions_insert_columns.rollback.sql  rollback da 0031 aplicada (não executado; congelado com a 0031)
