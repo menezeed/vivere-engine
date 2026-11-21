@@ -1,5 +1,5 @@
 import { logger } from '../../lib/logger';
-import { checkBudgetBeforeCall, type BudgetRepo } from '../../lib/budgetGuard';
+import { BudgetGuard, BudgetRefusedError, toBudgetGuard, type BudgetRepo, type PaidAttemptGate } from '../../lib/budgetGuard';
 import { buildQueriesForProduct, findRegion, type GooglePlacesProductConfig, type PlaceSearchQuery } from './config/GooglePlacesProductConfig';
 import { GooglePlacesApiClient, type GooglePlaceRaw, type GooglePlaceEnriched } from './GooglePlacesApiClient';
 import type { RawVenueItem, VenueCollectorError, VenueCollectorResult } from '../../types/RawVenueItem';
@@ -7,6 +7,8 @@ import type { RawVenueItem, VenueCollectorError, VenueCollectorResult } from '..
 export interface GooglePlacesCollectorOptions {
   dryRun?: boolean;
   limitQueries?: number; // útil para teste manual ("rode só as 2 primeiras queries")
+  /** staging.ingestion_runs.id desta execução (ligação de auditoria do orçamento). */
+  ingestionRunId?: string | null;
 }
 
 /**
@@ -18,14 +20,74 @@ export interface GooglePlacesCollectorOptions {
  */
 export class GooglePlacesCollector {
   readonly sourceKey = 'google_places';
+  /** Guarda de orçamento (alertas por processo e resumo de custo da execução). */
+  readonly budgetGuard: BudgetGuard;
 
   constructor(
     private readonly apiClient: GooglePlacesApiClient,
-    private readonly budgetRepo: BudgetRepo,
+    budget: BudgetRepo | BudgetGuard,
     private readonly productConfig: GooglePlacesProductConfig,
-  ) {}
+  ) {
+    this.budgetGuard = toBudgetGuard(budget);
+    this.gate = this.budgetGuard.attemptGate(this.sourceKey);
+  }
+
+  /**
+   * Custo reportado (stats.estimated_cost_usd) medido no PORTÃO, por
+   * tentativa HTTP liquidada como gasto ('yes' ou 'uncertain'), a mesma regra
+   * do orçamento persistente (L5). Antes somava só o costUsd devolvido por
+   * pedidos bem-sucedidos: tentativas enviadas num pedido que acabava em
+   * excepção (falha após repetições, ou recusa de orçamento a meio) ficavam
+   * fora do total, embora cobradas pela Google (BAIXO da revisão r1 do L5).
+   * O medidor é LOCAL a cada execução (revisão r0 do #31, MÉDIO) e cada
+   * ticket só conta uma vez, mesmo que settle() seja repetido (BAIXO).
+   */
+  private static meteredGate(inner: PaidAttemptGate, meter: { spentUsd: number }): PaidAttemptGate {
+    return {
+      begin: async (callType, estimatedCostUsd) => {
+        const ticket = await inner.begin(callType, estimatedCostUsd);
+        if (!ticket.ok) return ticket;
+        let counted = false;
+        return {
+          ...ticket,
+          settle: async (billable) => {
+            // A PRIMEIRA liquidação decide, seja qual for (r1 do #31): o
+            // ticket original ignora as seguintes; um 'no' seguido de 'yes'
+            // não pode passar a contar.
+            const first = !counted;
+            counted = true;
+            await ticket.settle(billable);
+            if (first && billable !== 'no') meter.spentUsd += estimatedCostUsd;
+          },
+        };
+      },
+    };
+  }
+
+  /** Recusa execuções concorrentes na mesma instância (partilham o run do BudgetGuard). */
+  private collecting = false;
+
+  /** Portão de orçamento por tentativa HTTP (fornecedor google_places). */
+  private readonly gate: PaidAttemptGate;
 
   async collect(options: GooglePlacesCollectorOptions = {}): Promise<VenueCollectorResult> {
+    if (this.collecting) {
+      throw new Error('GooglePlacesCollector.collect() já em curso nesta instância — execuções concorrentes partilhariam o run de orçamento');
+    }
+    this.collecting = true;
+    try {
+      const meter = { spentUsd: 0 };
+      return await this.collectOnce(options, GooglePlacesCollector.meteredGate(this.gate, meter), meter);
+    } finally {
+      this.collecting = false;
+    }
+  }
+
+  private async collectOnce(
+    options: GooglePlacesCollectorOptions,
+    gate: PaidAttemptGate,
+    meter: { spentUsd: number },
+  ): Promise<VenueCollectorResult> {
     const allQueries = buildQueriesForProduct(this.productConfig);
     const queries = options.limitQueries ? allQueries.slice(0, options.limitQueries) : allQueries;
 
@@ -34,35 +96,36 @@ export class GooglePlacesCollector {
     let queriesExecuted = 0;
     let queriesSkippedBudget = 0;
     let placesFoundRaw = 0;
-    let totalCostUsd = 0;
+
+    // Uma execução de orçamento por collect(): novo run_key (tecto por execução).
+    this.budgetGuard.startRun(options.ingestionRunId ?? null);
 
     for (const query of queries) {
-      const budgetCheck = await checkBudgetBeforeCall(
-        'google_places',
-        0.032, // custo estimado de text_search_basic, ver GooglePlacesApiClient.ESTIMATED_COST_PER_CALL
-        this.budgetRepo,
-      );
-
-      if (!budgetCheck.allowed) {
-        logger.warn(
-          { query: query.query_text, reason: budgetCheck.reason },
-          'query pulada — orçamento da Google Places API esgotado',
-        );
-        queriesSkippedBudget++;
-        continue;
-      }
-
       try {
         const region = findRegion(this.productConfig, query.region_key);
-        const { places, costUsd } = await this.apiClient.textSearch({
-          query: query.query_text,
-          lat: region.lat,
-          lng: region.lng,
-          radiusMeters: region.radius_m,
-        });
-
-        totalCostUsd += costUsd;
-        await this.budgetRepo.recordSpend('google_places', 'text_search', costUsd);
+        // Cada tentativa HTTP do cliente reserva antes de enviar (gate);
+        // recusa → BudgetRefusedError e nenhuma tentativa (seguinte) é enviada.
+        let places: GooglePlaceRaw[];
+        try {
+          const r = await this.apiClient.textSearch(
+            {
+              query: query.query_text,
+              lat: region.lat,
+              lng: region.lng,
+              radiusMeters: region.radius_m,
+            },
+            gate,
+          );
+          places = r.places;
+        } catch (err) {
+          if (!(err instanceof BudgetRefusedError)) throw err;
+          logger.warn(
+            { query: query.query_text, reason: err.reason, attemptsSent: err.attemptsSent },
+            'query pulada — orçamento da Google Places API esgotado',
+          );
+          queriesSkippedBudget++;
+          continue;
+        }
         queriesExecuted++;
         placesFoundRaw += places.length;
 
@@ -118,24 +181,20 @@ export class GooglePlacesCollector {
     // em staging.venues_staging é suprimida (ver scripts/dry-run, não
     // este Collector).
     for (const item of dedupedItems) {
-      const enrichBudgetCheck = await checkBudgetBeforeCall('google_places', 0.017, this.budgetRepo);
+      // As tentativas são liquidadas no portão (gate) pelo próprio cliente;
+      // uma falha depois de enviar continua a contar como gasto.
+      const enriched = await this.apiClient.getEnrichedDetails(item.source_item_id, gate);
 
-      if (!enrichBudgetCheck.allowed) {
+      if (enriched.budgetRefusedReason) {
         logger.warn(
-          { placeId: item.source_item_id, reason: enrichBudgetCheck.reason },
+          { placeId: item.source_item_id, reason: enriched.budgetRefusedReason },
           'enriquecimento pulado — orçamento esgotado, item segue sem telefone/site/horário',
         );
         continue;
       }
 
-      const { details, costUsd } = await this.apiClient.getEnrichedDetails(item.source_item_id);
-      totalCostUsd += costUsd;
-      if (costUsd > 0) {
-        await this.budgetRepo.recordSpend('google_places', 'place_details_enriched', costUsd);
-      }
-
-      if (details) {
-        this.applyEnrichment(item, details);
+      if (enriched.details) {
+        this.applyEnrichment(item, enriched.details);
       }
     }
 
@@ -145,7 +204,8 @@ export class GooglePlacesCollector {
         queriesSkippedBudget,
         placesFoundRaw,
         placesReturned: dedupedItems.length,
-        estimatedCostUsd: Math.round(totalCostUsd * 100) / 100,
+        estimatedCostUsd: Math.round(meter.spentUsd * 100) / 100,
+        apiCost: this.budgetGuard.costSummary().totals,
       },
       'coleta Google Places finalizada',
     );
@@ -158,7 +218,7 @@ export class GooglePlacesCollector {
         queries_skipped_budget: queriesSkippedBudget,
         places_found_raw: placesFoundRaw,
         places_returned: dedupedItems.length,
-        estimated_cost_usd: Math.round(totalCostUsd * 100) / 100,
+        estimated_cost_usd: Math.round(meter.spentUsd * 100) / 100,
       },
     };
   }

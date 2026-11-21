@@ -45,3 +45,5 @@ Thumbs.db
 
 # Execução assistida (E4): manifestos e locks locais — nunca no repositório
 runs/
+# Script local do PO (hora da Corrida) — nunca no repositório
+vivere-hora-corrida.cjs
