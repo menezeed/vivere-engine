@@ -40,3 +40,7 @@ Nenhuma chave foi lida, recuperada ou publicada. Só se viu a **forma** de cada 
 | Legacy JWT secret (HS256) | pendente | só se revoga depois da `anon` (W3). A migração para signing keys ES256 é opcional antes, sem downtime |
 | Admin Pages com a `anon` legada no repositório público | pendente; precisa de autorização específica | trocar pela `sb_publishable_` (diff de 1 linha + deploy Pages). Até lá, o admin funciona |
 | Chave Google no `index.html` público do admin | pendente (P0-4) | confirmar a restrição por referrer/API na consola Google |
+
+## 6. Decisão de package (PO, 21/11, #46 id 7066508986)
+- A W2 usa a listagem já existente `com.vivere.app60plus` (Closed testing desde 08/09/2026; correcção do PO, #46 id 7066585320). As builds de teste fechado com o caminho legado contam para o critério da W3. A `com.vidaativa.app` (repositório `vida-ativa-app`, com a `anon` legada) **não tem utilizadores reais** e fica intocada.
+- W3: o critério de adopção mede só o tráfego legado restante (o "last used" da `anon` e o PATCH legado em `activities`).
