@@ -147,7 +147,9 @@ export class IngestionOrchestrator {
         runId = await this.repos.ingestionRun.start(sourceKey);
       }
 
-      const collected = await collector.collect({ limitQueries: options.limitQueries });
+      // ingestionRunId: ligação de auditoria do orçamento persistente (L5);
+      // null em dry-run. Collectors que não a usam ignoram-na.
+      const collected = await collector.collect({ limitQueries: options.limitQueries, ingestionRunId: runId });
 
       const persistedRaw = dryRun
         ? []
