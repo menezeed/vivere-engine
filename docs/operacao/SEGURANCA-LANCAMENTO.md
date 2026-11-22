@@ -18,7 +18,7 @@
 |---|---|---|---|---|
 | B1 | **Não existe backup verificado do estado actual da produção** | O único backup verificado (A1, manifesto `bbe7af19…3e795`, 21/11 12:09) foi tirado **antes** da W0/W1. Restaurá-lo hoje perdia a W0/W1 e qualquer dado criado depois. Com utilizadores públicos, uma perda de dados deixa de ser recuperável | Backup v5 (`v5-backup.ps1 -Alvo producao`: o pg_dump só lê) + restauro local `ACEITE`, nas 24 h antes da abertura ao público | PO (pen F: e passphrase) |
 | B2 | **O backup e a chave existem só num PC e numa pen** | Uma avaria ou perda do PC elimina o único backup | Cópia **cifrada** da pasta de execução para um local fora do PC; a chave privada fica separada do backup | PO |
-| B3 | **Backups automáticos da plataforma: UNKNOWN** | Em 13/11 a produção estava no plano FREE, sem backups geridos. Sem eles, o B1 é a única rede, e envelhece | Dashboard → Database → Backups: registar o plano e o último backup. Se continuar FREE, repetir o B1 com periodicidade definida | PO |
+| B3 | **FECHADO por decisão do PO (22/11):** a produção fica no plano **FREE**, sem backups geridos nem PITR. O upgrade não é condição de lançamento | O backup manual v5 é o único controlo. RPO = intervalo entre cópias | Cadência obrigatória: antes de cada mudança na produção; semanal no 1.º mês; quinzenal depois. Responsável: PO executa, Claude valida. Riscos F1–F7 no roteiro P0-6 (fora do repositório) | PO |
 | B4 | **P0-4: chaves Google** | O admin público (GitHub Pages) tem uma chave `AIza…`. Se não tiver restrição de referrer/API, há risco de custo. A chave Maps de produção tem de estar restrita ao package + SHA-1 do Play App Signing | Google Cloud Console: restrições e evidência na Android #30 | PO |
 
 ## 2. Não bloqueia o lançamento: recomendado antes, ou logo a seguir
@@ -50,7 +50,7 @@
 | Gate do lançamento | **BLOCKED → B1, B2, B3** | — |
 
 ## 5. Ordem mínima
-1. **B3:** ver o plano e os backups no Dashboard (leitura).
+1. **B3:** fechado (FREE, decisão do PO). Passa a valer a cadência do backup manual.
 2. **B4:** P0-4 na Google Cloud Console.
 3. **B1 + B2:** backup v5 novo, restauro `ACEITE` e cópia cifrada fora do PC. O Claude lê as evidências e fecha o P0-6 (A/B).
 4. Abrir ao público.
