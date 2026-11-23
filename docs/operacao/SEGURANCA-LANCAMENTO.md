@@ -1,4 +1,4 @@
-# Segurança do engine para o lançamento público: estado, bloqueios e pós-lançamento (22/11/2026)
+# Segurança do engine para o lançamento público: estado, bloqueios e pós-lançamento (actualizado a 23/11/2026)
 
 **Produção:** `ccpqngyupukdefaqvzgl`.
 
@@ -6,6 +6,7 @@
 
 **Como foi obtido este estado:**
 - Fontes: auditoria só de leitura de 22/11 (Issue #46), ficheiros de evidência locais do PO e o catálogo do staging pelo MCP só de leitura.
+- 23/11: P0-6 fechado com o backup v5 pós-W0/W1. Evidência: `v5-verificar-p06.ps1` 18/18 PASS e confirmação final do PO (#46, comentários 7088537713 e 7101539401).
 - Este documento não altera nada na produção.
 
 **Notação:**
@@ -16,9 +17,9 @@
 ## 1. Bloqueios reais antes do lançamento público
 | # | Bloqueio | Porquê é real | Fecho (sem alterar a produção) | Dono |
 |---|---|---|---|---|
-| B1 | **Não existe backup verificado do estado actual da produção** | O único backup verificado (A1, manifesto `bbe7af19…3e795`, 21/11 12:09) foi tirado **antes** da W0/W1. Restaurá-lo hoje perdia a W0/W1 e qualquer dado criado depois. Com utilizadores públicos, uma perda de dados deixa de ser recuperável | Backup v5 (`v5-backup.ps1 -Alvo producao`: o pg_dump só lê) + restauro local `ACEITE`, nas 24 h antes da abertura ao público | PO (pen F: e passphrase) |
-| B2 | **O backup e a chave existem só num PC e numa pen** | Uma avaria ou perda do PC elimina o único backup | Cópia **cifrada** da pasta de execução para um local fora do PC; a chave privada fica separada do backup | PO |
-| B3 | **FECHADO por decisão do PO (22/11):** a produção fica no plano **FREE**, sem backups geridos nem PITR. O upgrade não é condição de lançamento | O backup manual v5 é o único controlo. RPO = intervalo entre cópias | Cadência obrigatória: antes de cada mudança na produção; semanal no 1.º mês; quinzenal depois. Responsável: PO executa, Claude valida. Riscos F1–F7 no roteiro P0-6 (fora do repositório) | PO |
+| B1 | **FECHADO / PASS (23/11):** backup verificado do estado pós-W0/W1 da produção | Antes só existia o A1 (manifesto `bbe7af19…3e795`, 21/11 12:09), anterior à W0/W1 | Execução `execucao-20261123-002306`, início do dump 2026-11-23 00:24:14Z. SHA-256 do manifesto `03f0971c…59e6d3`, 13 ficheiros conferidos. Restauro local descartável: auditoria 539 = 539, deriva real 0, `VEREDICTO: ACEITE`, limpeza confirmada. Estado pós-W0/W1 confirmado no dump: o `anon` não tem INSERT de tabela em `suggestions` nem UPDATE de tabela em `activities`. **Validade:** a regra ≤ 24 h exige um backup novo antes de cada mudança futura na produção | PO executou; Claude validou |
+| B2 | **FECHADO / PASS (23/11):** cópia cifrada fora do PC, separada da chave | Antes, o backup e a chave existiam só num PC e numa pen | `execucao-20261123-002306.tar.gpg` na pasta OneDrive `Vivere\backup-cifrado`. SHA-256 `f8aa22e5…a3f3` confere com o `.sha256`. Cifrada só para a subchave do backup e fora da pen F:. **A sincronização remota foi confirmada pelo PO (23/11).** A chave privada está na pen e no cofre, nunca junto da cópia | PO |
+| B3 | **FECHADO por decisão do PO (22/11):** a produção fica no plano **FREE**, sem backups geridos nem PITR. O upgrade não é condição de lançamento | O backup manual v5 é o único controlo. RPO = intervalo entre cópias | Cadência obrigatória: antes de cada mudança na produção; semanal no 1.º mês; quinzenal depois. Responsável: PO executa, Claude valida. Os riscos residuais F1–F7 **continuam em vigor** (§4.1) | PO |
 | B4 | **P0-4: chaves Google** | O admin público (GitHub Pages) tem uma chave `AIza…`. Se não tiver restrição de referrer/API, há risco de custo. A chave Maps de produção tem de estar restrita ao package + SHA-1 do Play App Signing | Google Cloud Console: restrições e evidência na Android #30 | PO |
 
 ## 2. Não bloqueia o lançamento: recomendado antes, ou logo a seguir
@@ -43,16 +44,30 @@
 ## 4. Evidência de backup, restauro e rollback (P0-6)
 | Componente | Estado | Evidência |
 |---|---|---|
-| (A) Backup da produção | **PASS** (estado pré-W0/W1) | `C:\VivereBackup\execucao-20261121-120937`. SHA-256 do `manifesto.txt` = `bbe7af190b8a527b899caac9ff00c272c03ce46e3515622c37a6f25cd8b3e795` (recalculado a 22/11). Dumps cifrados com OpenPGP (`Vivere Backup v5`) |
-| (B) Restauro num destino descartável | **PASS com limitações** | `restauro-resultado.txt`: auditoria 536 = 536, deriva 0; contagens 22/22; integridade 29; auth/storage 39 → `VEREDICTO: ACEITE`. Limpeza confirmada (`restauro-limpeza.txt`) |
+| (A) Backup da produção, **pós-W0/W1** | **PASS (23/11)** | `C:\VivereBackup\execucao-20261123-002306`. Início do dump: 2026-11-23 00:24:14Z. SHA-256 do `manifesto.txt` = `03f0971c9919173cfb29e1e596f40d494cdca8299eb2202bcb8774a99e59e6d3`; 13 ficheiros conferidos. Dumps cifrados com OpenPGP (`Vivere Backup v5`) |
+| (B) Restauro num destino descartável | **PASS com limitações (23/11)** | Auditoria produção = restauro, 539 = 539, deriva real 0. Contagens exactas: 22. Verificações de integridade: 29. Objectos de auth/storage: 39. → `VEREDICTO: ACEITE`. Limpeza confirmada: servidor parado, porta fechada |
+| Cópia cifrada fora do PC | **PASS (23/11)** | `execucao-20261123-002306.tar.gpg` no OneDrive. SHA-256 `f8aa22e58a522b038328890f7bf1dfb43c02693e4a716fff64758d477279a3f3`, igual ao do `.sha256`. Sincronização remota confirmada pelo PO |
+| Veredicto `v5-verificar-p06.ps1` | **`P0-6: PASS`, 18/18** | #46, comentários 7088537713 e 7101539401 |
+| Backup anterior A1 (21/11) | substituído, **mantido** (nada foi apagado) | `execucao-20261121-120937`, manifesto `bbe7af19…3e795`, pré-W0/W1, 536 = 536 ACEITE |
 | Limitações declaradas | — | `restauro-limitacoes.txt`:<br>• `supabase_vault` omitido (0 segredos);<br>• `supabase_realtime` e as default ACL do `supabase_admin` recriadas a partir da fonte;<br>• o restauro é PostgreSQL local, não um projecto Supabase: GoTrue, API e Storage não foram testados |
-| (C) Rollback | **PARCIAL** | 0026: PASS no staging (A6). As restantes só na simulação local (`APPLIED.sha256`: "não executado"). 0032: rollback testado localmente (T5) |
-| Gate do lançamento | **BLOCKED → B1, B2, B3** | — |
+| (C) Rollback | **PARCIAL** (não bloqueia, R2) | 0026: PASS no staging (A6). As restantes só na simulação local (`APPLIED.sha256`: "não executado"). 0032: rollback testado localmente (T5). Num incidente, o caminho é o backup B1 |
+| Gate P0-6 | **FECHADO / PASS** (B1, B2 e B3 fechados) | Os riscos residuais estão em §4.1 |
+
+### 4.1 Riscos residuais do plano FREE (aceites pelo PO a 22/11; continuam em vigor)
+| # | Risco | Mitigação |
+|---|---|---|
+| F1 | Sem backups geridos nem PITR | Backup v5 obrigatório ≤ 24 h antes de cada mudança na produção |
+| F2 | RPO = intervalo entre cópias: até 7 dias no 1.º mês e até 14 dias depois. **A idade do dump de 23/11 cresce a partir de agora** | Cadência: semanal nas 4 semanas depois do lançamento, quinzenal depois. Retenção: as últimas 4 locais, todas as externas do 1.º mês, depois 1 por mês |
+| F3 | Recuperação real num projecto Supabase nunca ensaiada; RTO desconhecido | Procedimento descrito; restaurar no mesmo projecto |
+| F4 | Configuração da plataforma fora do dump: providers Auth/Google, redirects, SMTP, chaves, JWT secret | Restaurar no mesmo projecto; registar a configuração no cofre (nunca no GitHub) |
+| F5 | Projectos FREE são pausados depois de cerca de 1 semana sem actividade | O tráfego real evita a pausa; o PO vigia o e-mail da Supabase |
+| F6 | Um único operador (password + pen) | 2.ª cópia da chave no cofre |
+| F7 | Texto em claro no disco durante o restauro (minutos) | Área cifrada com EFS e limpeza confirmada em cada execução |
 
 ## 5. Ordem mínima
-1. **B3:** fechado (FREE, decisão do PO). Passa a valer a cadência do backup manual.
-2. **B4:** P0-4 na Google Cloud Console.
-3. **B1 + B2:** backup v5 novo, restauro `ACEITE` e cópia cifrada fora do PC. O Claude lê as evidências e fecha o P0-6 (A/B).
-4. Abrir ao público.
+1. ~~**B3:**~~ fechado (FREE, decisão do PO, 22/11). Passa a valer a cadência do backup manual.
+2. ~~**B1 + B2:**~~ fechados (23/11, P0-6 18/18 PASS, sincronização remota confirmada).
+3. **B4:** P0-4 na Google Cloud Console. É o **único bloqueio real de segurança que resta**. Estado (Android #30): o positivo Maps/Places na v13 passou; faltam a evidência das restrições, sem valores, da chave `AIza…` do admin Pages (referrer + API) e da chave Maps de produção (package + SHA-1 do Play App Signing).
+4. Abrir ao público. Se houver uma mudança na produção antes da abertura, fazer antes um backup v5 novo (regra ≤ 24 h).
 5. **R1:** a 0032 com REF Level 2, numa janela de manutenção, já com o B1 feito.
 6. **R2–R4:** com autorizações próprias. Depois, a secção 3.
