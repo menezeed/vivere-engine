@@ -22,12 +22,14 @@ Reutilizar o [CI do commit `b9a2f3f`](https://github.com/menezeed/vivere-engine/
 
 | Gate | Configuração e evidência mínima | Estado |
 | --- | --- | --- |
-| HTTPS | Duas origens isoladas, painel e Review API, com hostnames efetivos e certificados confiáveis para o navegador. Registrar as origens e `GET /health` → 200 via HTTPS, sem ignorar TLS. | Pendente de evidência |
-| Conta de teste | Conta preexistente e dedicada no Auth de staging, com `app_metadata.role=viewer` atribuído por operador autorizado. Após eventual atribuição, iniciar sessão nova para carregar a claim. Registrar apenas PASS/FAIL, sem identificadores, credenciais ou JWT. | Pendente de evidência |
+| HTTPS | Duas origens isoladas, painel e Review API, com hostnames efetivos e certificados confiáveis para o navegador. Registrar as origens e `GET /health` → 200 via HTTPS, sem ignorar TLS. | Bloqueado. Os candidatos `admin.vivere.com.br` e `api.admin.vivere.com.br` retornaram NXDOMAIN para A e AAAA. Os endereços documentados são HTTP local (`localhost:5173` e `localhost:3001`). [Inventário de hospedagem](https://github.com/menezeed/vivere-engine/pull/51) |
+| Conta de teste | Conta dedicada no Auth de staging, com `app_metadata.role=viewer` atribuído por operador autorizado. Após a atribuição, iniciar sessão nova para carregar a claim. Registrar apenas PASS/FAIL, sem identificadores, credenciais ou JWT. | Bloqueado. Consulta agregada somente leitura em staging retornou 0 contas `viewer` e 0 `viewer` confirmadas e elegíveis. |
 | CORS | `CORS_ORIGIN` é uma única origem HTTPS exata do painel, sem caminho, barra final ou wildcard. `VITE_API_BASE_URL` é a origem HTTPS exata da Review API, sem barra final. Registrar preflight do painel permitido e ausência de origem autorizada para um domínio não permitido. | Pendente de evidência |
 | Isolamento | Review API com `VIVERE_ENV=staging`, `SUPABASE_URL` de staging e `CATALOG_MODE=fixture`. Nenhuma variável `CATALOG_PROD_*` presente. O Auth do Vite aponta para o mesmo projeto de staging, com chave pública; a chave de serviço existente fica exclusivamente no servidor. | A confirmar no processo de teste |
 
 A flag existente só funciona no servidor Vite de desenvolvimento. Para o ensaio HTTPS deste PR, use uma instância isolada e restrita a operadores, com TLS no proxy aprovado à frente do Vite e da Review API. Encaminhe apenas os hosts previstos (incluindo WebSocket se necessário), mantenha as portas internas inacessíveis externamente e preserve a guarda do Vite. Um bundle estático não exercita esta flag.
+
+Para desbloquear, o operador de staging deve indicar duas origens HTTPS aprovadas ou disponibilizá-las no proxy isolado, configurar a origem exata do Admin em `CORS_ORIGIN` e atribuir `viewer` a uma conta de QA de staging. O preflight de TLS e CORS pode começar assim que as origens estiverem disponíveis. O ensaio de RBAC aguarda a conta.
 
 Após confirmar as origens com o operador, execute em PowerShell. Estes pedidos prescindem de conta e só verificam transporte e CORS.
 
