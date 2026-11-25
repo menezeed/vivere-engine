@@ -109,7 +109,7 @@ select 'Q0 public.venues (baseline 24)'                         as metrica, coun
 union all select 'Q0 public.activities (baseline 48)',               count(*)::int from public.activities
 union all select 'Q2 alvo total (promoted sem vínculo; ~53)',         count(*)::int from classif
 union all select 'Q2 elegível + já publicado  -> R1: skip_removed',   count(*)::int from classif where elegivel and ja_publicado
-union all select 'Q2 elegível + nunca publicado -> R1: insert',       count(*)::int from classif where elegivel and not ja_publicado
+union all select 'Q2 elegível + nunca publicado -> R1: cria',       count(*)::int from classif where elegivel and not ja_publicado
 union all select 'Q2 outside_region (fora do publish)',               count(*)::int from classif where not elegivel
 union all select 'Q4 alvo com venue público vivo (esperado 0)',       count(*)::int
           from public.venues v join alvo a on a.id = v.engine_venue_id
