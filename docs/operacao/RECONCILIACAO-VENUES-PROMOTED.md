@@ -1,0 +1,138 @@
+# Reconciliação dos 53 `venues_staging` promoted sem `promoted_venue_id` (produção, 25/11/2026)
+
+**Contexto:** Issues #53 (limpeza) e #52 (baseline do catálogo).
+
+**O que este documento é:**
+- só análise e plano;
+- não houve publicação, migração, UPDATE/DELETE nem alteração de RLS;
+- **não se restauram os 57 locais** (decisão do PO).
+
+## 1. Baseline confirmada da produção (25/11)
+| Item | Valor | Fonte |
+|---|---|---|
+| `public.venues` | **24**, todos com actividade (0 órfãos) | SQL do PO (#53, 18:00Z) + GET anon (Claude) |
+| `public.activities` | **48** (sem alterações) | idem |
+| `public.venues` por origem | 19 `legacy`, 5 `google_places` (os 5 com `engine_venue_id`) | GET anon, 25/11 |
+| `staging.venues_staging` (no projecto de produção) | 494; **5** com `promoted_venue_id`; **53** `proposal_status='promoted'` com `promoted_venue_id IS NULL` | SQL do PO (#53) |
+| "Yoga no Forte – Edição de setembro" | **existe** (`2309e3f8-…`, `active`, `prefeitura_cabo_frio`; é a única actividade com `engine_activity_id`) | GET anon, 25/11 |
+| RLS de `venues` | sem alteração (SELECT público; `admin_role_all`) | SQL do PO |
+
+O backup v5 de 23/11 (81 locais) é **histórico**, não a verdade actual.
+
+**Sobre a "Yoga no Forte":** o DELETE pelo admin legado devolveu uma lista vazia porque a política de escrita exige `app_metadata.role=admin` **no token do projecto de produção**. O RLS filtrou a linha, a actividade continua lá e nenhuma alteração é proposta.
+
+## 2. Risco de recriação pelo Publishing Engine (verificado no código)
+**Selecção:** `PublishableVenueRepository.findUnpublished()` escolhe, em `staging.venues_staging`:
+
+```
+proposal_status = 'promoted'
+AND (geographic_status IS NULL OR geographic_status <> 'outside_region')
+AND promoted_venue_id IS NULL
+```
+
+**Execução:** `VenuePublisher.buildInsertDecision()` decide **`insert` sem nenhuma verificação prévia**. Não chama `findByEngineId` nem consulta `publication_events`. `executeDecision('insert')` faz:
+1. `public.venues.insert(... engine_venue_id = staging id)`;
+2. `linkToStaging()`;
+3. o evento `VenuePublished`.
+
+A restrição `UNIQUE (public.venues.engine_venue_id)` já **não protege**, porque os locais foram apagados.
+
+**Consequência:** a próxima execução real de `publish.ts` sobre a produção **voltaria a criar até 53 locais** (os que não estão `outside_region`), sem actividades, e voltaria a ligá-los. Isto desfaz a limpeza do #53 em silêncio. O `--preview` mostrá-los-ia como "novos".
+
+**Efeito nas actividades** (`PublishableActivityRepository.enrichWithPublicVenueIds`): uma actividade `promoted` cujo `resolved_venue_staging_id` seja um dos 53 **perde o mapeamento do local**. Seria publicada com `venue_id = null` (insert), ou o local seria anulado num dirty update.
+
+**Probabilidade hoje: BAIXA.**
+- `publish.ts` usa `getSupabaseClient()`, e o `envGuard` (SEC-O) **bloqueia a produção** (`PRODUCTION_BLOCKED`). Com o código actual, o publish só corre no staging.
+- O risco torna-se real se:
+  - o guard for alterado ou contornado;
+  - uma versão antiga, anterior aos guards, correr contra a produção (`publication_runs`: 8 execuções históricas na produção);
+  - a Fase 3 da #52 (publicação para o catálogo) for activada sem esta reconciliação.
+
+**Impacto se acontecer: ALTO.** Desfaz a limpeza aprovada, gera locais órfãos e quebra a rastreabilidade.
+
+## 3. Diagnóstico pendente (consultas SÓ SELECT, para o PO correr no SQL Editor da produção)
+O Claude não tem acesso SQL à produção. As consultas não alteram nada.
+
+**Q1. Os 53, com o histórico de publicação:**
+
+```sql
+select vs.id, vs.name, vs.source_key, vs.city, vs.geographic_status, vs.promoted_at, vs.reviewed_at,
+       exists (select 1 from public.publication_events e
+               where e.event_type = 'VenuePublished' and e.payload->>'engineVenueId' = vs.id::text) as ja_publicado,
+       exists (select 1 from public.publication_events e
+               where e.event_type = 'VenueArchived' and e.payload->>'engineVenueId' = vs.id::text) as ja_arquivado
+from staging.venues_staging vs
+where vs.proposal_status = 'promoted' and vs.promoted_venue_id is null
+order by ja_publicado desc, vs.name;
+```
+
+**Q2. Resumo** (o esperado é cerca de 52 `ja_publicado=true`; o resto nunca publicado):
+
+```sql
+select (vs.geographic_status is distinct from 'outside_region') as elegivel_publish,
+       exists (select 1 from public.publication_events e
+               where e.event_type = 'VenuePublished' and e.payload->>'engineVenueId' = vs.id::text) as ja_publicado,
+       count(*)
+from staging.venues_staging vs
+where vs.proposal_status = 'promoted' and vs.promoted_venue_id is null
+group by 1, 2 order by 1, 2;
+```
+
+**Q3. Actividades de staging que dependem destes locais:**
+
+```sql
+select a.proposal_status, (a.promoted_activity_id is not null) as publicada, count(*)
+from staging.activities_staging a
+where a.resolved_venue_staging_id in (
+  select id from staging.venues_staging where proposal_status = 'promoted' and promoted_venue_id is null)
+group by 1, 2;
+```
+
+**Q4. Garantia:** nenhum dos 53 tem um local público vivo. O esperado é 0.
+
+```sql
+select count(*) from public.venues v
+join staging.venues_staging vs on vs.id = v.engine_venue_id
+where vs.proposal_status = 'promoted' and vs.promoted_venue_id is null;
+```
+
+Confirmar também que o `payload` dos eventos usa a chave `engineVenueId`, como em `VenuePublisher.executeDecision`.
+
+## 4. Plano de reconciliação (reversível, por fases; cada fase com autorização própria)
+
+### R0. Congelar (já em vigor; sem alterações)
+- Nenhum `publish.ts` contra a produção.
+- O `envGuard` mantém-se.
+- A Fase 3 da #52 fica dependente de R1 e R2.
+
+### R1. Guarda no código (PR do engine; testes só com fakes; sem dados)
+Em `VenuePublisher.buildInsertDecision`, antes de decidir `insert`:
+1. **`findByEngineId(stagingId)`** existe → decisão `relink` (só `linkToStaging`, sem insert). Repara um vínculo perdido sem duplicar.
+2. **Houve antes um `VenuePublished` para este `stagingId`** e o local público já não existe → nova decisão **`skip_removed_downstream`**: sem insert, só um aviso no preview e nas métricas. Um local removido na produção **nunca é recriado automaticamente**. A republicação exige uma acção humana explícita.
+3. **Caso contrário:** `insert`, como hoje.
+
+O mesmo cuidado no lado das actividades: uma actividade cujo local está em `skip_removed_downstream` não é publicada com `venue_id=null`. Fica `error`/`skip` com o motivo.
+
+**Reversível:** reverter o PR. Não toca em dados.
+
+### R2. Marcar o estado nos dados (migração + UPDATE na produção; precisa de backup ≤ 24 h + REF Level 2)
+- **Opção recomendada:** uma coluna aditiva `staging.venues_staging.downstream_removed_at timestamptz NULL`, com a regra "`findUnpublished` exclui `downstream_removed_at IS NOT NULL`".
+- **UPDATE:** só dos ids confirmados por Q1 (`ja_publicado=true`, sem local vivo, Q4 = 0). Numa transacção:
+  1. guardar antes um snapshot `(id, proposal_status, promoted_venue_id, promoted_at)` numa tabela de auditoria;
+  2. `RETURNING`;
+  3. revalidar a contagem.
+- **Rollback:** `UPDATE … SET downstream_removed_at = NULL WHERE id IN (snapshot)`, e a coluna pode ser removida.
+- **Não recomendado:** mudar `proposal_status` para `rejected`. Mistura a decisão de revisão com o estado de publicação e não é reversível pela API.
+- **Também não:** voltar a escrever `promoted_venue_id` apontando para locais que já não existem. A FK impede-o.
+
+### R3. Itens nunca publicados (se Q2 mostrar alguns)
+São promoções legítimas ainda por publicar. Ficam como estão: o R1 deixa-os seguir para `insert` normal numa publicação **autorizada**, com preview e revisão humana (Fase 3 da #52).
+
+### R4. Verificação pós-reconciliação (só leitura)
+- `publish.ts --preview` **no staging** com fixtures que imitem o caso: 0 inserts para os removidos.
+- Na produção, só depois de autorização: contagens de `public.venues` sem alteração (24) e Q4 = 0.
+
+## 5. O que fica para o PO
+1. Correr **Q1–Q4** (só SELECT) e colar os resultados agregados na #53. Não é preciso colar os nomes, se não quiser.
+2. Autorizar **R1** (PR de código, sem dados).
+3. Decidir sobre **R2** (migração + UPDATE na produção), com backup ≤ 24 h e REF Level 2.
