@@ -18,6 +18,8 @@ import { venueRoutes } from './routes/venues.js';
 import { activityRoutes } from './routes/activities.js';
 import { ingestionRunRoutes, statsRoutes } from './routes/ingestion-runs.js';
 import { entityResolutionRoutes } from './routes/entity-resolution.js';
+import { catalogRoutes } from './routes/catalog.js';
+import type { CatalogSource } from './catalog/catalogTypes.js';
 
 export interface ReviewApiDeps {
   corsOrigin:    string | string[];
@@ -33,6 +35,11 @@ export interface ReviewApiDeps {
    * Omisso → verificador por omissão, lido do ambiente (fail-closed).
    */
   jwtVerifier?: JwtVerifier;
+  /**
+   * Issue #52: catálogo de produção SÓ DE LEITURA. Omisso (CATALOG_MODE
+   * disabled, a omissão) → /api/catalog/* responde 503 CATALOG_DISABLED.
+   */
+  catalogSource?: CatalogSource;
 }
 
 /**
@@ -80,6 +87,23 @@ export function createApp(deps: ReviewApiDeps): Hono {
   app.route('/api/ingestion-runs',    ingestionRunRoutes(deps.runRepo));
   app.route('/api/stats',             statsRoutes(deps.statsRepo));
   app.route('/api/entity-resolution', entityResolutionRoutes(deps.erService));
+
+  // Issue #52 — catálogo de produção, SÓ LEITURA, isolado da fila de staging.
+  // Escritas recusadas ANTES de qualquer fonte (405), mesmo com o catálogo activo.
+  // Middleware (não handlers de escrita): o catálogo não regista NENHUMA rota de escrita.
+  const catalogReadOnly: import('hono').MiddlewareHandler = async (c, next) => {
+    if (c.req.method !== 'GET' && c.req.method !== 'HEAD') {
+      return c.json({ error: 'Catálogo de produção é só de leitura nesta fase' }, 405);
+    }
+    await next();
+  };
+  app.use('/api/catalog', catalogReadOnly);
+  app.use('/api/catalog/*', catalogReadOnly);
+  if (deps.catalogSource) {
+    app.route('/api/catalog', catalogRoutes(deps.catalogSource));
+  } else {
+    app.get('/api/catalog/*', (c) => c.json({ error: 'Catálogo de produção desactivado', code: 'CATALOG_DISABLED' }, 503));
+  }
 
   return app;
 }
