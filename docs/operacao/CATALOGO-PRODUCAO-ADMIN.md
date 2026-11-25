@@ -168,6 +168,20 @@ Suite da Review API: **430/430**. O teste de guarda "nenhuma rota de escrita sem
 - **A leitura anon não distingue as duas.** Confirmar exige uma leitura privilegiada (Dashboard), que não foi autorizada.
 - **Em qualquer dos casos houve uma alteração na produção depois do backup.** O backup v5 de 23/11 contém os 81 e permite recuperá-los, se for esse o caso.
 
+**RESOLVIDO (PO, #53, 25/11 18:00Z): foi a limpeza confirmada dos 57 locais sem actividades, não o RLS.**
+
+| Baseline actual da produção | Valor |
+|---|---|
+| Locais | **24** (19 `legacy`, 5 `google_places` com `engine_venue_id`), 0 sem actividades |
+| Actividades | **48** |
+| Categorias | **9** |
+
+- O RLS não mudou.
+- Os 57 locais **não são restaurados** (decisão do PO).
+- O backup de 23/11 (81) passa a ser histórico.
+- O catálogo do Engine Admin tem de reflectir estes 24/48; as fixtures são só para testes e nunca são apresentadas como dados reais.
+- Risco aberto: os 53 `venues_staging` `promoted` sem vínculo seriam recriados pelo Publishing Engine. Ver `docs/operacao/RECONCILIACAO-VENUES-PROMOTED.md` (branch `docs/reconciliacao-venues-promoted`).
+
 ## 2. Frontend (Codex Admin, PR separado sobre esta branch)
 - Secção **"Catálogo de produção"** no `admin-panel`, separada da navegação da fila:
   - Atividades e Locais: lista, busca, filtros (categoria, local, `engine_status`), paginação, detalhe e completude;
