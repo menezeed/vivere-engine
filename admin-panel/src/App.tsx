@@ -10,6 +10,8 @@ import { VenueDetailPage } from '@/pages/VenueDetailPage';
 import { ActivitiesPage } from '@/pages/ActivitiesPage';
 import { ActivityDetailPage } from '@/pages/ActivityDetailPage';
 import { IngestionRunsPage } from '@/pages/IngestionRunsPage';
+import { CatalogPage } from '@/pages/CatalogPage';
+import { catalogEnabled } from '@/catalog/config';
 import { EntityResolutionPage } from '@/pages/EntityResolutionPage';function SettingsPage() {
   return (
     <div className="p-8">
@@ -42,6 +44,7 @@ export default function App() {
               <Route path="/ingestion-runs"     element={<IngestionRunsPage />} />
               <Route path="/entity-resolution"  element={<EntityResolutionPage />} />
               <Route path="/settings"           element={<SettingsPage />} />
+              {catalogEnabled && <Route path="/catalog" element={<CatalogPage />} />}
             </Route>
           </Routes>
         </BrowserRouter>

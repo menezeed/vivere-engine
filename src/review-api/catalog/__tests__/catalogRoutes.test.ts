@@ -107,6 +107,29 @@ describe('/api/catalog — desactivado por omissão', () => {
 });
 
 describe('/api/catalog — contrato', () => {
+  it('rejects a fixture-only client before calling a production source', async () => {
+    const source = spySource();
+    const app = build(source);
+    const bearer = await token('viewer');
+    for (const path of ['/activities', '/venues', '/categories', '/activities/00000000-0000-4000-8000-000000000001']) {
+      const response = await call(app, 'GET', `/api/catalog${path}?expected_target=fixture`, bearer);
+      expect(response.status).toBe(503);
+      expect(await response.json()).toMatchObject({ code: 'CATALOG_TARGET_MISMATCH' });
+    }
+    expect(source.listActivities).not.toHaveBeenCalled();
+    expect(source.listVenues).not.toHaveBeenCalled();
+    expect(source.listCategories).not.toHaveBeenCalled();
+    expect(source.getActivity).not.toHaveBeenCalled();
+  });
+
+  it('serves the fixture-only client from the synthetic source with no-store', async () => {
+    const response = await call(build(new FixtureCatalogSource()), 'GET',
+      '/api/catalog/activities?expected_target=fixture&pageSize=2', await token('viewer'));
+    expect(response.status).toBe(200);
+    expect(response.headers.get('Cache-Control')).toBe('no-store');
+    expect(await response.json()).toMatchObject({ totalPages: 2, environment: { target: 'fixture', access: 'read-only' } });
+  });
+
   it('lista com paginação, rótulo PRODUÇÃO — SOMENTE LEITURA e completude', async () => {
     const res = await call(build(spySource()), 'GET', '/api/catalog/activities?pageSize=2&sort=title&order=asc', await token('viewer'));
     const body = await res.json() as Record<string, any>;
