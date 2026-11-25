@@ -10,6 +10,27 @@ import { EntityResolutionService } from './services/EntityResolutionService.js';
 import { createApp } from './app.js';
 import { logger } from '../lib/logger.js';
 import { createJwtVerifier, resolveJwtEnvConfig, type JwtVerifier } from './middleware/jwtVerifier.js';
+import { resolveCatalogConfig } from './catalog/catalogConfig.js';
+import { PostgrestCatalogSource } from './catalog/PostgrestCatalogSource.js';
+import { FixtureCatalogSource } from './catalog/FixtureCatalogSource.js';
+import type { CatalogSource } from './catalog/catalogTypes.js';
+
+// Issue #52 — catálogo de produção SÓ LEITURA. Desligado por omissão; uma
+// configuração inválida impede o arranque (falha fechada). Nunca regista chaves.
+function buildCatalogSource(): CatalogSource | undefined {
+  try {
+    const cfg = resolveCatalogConfig(process.env);
+    logger.info({ catalogMode: cfg.mode }, 'catálogo de produção: modo');
+    if (cfg.mode === 'fixture') return new FixtureCatalogSource();
+    if (cfg.mode === 'production-readonly') {
+      return new PostgrestCatalogSource({ baseUrl: cfg.baseUrl, publishableKey: cfg.publishableKey });
+    }
+    return undefined;
+  } catch (err) {
+    logger.error({ err: err instanceof Error ? err.message : 'erro desconhecido' }, 'catálogo: configuração inválida — a Review API não arranca');
+    process.exit(1);
+  }
+}
 
 const PORT     = Number(process.env.REVIEW_API_PORT ?? 3001);
 const NODE_ENV = process.env.NODE_ENV ?? 'development';
@@ -68,7 +89,8 @@ async function buildApp(): Promise<Hono> {
   const erService     = new EntityResolutionService(erRepo);
 
   // Rotas, autenticação e autorização (SEC-A) vivem em app.ts.
-  return createApp({ corsOrigin, reviewService, erService, runRepo, statsRepo, jwtVerifier });
+  const catalogSource = buildCatalogSource();
+  return createApp({ corsOrigin, reviewService, erService, runRepo, statsRepo, jwtVerifier, catalogSource });
 }
 
 const app = await buildApp();
