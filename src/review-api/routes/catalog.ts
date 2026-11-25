@@ -54,6 +54,15 @@ export function catalogRoutes(source: CatalogSource): Hono {
     label: source.target === 'production' ? CATALOG_ACCESS_LABEL : 'DADOS SINTÉTICOS — SOMENTE LEITURA',
   };
 
+  router.use('*', async (c, next) => {
+    c.header('Cache-Control', 'no-store');
+    const expected = c.req.query('expected_target');
+    if (expected !== undefined && expected !== source.target) {
+      return c.json({ error: 'Fonte do catálogo indisponível para esta sessão.', code: 'CATALOG_TARGET_MISMATCH' }, 503);
+    }
+    await next();
+  });
+
   const fail = (c: import('hono').Context, err: unknown, what: string) => {
     if (err instanceof CatalogUpstreamError && err.status === 400) return c.json({ error: err.message, environment }, 400);
     logger.error({ err: err instanceof Error ? err.message : 'erro', what }, 'catálogo: falha na leitura');
