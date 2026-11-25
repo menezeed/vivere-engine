@@ -51,6 +51,10 @@ export interface VenuePublicationMetrics {
   readonly venuesArchived:  number;
   readonly errors:          number;
   readonly durationMs:      number;
+  /** #53 R1 — vínculo staging→público reposto sem insert (venue público já existia). */
+  readonly venuesRelinked?:        number;
+  /** #53 R1 — publicados antes e removidos de public.venues: NÃO recriados. */
+  readonly venuesSkippedRemoved?:  number;
 }
 
 // ── Decisão por venue (Sprint 8.7) ────────────────────────────────────────────
@@ -66,7 +70,10 @@ export type VenueDecision =
   | { readonly action: 'update';         readonly venue: PublishableVenue; readonly operational: OperationalVenueInput; readonly publicVenueId: PublicVenueId }
   | { readonly action: 'skip_not_dirty'; readonly venue: PublishableVenue; readonly publicVenueId: PublicVenueId }
   | { readonly action: 'archive';        readonly venue: PublishableVenue; readonly publicVenueId: PublicVenueId }
-  | { readonly action: 'error';          readonly venue: PublishableVenue; readonly reason: string };
+  | { readonly action: 'error';          readonly venue: PublishableVenue; readonly reason: string }
+  // #53 R1 — guarda de não-recriação (ver buildInsertDecision).
+  | { readonly action: 'relink';                  readonly venue: PublishableVenue; readonly publicVenueId: PublicVenueId }
+  | { readonly action: 'skip_removed_downstream'; readonly venue: PublishableVenue; readonly reason: string };
 
 export class VenuePublisher {
   constructor(
@@ -91,6 +98,8 @@ export class VenuePublisher {
     let venuesSkipped    = 0;
     let venuesArchived   = 0;
     let errors           = 0;
+    let venuesRelinked        = 0;
+    let venuesSkippedRemoved  = 0;
 
     const [unpublished, dirtyCandidates, toArchive] = await Promise.all([
       this.publishableVenueRepo.findUnpublished(productKey),
@@ -100,9 +109,13 @@ export class VenuePublisher {
 
     for (const venue of unpublished) {
       try {
-        const decision = this.buildInsertDecision(venue, now);
+        // Falha na verificação (findByEngineId / histórico) → lança → errors++, nunca insert.
+        const decision = await this.buildInsertDecision(venue, now);
+        if (decision.action === 'error') throw new Error(decision.reason);
         await this.executeDecision(decision, runId, productKey);
-        venuesPublished++;
+        if (decision.action === 'insert') venuesPublished++;
+        else if (decision.action === 'relink') venuesRelinked++;
+        else if (decision.action === 'skip_removed_downstream') venuesSkippedRemoved++;
       } catch {
         errors++;
       }
@@ -133,7 +146,7 @@ export class VenuePublisher {
 
     const durationMs = this.clock().getTime() - startedAt.getTime();
 
-    return { venuesPublished, venuesUpdated, venuesSkipped, venuesArchived, errors, durationMs };
+    return { venuesPublished, venuesUpdated, venuesSkipped, venuesArchived, errors, durationMs, venuesRelinked, venuesSkippedRemoved };
   }
 
   /**
@@ -152,7 +165,11 @@ export class VenuePublisher {
     ]);
 
     for (const venue of unpublished) {
-      decisions.push(this.buildInsertDecision(venue, now));
+      try {
+        decisions.push(await this.buildInsertDecision(venue, now));
+      } catch (err) {
+        decisions.push({ action: 'error', venue, reason: err instanceof Error ? err.message : String(err) });
+      }
     }
 
     for (const venue of dirtyCandidates) {
@@ -172,7 +189,33 @@ export class VenuePublisher {
 
   // ── Builders de decisão — puros/só-leitura, partilhados por publish() e preview() ──
 
-  private buildInsertDecision(venue: PublishableVenue, now: Date): VenueDecision {
+  /**
+   * #53 R1 — guarda de não-recriação. findUnpublished() devolve todo o venue
+   * promoted com promoted_venue_id NULL; isso inclui venues que JÁ foram
+   * publicados e depois removidos de public.venues (limpeza de 25/11), cujo
+   * vínculo teve de ser anulado por causa da FK. Antes, decidia-se insert sem
+   * verificar nada, e o UNIQUE(engine_venue_id) já não protegia.
+   *
+   * Ordem (só leituras; qualquer falha lança → o chamador nunca insere):
+   *   1. existe public.venues com engine_venue_id = stagingId → 'relink'
+   *      (repõe só o vínculo; sem insert, sem evento);
+   *   2. já houve VenuePublished para este stagingId e o público não existe →
+   *      'skip_removed_downstream' (remoção a jusante é respeitada; republicar
+   *      exige acção humana explícita, fora do motor);
+   *   3. caso contrário → 'insert', como antes.
+   */
+  private async buildInsertDecision(venue: PublishableVenue, now: Date): Promise<VenueDecision> {
+    const existing = await this.publicVenueRepo.findByEngineId(venue.stagingId);
+    if (existing !== null) {
+      return { action: 'relink', venue, publicVenueId: existing };
+    }
+    if (await this.eventRepo.hasVenuePublishedEvent(venue.stagingId)) {
+      return {
+        action: 'skip_removed_downstream',
+        venue,
+        reason: `staging venue ${venue.stagingId} já foi publicado e o registo público foi removido; não é recriado automaticamente`,
+      };
+    }
     const operational = PublicationTransformer.transformVenue(venue, now);
     return { action: 'insert', venue, operational };
   }
@@ -247,7 +290,14 @@ export class VenuePublisher {
         });
         return;
       }
+      case 'relink': {
+        // Só o vínculo em staging. Sem evento: o CHECK de publication_events.event_type
+        // não tem um tipo para isto e o venue público não muda.
+        await this.publicVenueRepo.linkToStaging(decision.venue.stagingId, decision.publicVenueId);
+        return;
+      }
       case 'skip_not_dirty':
+      case 'skip_removed_downstream':
       case 'error':
         return; // zero writes, zero eventos
     }

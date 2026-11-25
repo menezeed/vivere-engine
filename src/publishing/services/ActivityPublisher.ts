@@ -337,6 +337,17 @@ export class ActivityPublisher {
       return { action: 'archive_expired', activity, publicActivityId: state.publicActivityId };
     }
 
+    // #53 R1 — o venue resolvido em staging perdeu o vínculo público (p.ex.
+    // removido de public.venues). Um update gravaria venue_id = NULL por cima
+    // do local actual da activity publicada. Nunca escrever: erro com motivo.
+    if (activity.resolvedVenueStagingId !== null && activity.resolvedPublicVenueId === null) {
+      return {
+        action: 'error',
+        activity,
+        reason: `activity ${activity.stagingId}: venue de staging ${activity.resolvedVenueStagingId} sem vínculo público; update suspenso para não anular venue_id`,
+      };
+    }
+
     return { action: 'update', activity, operational, publicActivityId: state.publicActivityId };
   }
 

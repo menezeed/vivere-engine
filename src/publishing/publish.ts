@@ -63,7 +63,7 @@ function log(msg: string, data?: unknown): void {
 
 function formatVenueRow(d: VenueDecision): string {
   const publicId = 'publicVenueId' in d ? d.publicVenueId : '(ainda não existe)';
-  const reason   = d.action === 'error' ? ` — motivo: ${d.reason}` : '';
+  const reason   = d.action === 'error' || d.action === 'skip_removed_downstream' ? ` — motivo: ${d.reason}` : '';
   return `  [${d.action}] staging=${d.venue.stagingId} nome="${d.venue.name}" public=${publicId}${reason}`;
 }
 
@@ -150,6 +150,9 @@ async function runPreview(productKey: string): Promise<void> {
     skip_not_dirty: venues.filter(d => d.action === 'skip_not_dirty').length,
     archive:        venues.filter(d => d.action === 'archive').length,
     error:          venues.filter(d => d.action === 'error').length,
+    // #53 R1
+    relink:                  venues.filter(d => d.action === 'relink').length,
+    skip_removed_downstream: venues.filter(d => d.action === 'skip_removed_downstream').length,
   };
 
   const activityCounts = {
@@ -186,6 +189,8 @@ async function runPreview(productKey: string): Promise<void> {
   console.log(`  dirty para update:  ${venueCounts.update}`);
   console.log(`  não-dirty:          ${venueCounts.skip_not_dirty}`);
   console.log(`  para arquivar:      ${venueCounts.archive}`);
+  console.log(`  vínculo reposto:    ${venueCounts.relink}`);
+  console.log(`  removidos a jusante (NÃO recriados): ${venueCounts.skip_removed_downstream}`);
   if (venueCounts.error > 0) console.log(`  ⚠ erros:            ${venueCounts.error}`);
 
   console.log(`\nActivities (total lido: ${activities.length}):`);
@@ -263,6 +268,8 @@ async function runPreview(productKey: string): Promise<void> {
   printSample(venues, 'update', formatVenueRow);
   printSample(venues, 'skip_not_dirty', formatVenueRow);
   printSample(venues, 'archive', formatVenueRow);
+  printSample(venues, 'relink', formatVenueRow);
+  printSample(venues, 'skip_removed_downstream', formatVenueRow);
   printSample(venues, 'error', formatVenueRow);
 
   console.log('\n=== Amostra — activities ===');
