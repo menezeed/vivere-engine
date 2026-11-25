@@ -141,6 +141,33 @@ Suite da Review API: **430/430**. O teste de guarda "nenhuma rota de escrita sem
 - Definir as 3 variáveis de produção **num processo local**. A chave é pública (já está no bundle da app), mas não deve ser escrita no repositório.
 - A primeira leitura real é um GET à produção pela chave anon: **acesso não privilegiado, mas é acesso à produção**, por isso só depois do aval explícito.
 
+### 1.8 Primeira leitura real (autorizada pelo PO a 25/11; só GET)
+- **Como:** `PostgrestCatalogSource` deste PR, num processo local, com `resolveCatalogConfig` em `production-readonly` e a chave **anon pública** do próprio admin legado. O valor não foi impresso nem guardado.
+- **Pedidos:** um `fetch` de guarda **recusava qualquer método que não fosse GET** e registou cada pedido. Todos foram GET 200:
+  - `/rest/v1/categories`;
+  - `/rest/v1/activities` (×2: lista e detalhe);
+  - `/rest/v1/venues`.
+
+  Depois, mais três GET de verificação (venues e activities ×2).
+- **Nenhuma escrita**: 0 INSERT/UPDATE/DELETE, configuração inalterada.
+
+| Item | Resultado |
+|---|---|
+| Categorias | 9 (= backup de 23/11) |
+| Atividades | **48/48** (= backup). `engine_status`: 48 `active`. `source_key`: 47 `legacy`, 1 `prefeitura_cabo_frio`. 48 com local embebido. Detalhe por id OK |
+| Completude das atividades | 32 completas; 16 com `price=0` e `is_free=false` (preço/gratuidade por definir); 1 sem categoria |
+| **Locais** | **24 visíveis pela chave anon; o backup v5 de 23/11 (00:24Z) contou 81** (contagem do servidor, antes e depois do dump, e no restauro) |
+| Locais referenciados pelas atividades | 24, todos visíveis (0 em falta; embed nulo 0) |
+| Completude dos locais | 0 completos: os 24 não têm `category` |
+
+**Divergência de locais (81 → 24), por esclarecer pelo PO:**
+- **Os 57 locais que não aparecem não são usados por nenhuma actividade.** É precisamente o conjunto que o DELETE do admin legado consegue apagar: a FK impede apagar locais em uso.
+- **Hipóteses:**
+  - (a) foram apagados depois de 23/11 00:24Z;
+  - (b) a política de leitura pública de `venues` mudou (a 23/11 era `SELECT using=true`).
+- **A leitura anon não distingue as duas.** Confirmar exige uma leitura privilegiada (Dashboard), que não foi autorizada.
+- **Em qualquer dos casos houve uma alteração na produção depois do backup.** O backup v5 de 23/11 contém os 81 e permite recuperá-los, se for esse o caso.
+
 ## 2. Frontend (Codex Admin, PR separado sobre esta branch)
 - Secção **"Catálogo de produção"** no `admin-panel`, separada da navegação da fila:
   - Atividades e Locais: lista, busca, filtros (categoria, local, `engine_status`), paginação, detalhe e completude;
