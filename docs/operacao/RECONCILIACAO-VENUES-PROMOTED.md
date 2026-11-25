@@ -53,12 +53,86 @@ A restrição `UNIQUE (public.venues.engine_venue_id)` já **não protege**, por
 ## 3. Diagnóstico pendente (consultas SÓ SELECT, para o PO correr no SQL Editor da produção)
 O Claude não tem acesso SQL à produção. As consultas não alteram nada.
 
+### 3.0 Protocolo de execução só de leitura (25/11)
+- **Quem corre:** o PO, no SQL Editor do projecto de **produção**. O Claude não tem canal SQL para a produção e não o usa.
+- **Antes de correr, confirme que o texto é só leitura:**
+  - procure por `insert`, `update`, `delete`, `alter`, `drop`, `create`, `truncate`, `grant` e `call`;
+  - o esperado é **0 ocorrências** fora dos comentários;
+  - cada consulta é uma única instrução `SELECT`, sem funções com efeitos.
+- **Ordem:**
+  1. Corra primeiro o **resumo 3.R**: uma instrução, uma tabela de métricas. Cole o resultado na #53.
+  2. Só se o resumo divergir do esperado, corra o detalhe 3.D (Q1–Q4), uma consulta de cada vez.
+- **Q1 devolve nomes de locais públicos e não tem dados pessoais.** Mesmo assim, para a #53 basta o resumo; não é preciso colar a lista.
+- **Validado no staging** (MCP, só SELECT, 25/11): sintaxe e colunas estão correctas. No staging, todas as métricas do alvo dão 0, porque o caso só existe na produção.
+- **Valores esperados na produção:**
+
+  | Métrica | Esperado |
+  |---|---|
+  | Q0 venues | 24 |
+  | Q0 activities | 48 |
+  | Q2 alvo | ~53 |
+  | Q2 skip_removed | ~52 |
+  | Q4 | 0 |
+  | Q5 (ambas as linhas) | 0 |
+
+- **Se Q4 for maior que 0 ou Q5 for maior que 0:** parar e não decidir o R2. Isso significa que a guarda R1 não cobre o caso como se assumiu.
+- **Q3 "já publicadas":** é o número de activities cujo update o R1 passa a suspender (`error`). Cada publicação autorizada ficará `partial` enquanto houver alguma.
+
+### 3.R Resumo (uma única instrução SELECT)
+- Usa a **mesma condição da guarda R1**: `event_type='VenuePublished'`, `entity_type='venue'` e `payload->>'engineVenueId'`.
+- O Q5 detecta divergências dessa condição.
+
+```sql
+with alvo as (                      -- os venues promoted sem vínculo (os "53")
+  select vs.id, vs.geographic_status
+  from staging.venues_staging vs
+  where vs.proposal_status = 'promoted' and vs.promoted_venue_id is null
+),
+pub as (                            -- mesma condição que a guarda R1 (hasVenuePublishedEvent)
+  select distinct e.payload->>'engineVenueId' as engine_venue_id
+  from public.publication_events e
+  where e.event_type = 'VenuePublished' and e.entity_type = 'venue'
+),
+pub_sem_entity as (                 -- mesma chave, sem o filtro entity_type (deteção de divergência)
+  select distinct e.payload->>'engineVenueId' as engine_venue_id
+  from public.publication_events e
+  where e.event_type = 'VenuePublished'
+),
+classif as (
+  select a.id,
+         (a.geographic_status is distinct from 'outside_region') as elegivel,
+         exists (select 1 from pub p where p.engine_venue_id = a.id::text)            as ja_publicado,
+         exists (select 1 from pub_sem_entity p where p.engine_venue_id = a.id::text) as ja_publicado_sem_entity
+  from alvo a
+)
+select 'Q0 public.venues (baseline 24)'                         as metrica, count(*)::int as valor from public.venues
+union all select 'Q0 public.activities (baseline 48)',               count(*)::int from public.activities
+union all select 'Q2 alvo total (promoted sem vínculo; ~53)',         count(*)::int from classif
+union all select 'Q2 elegível + já publicado  -> R1: skip_removed',   count(*)::int from classif where elegivel and ja_publicado
+union all select 'Q2 elegível + nunca publicado -> R1: insert',       count(*)::int from classif where elegivel and not ja_publicado
+union all select 'Q2 outside_region (fora do publish)',               count(*)::int from classif where not elegivel
+union all select 'Q4 alvo com venue público vivo (esperado 0)',       count(*)::int
+          from public.venues v join alvo a on a.id = v.engine_venue_id
+union all select 'Q3 activities staging ligadas ao alvo',             count(*)::int
+          from staging.activities_staging s join alvo a on a.id = s.resolved_venue_staging_id
+union all select 'Q3 ... dessas, já publicadas (R1: suspensas -> error)', count(*)::int
+          from staging.activities_staging s join alvo a on a.id = s.resolved_venue_staging_id
+          where s.promoted_activity_id is not null
+union all select 'Q5 eventos VenuePublished sem payload.engineVenueId (esperado 0)', count(*)::int
+          from public.publication_events e
+          where e.event_type = 'VenuePublished' and (e.payload->>'engineVenueId') is null
+union all select 'Q5 divergência entity_type (esperado 0)',           count(*)::int
+          from classif where ja_publicado <> ja_publicado_sem_entity;
+```
+
+### 3.D Detalhe (só se o resumo divergir)
+
 **Q1. Os 53, com o histórico de publicação:**
 
 ```sql
 select vs.id, vs.name, vs.source_key, vs.city, vs.geographic_status, vs.promoted_at, vs.reviewed_at,
        exists (select 1 from public.publication_events e
-               where e.event_type = 'VenuePublished' and e.payload->>'engineVenueId' = vs.id::text) as ja_publicado,
+               where e.event_type = 'VenuePublished' and e.entity_type = 'venue' and e.payload->>'engineVenueId' = vs.id::text) as ja_publicado,
        exists (select 1 from public.publication_events e
                where e.event_type = 'VenueArchived' and e.payload->>'engineVenueId' = vs.id::text) as ja_arquivado
 from staging.venues_staging vs
