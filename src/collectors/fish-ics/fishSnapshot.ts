@@ -1,0 +1,231 @@
+/**
+ * FiSH Neighbourhood Care — plano de ingestão a partir do SNAPSHOT já
+ * recolhido (relatório do scripts/preview-fish.ts). Piloto UK, só staging.
+ *
+ * Porquê um snapshot: a integração usa só os dados já recolhidos de forma
+ * permitida (1 pedido ao ICS, 26/11/2026). Este módulo NÃO faz pedidos HTTP.
+ *
+ * Curadoria (determinística, testada):
+ * 1. Ocorrências anteriores a `today` saem; séries sem ocorrências ficam de fora.
+ * 2. Serviços (ex.: Shopping Bus) não são actividades: ficam de fora (hold).
+ * 3. Títulos "<Categoria> - <tema>" (ex.: "Tuesday Talk - …") juntam-se numa
+ *    série "<Categoria>": o tema muda em cada sessão e pode ter o nome de
+ *    um orador, por isso não é copiado.
+ * 4. A elegibilidade é recalculada com proposeEligibility (mesmas regras
+ *    e formato da Issue #62) e fica no raw_payload como PROPOSTA.
+ * 5. Guarda final: nenhum campo pode ter e-mail ou telefone.
+ */
+import type { RawActivityItem, RawOccurrence } from '../../types/RawActivityItem';
+import type { EligibilityRecord } from '../../review-api/eligibility/eligibilityAudit';
+import { proposeEligibility, SERVICE } from '../../review-api/eligibility/proposal';
+import { FISH_CONFIG } from './config';
+import { slugify } from './fishText';
+
+export interface PreviewActivity {
+  source_item_id: string;
+  titulo: string;
+  url_oficial: string | null;
+  urls_ocorrencias: string[];
+  publico_alvo: string[];
+  evidencia_60plus: string | null;
+  datas: string[];
+  horario: string[];
+  fuso: string;
+  local: { nome: string; morada: string | null; codigo_postal: string | null } | null;
+  local_varia_entre_ocorrencias: boolean;
+  custo: string | null;
+  gratuito_declarado: boolean;
+  inscricao: { reserva: 'booking_essential' | 'booking_advisable' | 'drop_in' | null; transporte_disponivel: boolean };
+  disponibilidade: string;
+  categorias: string[];
+  titulo_pode_ter_nome_de_pessoa: boolean;
+  elegibilidade_proposta: EligibilityRecord;
+}
+
+export interface PreviewSnapshot {
+  gerado_em: string;
+  hoje: string;
+  dry_run: true;
+  escrita_em_bd: false;
+  fonte: { source_key: string; ics_url: string; pedidos_http: number };
+  produto: string;
+  atividades: PreviewActivity[];
+}
+
+export interface HeldItem { source_item_id: string; title: string; reason: string }
+
+export interface FishPlan {
+  items: RawActivityItem[];
+  proposals: EligibilityRecord[];
+  held: HeldItem[];
+  merged: Array<{ into: string; from: string[] }>;
+  past_occurrences_removed: number;
+}
+
+const PERSONAL = /[\w.+-]+@[\w-]+\.[\w.]+|(?:\+44\s?|\b0)\d[\d\s-]{8,}\d/;
+const SERIES_KEY = /^series:([a-z0-9-]+):(mon|tue|wed|thu|fri|sat|sun):(\d{4}|allday)$/;
+const GENERIC_VENUE = /\b(pub|inn|arms|hotel|caf[eé]|coffee shop|restaurant|hare (and|&) hounds)\b/i;
+
+export function parsePreviewSnapshot(json: unknown): PreviewSnapshot {
+  const s = json as Partial<PreviewSnapshot>;
+  if (!s || typeof s !== 'object') throw new Error('snapshot: JSON inválido');
+  if (s.dry_run !== true || s.escrita_em_bd !== false) throw new Error('snapshot: só se aceita o relatório de preview (dry_run)');
+  if (s.fonte?.source_key !== FISH_CONFIG.source_key) throw new Error('snapshot: fonte diferente de FiSH');
+  if (s.produto !== FISH_CONFIG.product_key) throw new Error('snapshot: produto diferente do piloto UK');
+  if (!s.gerado_em || Number.isNaN(Date.parse(s.gerado_em))) throw new Error('snapshot: gerado_em inválido');
+  if (!Array.isArray(s.atividades)) throw new Error('snapshot: atividades em falta');
+  for (const a of s.atividades) {
+    if (!SERIES_KEY.test(a.source_item_id)) throw new Error(`snapshot: source_item_id inválido (${a.source_item_id})`);
+    if (!a.titulo?.trim()) throw new Error(`snapshot: título vazio (${a.source_item_id})`);
+    if (!a.datas.every(d => /^\d{4}-\d{2}-\d{2}$/.test(d))) throw new Error(`snapshot: data inválida (${a.source_item_id})`);
+    if (a.horario.length !== 1) throw new Error(`snapshot: horário não uniforme na série (${a.source_item_id})`);
+    for (const u of a.urls_ocorrencias) {
+      if (!u.startsWith(FISH_CONFIG.site_url)) throw new Error(`snapshot: URL fora do site oficial (${a.source_item_id})`);
+    }
+  }
+  return s as PreviewSnapshot;
+}
+
+function parseHorario(h: string): { time: string | null; end_time: string | null } {
+  if (h === 'sem hora') return { time: null, end_time: null };
+  const m = /^(\d{2}:\d{2})(?:–(\d{2}:\d{2}))?$/.exec(h);
+  if (!m) throw new Error(`snapshot: horário inválido (${h})`);
+  return { time: m[1]!, end_time: m[2] ?? null };
+}
+
+/** "<Categoria> - <tema>": devolve a categoria quando o título começa por ela. */
+function themedPrefix(a: PreviewActivity): string | null {
+  if (a.categorias.length !== 1) return null;
+  const cat = a.categorias[0]!.trim();
+  return a.titulo.startsWith(`${cat} - `) ? cat : null;
+}
+
+function assertNoPersonalData(item: RawActivityItem): void {
+  const hit = (v: unknown): boolean =>
+    typeof v === 'string' ? PERSONAL.test(v)
+    : Array.isArray(v) ? v.some(hit)
+    : v && typeof v === 'object' ? Object.values(v).some(hit)
+    : false;
+  if (hit(item)) throw new Error(`guarda de dados pessoais: e-mail ou telefone em ${item.source_item_id}`);
+}
+
+export function planFromSnapshot(snapshot: PreviewSnapshot, today: string): FishPlan {
+  const held: HeldItem[] = [];
+  const merged: FishPlan['merged'] = [];
+  let pastRemoved = 0;
+
+  // 1. Junta "<Categoria> - <tema>" por categoria + dia + hora.
+  const groups = new Map<string, PreviewActivity[]>();
+  for (const a of snapshot.atividades) {
+    const [, , dow, hhmm] = SERIES_KEY.exec(a.source_item_id)!;
+    const cat = themedPrefix(a);
+    const key = cat ? `series:${slugify(cat)}:${dow}:${hhmm}` : a.source_item_id;
+    groups.set(key, [...(groups.get(key) ?? []), a]);
+  }
+
+  const items: RawActivityItem[] = [];
+  const proposals: EligibilityRecord[] = [];
+
+  for (const [key, members] of groups) {
+    const first = members[0]!;
+    const cat = themedPrefix(first);
+    const title = cat ?? first.titulo.trim();
+    if (cat) merged.push({ into: key, from: members.map(m => m.source_item_id) });
+
+    // 2. Ocorrências futuras (inclui hoje), sem repetir datas.
+    const { time, end_time } = parseHorario(first.horario[0]!);
+    const pairs = members.flatMap(m => m.datas.map((d, i) => ({ date: d, url: m.urls_ocorrencias[i] ?? m.url_oficial })));
+    const future = pairs.filter(p => p.date >= today);
+    pastRemoved += pairs.length - future.length;
+    const byDate = new Map(future.map(p => [p.date, p.url]));
+    const dates = [...byDate.keys()].sort();
+    if (dates.length === 0) {
+      held.push({ source_item_id: key, title, reason: 'sem ocorrências futuras' });
+      continue;
+    }
+    const occurrences: RawOccurrence[] = dates.map(date => ({ date, time, end_date: null, end_time }));
+    const urls = dates.map(d => byDate.get(d)).filter((u): u is string => !!u);
+
+    const locations = [...new Set(members.map(m => m.local?.nome).filter((n): n is string => !!n))];
+    const loc = members.find(m => m.local)?.local ?? null;
+    const differs = locations.length > 1 || members.some(m => m.local_varia_entre_ocorrencias);
+    const audience = [...new Set(members.flatMap(m => m.publico_alvo))];
+    const explicit = members.find(m => m.evidencia_60plus)?.evidencia_60plus ?? null;
+    const categories = [...new Set(members.flatMap(m => m.categorias))];
+    const booking = first.inscricao.reserva;
+    const spacesLimited = members.some(m => m.disponibilidade === 'vagas limitadas');
+
+    const proposal = proposeEligibility({
+      source_item_id: key,
+      source_url: urls[0] ?? null,
+      title,
+      kind: occurrences.length > 1 || cat ? 'group' : 'event',
+      categories,
+      organisation_evidence: FISH_CONFIG.organisation_evidence,
+      membership_required: true,
+      explicit_older: explicit,
+      audience_snippets: audience,
+      booking,
+      spaces_limited: spacesLimited,
+      price_text: first.custo,
+      physical_hint: members.some(m => m.elegibilidade_proposta.physical_activity),
+      has_location: !!loc,
+      generic_venue: GENERIC_VENUE.test(loc?.nome ?? ''),
+      schedule_complete: time !== null,
+    });
+    if (cat) proposal.human_review_notes.push('Série com tema diferente em cada sessão; os temas não foram copiados (podem ter nomes de oradores).');
+
+    // 3. Serviços não são actividades: ficam fora da inserção.
+    if (proposal.classification === 'unclear' && SERVICE.test([title, ...categories].join(' '))) {
+      held.push({ source_item_id: key, title, reason: 'serviço (não é actividade de lazer) — decisão de âmbito do PO' });
+      continue;
+    }
+
+    const item: RawActivityItem = {
+      source_key: FISH_CONFIG.source_key,
+      source_item_id: key,
+      collected_at: snapshot.gerado_em,
+      title,
+      description: null,
+      raw_category_text: categories.join(', ') || null,
+      occurrences,
+      recurrence_text_hint: null,
+      venue_mention: loc ? { raw_text: loc.nome, raw_address_text: loc.morada, confidence_hint: differs ? 'ambiguous' : 'explicit_name' } : null,
+      price_text: first.custo,
+      is_free_hint: first.gratuito_declarado ? true : null,
+      image_url: null,
+      external_url: urls[0] ?? null,
+      contact_phone: null,
+      contact_email: null,
+      language: 'en',
+      raw_payload: {
+        snapshot: { generated_at: snapshot.gerado_em, ics_url: snapshot.fonte.ics_url, http_requests_in_this_run: 0 },
+        occurrence_urls: urls,
+        categories,
+        postcode: loc?.codigo_postal ?? null,
+        timezone: first.fuso,
+        booking,
+        spaces_limited: spacesLimited,
+        transport_available: members.some(m => m.inscricao.transporte_disponivel),
+        audience_snippets: audience,
+        explicit_older: explicit,
+        membership: { required: true, fee_text: FISH_CONFIG.membership.fee_text, source_url: FISH_CONFIG.membership.source_url },
+        merged_from: cat ? members.map(m => m.source_item_id) : undefined,
+        eligibility_proposal: proposal,
+      },
+    };
+    assertNoPersonalData(item);
+    items.push(item);
+    proposals.push(proposal);
+  }
+
+  items.sort((a, b) => a.title.localeCompare(b.title));
+  proposals.sort((a, b) => a.title.localeCompare(b.title));
+  return { items, proposals, held, merged, past_occurrences_removed: pastRemoved };
+}
+
+/** Idempotência: o que já existe em staging (mesma fonte, mesmo source_item_id, mesmo produto) não volta a entrar. */
+export function splitByExisting(items: RawActivityItem[], existing: ReadonlySet<string>): { insert: RawActivityItem[]; skip: string[] } {
+  const insert = items.filter(i => !existing.has(i.source_item_id));
+  return { insert, skip: items.filter(i => existing.has(i.source_item_id)).map(i => i.source_item_id) };
+}

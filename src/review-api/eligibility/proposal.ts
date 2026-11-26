@@ -40,9 +40,17 @@ export interface ProposalInput {
 }
 
 /** Serviços (transporte, compras, apoio individual), não actividades de lazer. */
-const SERVICE = /\b(shopping bus|transport|befriending|lifts?|home visits?|advice clinic|benefits? (advice|clinic)|telephone friendship)\b/i;
+export const SERVICE = /\b(shopping bus|transport|befriending|lifts?|home visits?|advice clinic|benefits? (advice|clinic)|telephone friendship)\b/i;
 /** Público principal não é o 60+. */
 const OTHER_AUDIENCE = /\b(children only|for (children|kids|toddlers|teenagers|students)|under[- ]?(18|16|12)s?|parent and baby)\b/i;
+
+/**
+ * Público restrito a uma condição (demência, perda de memória, AVC…) e
+ * cuidadores. Pode servir pessoas mais velhas, mas não é aberto ao
+ * público 60+ em geral: fica unclear (decisão de âmbito), nunca
+ * likely_suitable automático.
+ */
+export const RESTRICTED_AUDIENCE = /\b(dementia|memory loss|alzheimer'?s|living with (a )?stroke|parkinson'?s)\b/i;
 
 export function proposeEligibility(p: ProposalInput): EligibilityRecord {
   const text = [p.title, ...p.categories].join(' ');
@@ -54,6 +62,9 @@ export function proposeEligibility(p: ProposalInput): EligibilityRecord {
   if (OTHER_AUDIENCE.test([text, ...p.audience_snippets].join(' '))) {
     classification = 'unsuitable'; confidence = 'medium';
     evidence = 'O texto da actividade indica outro público principal.';
+  } else if (RESTRICTED_AUDIENCE.test(p.audience_snippets.join(' '))) {
+    classification = 'unclear'; confidence = 'medium';
+    evidence = 'A fonte dirige a actividade a um público restrito (ex.: pessoas com demência ou perda de memória e cuidadores), não ao público 60+ em geral. Decisão de âmbito para o PO.';
   } else if (SERVICE.test(text)) {
     classification = 'unclear'; confidence = 'medium';
     evidence = 'Parece um serviço de apoio (ex.: transporte ou compras), não uma actividade de lazer. Decisão de âmbito para o PO.';

@@ -28,6 +28,15 @@ describe('proposeEligibility', () => {
     expect(proposeEligibility({ ...base, title: 'Shopping Bus' }).classification).toBe('unclear');
   });
 
+  it('público restrito (demência / perda de memória) → unclear, nunca likely_suitable automático', () => {
+    for (const s of ['For people living with early stage dementia and their carers.', 'people living with memory loss']) {
+      const r = proposeEligibility({ ...base, title: 'Art', audience_snippets: [s] });
+      expect(r.classification).toBe('unclear');
+      expect(r.evidence).toMatch(/público restrito/);
+    }
+    expect(proposeEligibility({ ...base, title: 'Art', audience_snippets: ['Everyone welcome!'] }).classification).toBe('likely_suitable');
+  });
+
   it('outro público → unsuitable', () => {
     expect(proposeEligibility({ ...base, title: 'Story time for children' }).classification).toBe('unsuitable');
   });

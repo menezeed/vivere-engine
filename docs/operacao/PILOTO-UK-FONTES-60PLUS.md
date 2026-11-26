@@ -2,7 +2,7 @@
 
 **Data:** 26/11/2026. **Produto:** `vivere-60-plus-uk-test`, só staging.
 
-**Estado:** preview/dry-run. **Nada foi gravado** em base de dados: sem ingestion_run, sem raw items e sem staging.
+**Estado:** preview/dry-run. **Nada foi gravado** em base de dados: sem ingestion_run, sem raw items e sem staging. A integração FiSH em staging está preparada (§7) e espera autorização.
 
 **Não houve:**
 - nova recolha da u3a;
@@ -17,10 +17,11 @@
 | 2 | **FiSH Neighbourhood Care** | WordPress + The Events Calendar | **Sim**: ICS público `https://www.fishhelp.org.uk/events/list/?ical=1` (TZID Europe/London, uma VEVENT por ocorrência) | robots: proíbe `/wp-json/`, `/?rest_route=`, `/*post_type=tribe_events`, a paginação de `/events/` e PDFs; Crawl-delay 10. O URL do ICS **não** coincide com nenhum Disallow. Termos de reutilização não encontrados | Ao nível da organização: "for the older community of Barnes, Mortlake and East Sheen". **Nenhuma actividade** refere idade no ICS | **13 séries / 30 ocorrências** (janela de 26/11 a 16/12) | **Alta** | **Implementado (preview)**. Gravar em staging só com autorização |
 | 3 | **Richmond Council / Full of Life** | Umbraco (richmond.gov.uk) | **Não**: é uma **feira anual de um dia** (30/10/2026, Twickenham Stadium, já passou). O programa é um PDF | robots: só `/search_results` proibido. Licença OGL não confirmada | Público-alvo "older residents, as well as carers" (a feira) | 0 actividades contínuas | **Baixa** como fonte de actividades | Usar o PDF do programa só para **descobrir organizações** (curadoria), não como feed |
 | 4 | **Ruils Independent Living** | WordPress (Yoast, Gravity Forms) | **Não**: `/wp-json/` dá 401; o RSS só tem notícias | robots: Crawl-delay 10; proíbe `/wp-admin/` e WooCommerce. Termos não lidos | Fraca: "All groups are open to anyone 18+"; 1 explícita ("Embracing Age Activities for older people", com lista num site externo); 3 "all ages/abilities" | ~13 grupos, dos quais 1 explícito e 3 inclusivos | **Média** (13 páginas HTML estáveis) mas **pouca relevância 60+** | Prioridade baixa: curadoria manual de 1 a 4 grupos, ou parser HTML depois de ler os termos |
-| 5 | **Better (GLL)** | Site próprio; reservas Innovatise | **Sim**: OpenActive, **CC BY 4.0**, no catálogo oficial. `https://better-admin.org.uk/api/openactive/better/session-series` e `/scheduled-sessions` (RPDE 1.0) | robots de better.org.uk proíbe `*/timetable?*`, `*/api/innovatise/*` e `*start_date*`. O robots de better-admin.org.uk não foi verificado. Os feeds são **nacionais** (páginas de ~3,75 MB) | Fraca: "over 50s", "older adults" misturado com outros públicos, preços "Senior/60+". Nenhuma sessão 60+ recorrente confirmada em Richmond | ~5–8 ofertas (concessões e aulas "Basics"); a cobertura de Richmond não está confirmada | **Técnica: alta** (dados abertos e licenciados). **Relevância: baixa-média** | **Spike** de colector OpenActive: ler o feed completo e filtrar por códigos postais de Richmond e por ageRange ou termos de idade |
+| 5 | **Better (GLL)** | Site próprio; reservas Innovatise | **Sim**: OpenActive, **CC BY 4.0**, no catálogo oficial. `https://better-admin.org.uk/api/openactive/better/session-series` e `/scheduled-sessions` (RPDE 1.0) | robots de better.org.uk proíbe `*/timetable?*`, `*/api/innovatise/*` e `*start_date*`. O robots de better-admin.org.uk (lido a 26/11/2026, antes do spike) permite tudo. Os feeds são **nacionais** (páginas de ~3,75 MB) | Fraca: "over 50s", "older adults" misturado com outros públicos, preços "Senior/60+". Nenhuma sessão 60+ recorrente confirmada em Richmond | **Spike feito (§8):** 10 séries em Richmond, **4 activas**, 1 explícita 60+ ("Swim for 60+", `ageRange` min 60) | **Técnica: alta** (dados abertos e licenciados; feed nacional inteiro em 5 pedidos). **Relevância: baixa-média** | Colector OpenActive pequeno, só depois de autorização; validar ocorrências futuras em `scheduled-sessions` |
 
 **Total realista hoje:** 13 séries novas (FiSH).
-- **Com consentimento da Age UK e curadoria:** até ~45–50 itens (FiSH 13, Age UK ~17, Ruils 1–4, Better 5–8).
+- **Depois da curadoria FiSH (§7):** 11 a inserir (1 serviço fora; 2 palestras juntas numa série).
+- **Com consentimento da Age UK e curadoria:** até ~35–40 itens (FiSH 11, Age UK ~17, Ruils 1–4, Better 4).
 - A maior parte das novas ficaria em `likely_suitable`, e não "confirmado".
 
 ## 2. FiSH: preview real (dry-run)
@@ -91,16 +92,91 @@ Na investigação da FiSH, um pedido meu ao agente de leitura web mandava testar
 
 ## 6. Próximos passos (cada um precisa de autorização)
 
-1. **FiSH, gravação em staging:**
-   - seed da fonte `fish_neighbourhood_care` (como em U4);
-   - um `scripts/ingest-fish.ts` (modo real com `envGuard`, usando `runActivityIngestion`);
-   - ajuste da verificação cruzada para fontes ICS (limitação 2);
-   - revisão humana das 13 propostas antes de entrarem num dataset auditado `…v2`.
-2. **Age UK:** enviar um pedido de consentimento escrito (cl. 8 dos termos) a explicar o uso: listagem com link para a fonte, sem reproduzir o texto. Sem resposta, só curadoria manual de factos (título, dia, hora, local e link) e decisão jurídica do PO.
-3. **Better:** spike offline do feed OpenActive (CC BY 4.0, com atribuição "Better"):
-   - ler o robots de better-admin.org.uk;
-   - percorrer o RPDE com limite;
-   - filtrar por TW1/TW2/TW9/TW10/TW11/TW12/SW13/SW14;
-   - medir quantas sessões têm sinal 60+.
-4. **Ruils:** ler os termos. Depois, curadoria manual de "Embracing Age" e dos grupos "all ages", ou parser HTML respeitando o Crawl-delay 10.
+1. **FiSH, gravação em staging** (preparada, §7): o PO corre o seed `scripts/staging/fonte-fish.staging.sql` e autoriza `ingest-fish.ts --apply --confirm=staging`. Depois: revisão humana das 11 propostas e, só então, um dataset auditado FiSH com verificação cruzada por série + host (limitação 2).
+2. **Age UK:** rascunho do pedido de consentimento em `docs/operacao/PEDIDO-AUTORIZACAO-AGEUK-RICHMOND.md`. O PO confirma o contacto oficial e envia. Sem resposta, só curadoria manual de factos e decisão jurídica do PO.
+3. **Better:** colector OpenActive com filtro por códigos postais de Richmond (4 séries activas), atribuição "Better" (CC BY 4.0) e confirmação de ocorrências futuras em `scheduled-sessions`.
+4. **Ruils:** mantém-se a curadoria manual (sem colector). Ler os termos antes de qualquer pedido; candidatos: "Embracing Age" e os grupos "all ages".
 5. **Council / Full of Life:** extrair do PDF do programa só a lista de organizações expositoras, para descobrir fontes novas. Não é feed de actividades.
+
+## 7. FiSH: integração em staging preparada (sem escrita)
+
+**Dados usados:** só o snapshot já recolhido (relatório do preview de 26/11/2026, 11:59 UTC; 1 pedido permitido ao ICS). `ingest-fish.ts` faz **0 pedidos HTTP**. Cópia durável do snapshot fora do repositório: `C:\Projects\Vivere\reviews\piloto-uk\fish-preview-2026-11-26.json`.
+
+**Curadoria (determinística, testada em `fishSnapshot.ts`):**
+- **Shopping Bus** fica fora: é um serviço de transporte, não uma actividade (decisão de âmbito do PO).
+- **Tuesday Talk:** as duas palestras são a mesma série semanal (ter. 11:00, Barnes Green Centre), com tema diferente em cada sessão. Juntam-se em `series:tuesday-talk:tue:1100`, título "Tuesday Talk", **sem os temas** (um tinha o nome do orador).
+- **Público restrito:** Picassos in the Park, Retro Club e Singing for the Brain são para pessoas com demência ou perda de memória e cuidadores. São actividades reais, mas não abertas ao 60+ em geral: a proposta passa a `unclear` (regra nova `RESTRICTED_AUDIENCE` em `proposal.ts`).
+- Ocorrências anteriores ao dia da execução são removidas (num dia posterior a 26/11 as contagens de ocorrências descem).
+- Guarda final: falha se algum campo tiver e-mail ou telefone.
+
+**Verificação dos candidatos:**
+
+| Série | Actividade real | Proposta 60+ | Datas (2026) | Horário | Local | Custo | Decisão |
+|---|---|---|---|---|---|---|---|
+| Board Games | sim | `likely_suitable` (categoria "Intergenerational") | 11-30, 12-07, 12-14 | 16:30–17:30 | não indicado | não indicado | inserir |
+| Coffee Corner | sim | `likely_suitable` | 12-02, 12-09, 12-16 | 10:30–12:00 | Sheen Lane Centre, SW14 8LP | não indicado | inserir |
+| FiSH Bridge | sim | `likely_suitable` ("not for beginners") | 12-02, 12-16 | 14:00–16:45 | não indicado | não indicado | inserir |
+| Good Afternoon Choir | sim | `likely_suitable` | 11-26, 12-03, 12-10 | 15:00–16:15 | Barnes Green Centre, SW13 9HE | não indicado | inserir |
+| MeetUpMondays™ | sim | `likely_suitable` ("Everyone welcome") | 11-30, 12-07, 12-14 | 11:00–13:00 | Hare & Hounds, SW14 8AH (pub) | não indicado | inserir |
+| Picassos in the Park Art | sim | **`unclear`** (demência + cuidadores) | 12-01, 12-08, 12-15 | 13:30–15:00 | Barnes Green Centre | não indicado | inserir |
+| Retro Club East Sheen | sim | **`unclear`** (perda de memória) | 12-04 | 14:30–15:30 | Christ Church East Sheen, SW14 7AW | não indicado | inserir |
+| Singing for the Brain | sim | **`unclear`** (demência + cuidadores) | 11-26, 12-03, 12-10 | 13:30 (fim não indicado) | Barnes Green Centre | não indicado | inserir |
+| StarFiSH | sim (dança) | `likely_suitable` | 11-27, 12-04, 12-11 | 10:30–11:45 | Barnes Green Centre | £5.00 por sessão | inserir |
+| The Reader | sim | `likely_suitable` | 12-02 | 11:00–12:30 | Barnes Green Centre | não indicado | inserir |
+| Tuesday Talk (2 sessões juntas) | sim | `likely_suitable` | 12-01, 12-08 | 11:00–12:00 | Barnes Green Centre | almoço opcional £8.00, não é preço da palestra | inserir |
+| Shopping Bus | **não** (serviço) | `unclear` | 12-02, 12-09, 12-16 | 11:00–14:00 | não indicado | não indicado | **fora** |
+
+Todas: adesão FiSH £30/ano (separada do custo); nenhuma com evidência explícita 60+ (`confirmed_60plus` = 0).
+- **Duplicados:** 0 com as 133 da u3a.
+- **Locais:** nenhum dos 5 locais FiSH existe nos 26 venues UK do staging (verificado só por leitura).
+
+**Contagem final para autorização** (dry-run de 26/11/2026):
+
+| Tabela | Linhas novas |
+|---|---|
+| `public.sources` (seed, corrido pelo PO) | 1 |
+| `staging.ingestion_runs` | 1 |
+| `staging.raw_activity_items` | 11 (27 ocorrências) |
+| `staging.activities_staging` (`pending_review`, venue `unresolved`) | 11 |
+| `staging.venues_staging` | 0 |
+
+Propostas: `likely_suitable` 8, `unclear` 3. As 133 da u3a e os 26 venues não mudam.
+
+**Idempotência:** antes de escrever, o script lê as séries FiSH já em `activities_staging` do produto e salta-as; se já estiverem todas, não abre `ingestion_run`. A segunda execução insere 0.
+
+**Guardas do modo de escrita:**
+- `--apply` exige `--confirm=staging`;
+- o `envGuard` recusa produção;
+- o script recusa se a fonte não existir;
+- nunca aprova, promove nem publica.
+
+**Comandos** (PowerShell, a partir de `C:\Projects\Vivere\wt\engine-uk`):
+```powershell
+# dry-run (sem BD, sem rede)
+npx tsx scripts/ingest-fish.ts --snapshot=C:\Projects\Vivere\reviews\piloto-uk\fish-preview-2026-11-26.json --report=fish-dryrun.json
+# escrita em staging: SÓ depois do seed e da autorização
+npx tsx --env-file="<ficheiro de ambiente de staging, fora do repo>" scripts/ingest-fish.ts --snapshot=C:\Projects\Vivere\reviews\piloto-uk\fish-preview-2026-11-26.json --apply --confirm=staging --report=fish-apply.json
+```
+
+**Limitações:**
+- A recorrência é só observada: os campos `recurrence_*` ficam null e as datas vão em `occurrences`.
+- A janela do ICS é curta, por isso as séries envelhecem sem uma nova recolha. Uma nova recolha é outro pedido ao ICS e precisa de autorização.
+
+## 8. Better: spike OpenActive (só leitura, limitado)
+
+- **Ordem respeitada:** primeiro o robots.txt de better-admin.org.uk (`Disallow:` vazio, tudo permitido). A licença vem no próprio feed: CC BY 4.0.
+- **Pedidos:** 1 de teste e 5 de recolha ao `session-series`, com 3 s entre pedidos. Todos deram HTTP 200, sem 429.
+  - O feed nacional inteiro tem **1 619 itens** (333 apagados) e chegou ao fim em 5 páginas (~25 MB).
+  - `scheduled-sessions` **não** foi lido.
+- **Nada gravado:** nem em BD nem no repositório. A página bruta (com nomes de instrutores) foi apagada; ficou só um resumo.
+- **Richmond** (TW1, TW2, TW9, TW10, TW11, TW12, SW13, SW14): **10 séries** em 3 locais (Teddington Pools and Fitness Centre, Pools on the Park, Better Gym Teddington). **6 têm `endDate` no passado**; as activas são:
+
+| Série | Local | Horário | Preço | Idade | Leitura 60+ |
+|---|---|---|---|---|---|
+| **Swim for 60+** | Pools on the Park, TW9 2SF | seg.–sex. 09:30–10:25 | não indicado | `ageRange` min **60** | **confirmada pela fonte** |
+| Aqua Aerobics | Teddington Pools, TW11 8EZ | seg. 11:30–12:15 | Adult £8.80 | 16–110 | provável (baixo impacto, de dia) |
+| Swim for all | Pools on the Park | seg. 10:30–11:25 | Adult £6.90 | — | geral, todas as idades |
+| Group Cycle | Teddington Pools | ter. 18:00–18:45 | Adult £11.70 | 16–110 | geral |
+
+- **Viabilidade:** técnica alta (JSON-LD estruturado com horário, preço, idade, local e código postal), mas volume baixo (4 activas, 1 explícita).
+- Os dados foram modificados entre abril e setembro de 2026. Antes de carregar, confirmar ocorrências futuras em `scheduled-sessions`.
