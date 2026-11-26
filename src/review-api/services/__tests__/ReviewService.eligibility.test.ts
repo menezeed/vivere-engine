@@ -42,8 +42,8 @@ describe('listActivities', () => {
     const { svc } = make(SEATED);
     const res = await svc.listActivities({ product_key: UK });
     expect(res.items.map(i => i.eligibility)).toEqual([
-      { status: 'matched', classification: 'confirmed_60plus', confidence: 'high', availability: 'waiting_list', approval_allowed: true, needs_human_review: true },
-      { status: 'matched', classification: 'likely_suitable', confidence: 'medium', availability: 'waiting_list', approval_allowed: false, needs_human_review: false },
+      { status: 'matched', classification: 'confirmed_60plus', confidence: 'high', availability: 'waiting_list', approval_allowed: true, needs_human_review: true, review_source: 'audit_dataset', human_review: null },
+      { status: 'matched', classification: 'likely_suitable', confidence: 'medium', availability: 'waiting_list', approval_allowed: false, needs_human_review: false, review_source: 'audit_dataset', human_review: null },
     ]);
   });
 

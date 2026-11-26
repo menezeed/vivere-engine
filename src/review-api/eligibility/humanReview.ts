@@ -154,3 +154,8 @@ export function summarizeReview(r: EligibilityReviewRow, key: ActivityKeyNow, no
   return { classification: r.classification, confidence: r.confidence, verified_at: r.verified_at,
     reviewed_by: r.reviewed_by, reviewed_at: r.reviewed_at, state: humanReviewState(r, key, now) };
 }
+
+/** Revisões humanas ligadas? Desligado por omissão: só depois de aplicar a migração 0033. */
+export function isHumanReviewEnabled(env: Record<string, string | undefined>): boolean {
+  return (env['REVIEW_API_ELIGIBILITY_REVIEWS'] ?? 'off').toLowerCase() === 'on';
+}
