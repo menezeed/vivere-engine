@@ -23,12 +23,29 @@ export const ACCESS_DENIED_MESSAGE =
   'Acesso negado: a sua conta não tem permissão para esta operação. ' +
   'Peça a um administrador que lhe atribua um papel (viewer, reviewer ou admin).';
 
-export function isAccessDenied(err: unknown): boolean {
-  return err instanceof ApiError && err.status === 403;
+/**
+ * Issue #62: 403 da guarda de elegibilidade 60+ da Review API. Continua a ser
+ * HTTP 403, mas NÃO é falta de papel: o corpo traz este código.
+ */
+export const ELIGIBILITY_BLOCKED_CODE = 'ELIGIBILITY_NOT_CONFIRMED';
+
+export const ELIGIBILITY_BLOCKED_MESSAGE =
+  'Acção bloqueada: a elegibilidade 60+ desta actividade não está confirmada. ' +
+  'A sua conta tem permissão; a actividade continua em revisão.';
+
+export function isEligibilityBlocked(err: unknown): boolean {
+  return err instanceof ApiError && err.status === 403
+    && (err.body as { code?: unknown } | null)?.code === ELIGIBILITY_BLOCKED_CODE;
 }
 
-/** Mensagem legível para toasts; 403 tem texto próprio. */
+/** 403 por falta de papel (RBAC). O bloqueio de elegibilidade não conta. */
+export function isAccessDenied(err: unknown): boolean {
+  return err instanceof ApiError && err.status === 403 && !isEligibilityBlocked(err);
+}
+
+/** Mensagem legível para toasts; cada 403 tem o seu texto. */
 export function describeApiError(err: unknown): string {
+  if (isEligibilityBlocked(err)) return ELIGIBILITY_BLOCKED_MESSAGE;
   if (isAccessDenied(err)) return ACCESS_DENIED_MESSAGE;
   return String(err);
 }
@@ -69,10 +86,14 @@ export async function apiRequest<T>(
   }
 
   // 403 = sessão válida mas sem permissão → avisar, sem logout.
+  // Excepção (Issue #62): 403 de elegibilidade não é falta de papel → sem aviso global.
   if (res.status === 403) {
     const body = await res.json().catch(() => null);
-    window.dispatchEvent(new CustomEvent(ACCESS_DENIED_EVENT, { detail: { path } }));
-    throw new ApiError(403, body);
+    const err = new ApiError(403, body);
+    if (!isEligibilityBlocked(err)) {
+      window.dispatchEvent(new CustomEvent(ACCESS_DENIED_EVENT, { detail: { path } }));
+    }
+    throw err;
   }
 
   const data = await res.json();

@@ -9,6 +9,7 @@ import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { SectionCard } from '@/components/ui/Cards';
 import { Badge, Skeleton } from '@/components/ui/index';
 import { useReviewMutation } from '@/hooks/useReviewMutation';
+import { EligibilityPanel, EligibilityBadge } from '@/components/eligibility/EligibilityPanel';
 import type { ReviewAction } from '@/types/review';
 
 export function ActivityDetailPage() {
@@ -68,6 +69,7 @@ export function ActivityDetailPage() {
           </div>
           <div className="flex items-center gap-2 shrink-0">
             <StatusBadge status={activity.proposal_status} />
+            <EligibilityBadge eligibility={activity.eligibility} />
             {activity.source_key && <SourceBadge sourceKey={activity.source_key} />}
           </div>
         </div>
@@ -79,8 +81,12 @@ export function ActivityDetailPage() {
           status={activity.proposal_status}
           onAction={(action: ReviewAction) => review.mutate(activity.id, action)}
           isLoading={review.isPending}
+          eligibility={activity.eligibility}
         />
       </SectionCard>
+
+      {/* Issue #62: elegibilidade 60+ (só leitura; não é aprovação) */}
+      <EligibilityPanel activity={activity} />
 
       <div className="grid grid-cols-2 gap-6">
         {/* Venue Mention */}

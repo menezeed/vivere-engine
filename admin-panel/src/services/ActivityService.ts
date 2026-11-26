@@ -13,6 +13,8 @@ export interface ActivityListParams {
   source?: string;
   sort?: string;
   order?: 'asc' | 'desc';
+  /** Issue #62: classe de elegibilidade 60+ (filtrada no servidor). */
+  eligibility?: string;
 }
 
 export const ActivityService = {

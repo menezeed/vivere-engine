@@ -297,6 +297,8 @@ const GET_ROUTES = [
   '/api/venues',
   '/api/venues/00000000-0000-4000-8000-0000000000b1',
   '/api/activities',
+  // Issue #62: o filtro de elegibilidade segue a mesma autenticação.
+  '/api/activities?product_key=vivere-60-plus-uk-test&eligibility=likely_suitable,not_audited',
   '/api/activities/00000000-0000-4000-8000-0000000000a1',
   '/api/ingestion-runs',
   '/api/stats?product_key=vivere-60-mais',
@@ -314,6 +316,32 @@ describe('rotas GET', () => {
     for (const role of ['viewer', 'reviewer', 'admin'] as const) {
       expect((await call('GET', path, await tokenFor(role))).status).toBe(200);
     }
+  });
+});
+
+describe('filtro de elegibilidade (Issue #62)', () => {
+  it('valor inválido → 400 sem chamar o serviço; sem token continua 401', async () => {
+    expect((await call('GET', '/api/activities?eligibility=approved')).status).toBe(401);
+    const res = await call('GET', '/api/activities?eligibility=approved', await tokenFor('viewer'));
+    expect(res.status).toBe(400);
+    expect(svc.listActivities).not.toHaveBeenCalled();
+  });
+
+  it('approve bloqueado pela elegibilidade → 403 com code; RBAC 403 sem code', async () => {
+    const { EligibilityBlockedError } = await import('../services/ReviewService');
+    svc.reviewActivity.mockRejectedValueOnce(new EligibilityBlockedError("'approve' bloqueado: elegibilidade não confirmada"));
+    const blocked = await call('PATCH', '/api/activities/00000000-0000-4000-8000-0000000000a1/approve', await tokenFor('reviewer'));
+    expect(blocked.status).toBe(403);
+    expect(await blocked.json()).toEqual({ error: "'approve' bloqueado: elegibilidade não confirmada", code: 'ELIGIBILITY_NOT_CONFIRMED' });
+
+    const rbac = await call('PATCH', '/api/activities/00000000-0000-4000-8000-0000000000a1/approve', await tokenFor('viewer'));
+    expect(rbac.status).toBe(403);
+    expect((await rbac.json()).code).toBeUndefined();
+  });
+
+  it('valor válido é passado ao serviço', async () => {
+    await call('GET', '/api/activities?product_key=vivere-60-plus-uk-test&eligibility=unclear', await tokenFor('viewer'));
+    expect(svc.listActivities).toHaveBeenCalledWith(expect.objectContaining({ eligibility: ['unclear'] }));
   });
 });
 
