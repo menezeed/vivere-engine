@@ -86,6 +86,9 @@ export class ActivityReviewRepository {
       .from('activities_staging')
       .select(LIST_SELECT, { count: 'exact' })
       .order(sortCol, { ascending: order === 'asc' })
+      // Desempate estável (Issue #60): ingestões em lote dão created_at repetido
+      // (133 linhas UK com 3 valores) e o OFFSET repetia/saltava linhas entre páginas.
+      .order('id', { ascending: true })
       .range(offset, offset + pageSize - 1);
 
     if (status)                  q = q.eq('proposal_status', status);

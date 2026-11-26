@@ -72,6 +72,26 @@ describe('ActivityReviewRepository.list — pesquisa por título no servidor', (
   });
 });
 
+describe('ordenação estável para a paginação (Issue #60)', () => {
+  // As 133 actividades UK do staging têm só 3 valores de created_at: sem
+  // desempate, o OFFSET podia repetir ou saltar linhas entre as páginas 1..7.
+  it('actividades: ordena pela coluna pedida e depois por id', async () => {
+    const { db, calls } = fakeDb({ data: [], count: 133 });
+    await new ActivityReviewRepository(db).list({ page: 7, pageSize: 20 });
+    const orders = calls.filter(([m]) => m === 'order');
+    expect(orders).toEqual([['order', 'created_at', { ascending: false }], ['order', 'id', { ascending: true }]]);
+    expect(calls).toContainEqual(['range', 120, 139]);
+  });
+
+  it('venues: ordena pela coluna pedida e depois por id', async () => {
+    const { db, calls } = fakeDb({ data: [], count: 26 });
+    await new VenueReviewRepository(db).list({ sort: 'name', order: 'asc' });
+    const orders = calls.filter(([m]) => m === 'order');
+    expect(orders.at(-1)).toEqual(['order', 'id', { ascending: true }]);
+    expect(orders).toHaveLength(2);
+  });
+});
+
 describe('VenueReviewRepository.list — termos literais', () => {
   it('name e city com curingas escapados', async () => {
     const { db, calls } = fakeDb({ data: [], count: 0 });

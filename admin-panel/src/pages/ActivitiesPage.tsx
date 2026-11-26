@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useOutletContext, useNavigate } from 'react-router-dom';
 import { Calendar } from 'lucide-react';
@@ -13,6 +13,7 @@ import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { Pagination } from '@/components/shared/Pagination';
 import { QueryErrorBanner } from '@/components/shared/QueryErrorBanner';
 import { useUrlFilters } from '@/hooks/useUrlFilters';
+import { clampPage } from '@/hooks/urlFilterParams';
 import { useDebounce } from '@/hooks/useDebounce';
 import { useReviewMutation } from '@/hooks/useReviewMutation';
 import type { AppOutletContext } from '@/types/shell';
@@ -53,7 +54,7 @@ export function ActivitiesPage() {
     pageSize:         '20',
     sort:             'created_at',
     order:            'desc',
-  });
+  }, { resetPageOn: productKey });
 
   const status   = (filters.status ?? 'pending_review') as ProposalStatus;
   const pageSize = Number(filters.pageSize ?? 20);
@@ -83,6 +84,13 @@ export function ActivitiesPage() {
       order:            filters.order as 'asc' | 'desc',
     }),
   });
+
+  // ?page fora do intervalo (URL antigo, troca de filtro) → página válida.
+  useEffect(() => {
+    if (!data) return;
+    const fixed = clampPage(page, data.totalPages);
+    if (fixed !== null) setPage(fixed);
+  }, [data, page, setPage]);
 
   const columns: ColumnDef<ActivityStagingItem>[] = [
     {

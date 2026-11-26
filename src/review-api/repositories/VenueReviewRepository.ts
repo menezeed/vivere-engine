@@ -102,6 +102,8 @@ export class VenueReviewRepository {
       .from('venues_staging')
       .select(LIST_SELECT, { count: 'exact' })
       .order(sortCol, { ascending: order === 'asc' })
+      // Desempate estável (Issue #60): created_at repetido em ingestões em lote.
+      .order('id', { ascending: true })
       .range(offset, offset + pageSize - 1);
 
     if (status)             q = q.eq('proposal_status', status);
