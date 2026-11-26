@@ -199,3 +199,17 @@ As contagens do dry-run não mudaram: 11 inserções, 27 ocorrências, 8 `likely
 - **1:** os URLs gravados têm forma estrita (`https://www.fishhelp.org.uk/event/<slug>/[<data>/]`, sem query, fragmento, credenciais nem codificação). Os 43 URLs reais passam. O `ics_url` gravado é a constante da configuração.
 - **2:** cada leitura pede a contagem exacta ao servidor e recusa se não bater com as linhas recebidas. Assim, um corte do servidor abaixo do limite também é detectado.
 - **3:** `external_url IS NULL` conta como `not_audited`. Verificado com as linhas reais do staging (só leitura): 133 linhas, 0 URLs nulos, uma só fonte, md5 dos pares igual ao do dataset. Logo, os totais do filtro são 1 / 124 / 7 / 1, e `not_audited` dá 0.
+
+**Ronda 2** (cópia `5369a69`): veredicto ALTERAÇÕES. Os achados 2 e 3 ficaram corrigidos; o 1 só em parte. A correcção 3 (`6df11c9`, última ronda permitida) fecha o 1:
+- detecção de telefone nos segmentos variáveis (slug do URL e do `source_item_id`);
+- validação do `fuso` (só Europe/London), do código postal (formato britânico) e dos tipos do local.
+
+Os dados reais passam sem alterações.
+
+**Não houve uma 4.ª revisão:** o protocolo pede autorização do PO para isso.
+
+**Resíduos assumidos:**
+- corrida entre dois `--apply` sem índice único na BD; é detectada depois da escrita, e o índice exige uma migração;
+- pares id/URL trocados entre duas linhas de classes pedidas no filtro: o badge e a guarda 403 usam o lookup exacto.
+
+Relatórios transcritos em `C:\Projects\Vivere\reviews\2026-11-26-UK-62-65-r0.md`, `-r1.md` e `-r2.md`.
