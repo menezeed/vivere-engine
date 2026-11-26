@@ -1,7 +1,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { ReviewContext, VenueStagingRow, VenueStagingDetail } from '../types/reviewTypes';
 import { ALLOWED_TRANSITIONS } from '../types/reviewTypes';
-import { parseListParams, buildListResponse, type ListResponse } from '../types/listTypes';
+import { parseListParams, buildListResponse, ilikeContains, type ListResponse } from '../types/listTypes';
 import { logger } from '../../lib/logger';
 
 export interface VenueListQuery {
@@ -106,13 +106,13 @@ export class VenueReviewRepository {
 
     if (status)             q = q.eq('proposal_status', status);
     if (product_key)        q = q.eq('product_key', product_key);
-    if (query.city)         q = q.ilike('city', `%${query.city}%`);
+    if (query.city)         q = q.ilike('city', ilikeContains(query.city));
     if (query.source)       q = q.eq('source_key', query.source);
     // ADR-0022 — dimensão independente de proposal_status, mesmo padrão de filtro exacto (.eq)
     if (query.geographic_status) q = q.eq('geographic_status', query.geographic_status);
     // Busca server-side real — usa coluna name persistida (migration 0007)
     // com índice GIN trigram para ILIKE eficiente em toda a tabela
-    if (search)       q = q.ilike('name', `%${search}%`);
+    if (search)       q = q.ilike('name', ilikeContains(search));
 
     const { data, error, count } = await q;
     if (error) throw new Error(`VenueReviewRepository.list: ${error.message}`);

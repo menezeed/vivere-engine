@@ -167,6 +167,15 @@ export interface IPublicationRunRepository {
 export interface IPublicationEventRepository {
   /** Regista um evento de publicação. Append-only. */
   record(event: PublicationEvent): Promise<PublicationEventId>;
+
+  /**
+   * #53 R1 — só leitura. true se já existe um evento VenuePublished para este
+   * staging venue (payload.engineVenueId). Usado pelo VenuePublisher para NUNCA
+   * recriar automaticamente um venue publicado e depois removido de public.venues.
+   * Obrigatório (sem implementação por omissão): a guarda não pode ficar
+   * desligada por esquecimento.
+   */
+  hasVenuePublishedEvent(stagingVenueId: StagingVenueId): Promise<boolean>;
 }
 
 // ── IPublishingRepositorySet ──────────────────────────────────────────────

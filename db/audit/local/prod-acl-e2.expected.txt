@@ -1,0 +1,24 @@
+0024 P2|activity_interests: anon ja tem INSERT
+0024 P2|activity_interests: anon ja tem SELECT
+0024 P2|activity_interests: authenticated ja tem DELETE
+0024 P2|activity_interests: authenticated ja tem INSERT
+0024 P2|activity_interests: authenticated ja tem SELECT
+0024 P2|em falta (ou outro grantor): anon MAINTAIN activity_interests
+0024 P2|em falta (ou outro grantor): anon REFERENCES activity_interests
+0024 P2|em falta (ou outro grantor): anon TRIGGER activity_interests
+0024 P2|em falta (ou outro grantor): anon TRUNCATE activity_interests
+0024 P2|em falta (ou outro grantor): authenticated MAINTAIN activity_interests
+0024 P2|em falta (ou outro grantor): authenticated REFERENCES activity_interests
+0024 P2|em falta (ou outro grantor): authenticated TRIGGER activity_interests
+0024 P2|em falta (ou outro grantor): authenticated TRUNCATE activity_interests
+0024 P2|privilegio inesperado: anon INSERT activity_interests grantor=postgres
+0024 P2|privilegio inesperado: anon MAINTAIN active_activities grantor=postgres
+0024 P2|privilegio inesperado: anon SELECT activity_interests grantor=postgres
+0024 P2|privilegio inesperado: authenticated DELETE activity_interests grantor=postgres
+0024 P2|privilegio inesperado: authenticated INSERT activity_interests grantor=postgres
+0024 P2|privilegio inesperado: authenticated MAINTAIN active_activities grantor=postgres
+0024 P2|privilegio inesperado: authenticated SELECT activity_interests grantor=postgres
+EXCESSO|anon INSERT* em suggestions: insere com colunas fora da matriz (o RLS so exige status pending e titulo)
+EXCESSO|authenticated INSERT* em favorites: insere com colunas fora de (user_id, activity_id)
+EXCESSO|authenticated INSERT* em suggestions: insere com colunas fora da matriz (o RLS so exige status pending e titulo)
+EXCESSO|authenticated UPDATE em favorites: altera as proprias linhas (politica ALL)

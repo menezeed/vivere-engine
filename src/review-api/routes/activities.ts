@@ -3,13 +3,20 @@ import type { ReviewService } from '../services/ReviewService';
 import { NotFoundError, ForbiddenError } from '../services/ReviewService';
 import type { AuthUser } from '../types/reviewTypes';
 import { logger } from '../../lib/logger';
+import { requireUuidParam } from '../middleware/uuidParam';
+import { rejectInvalidIntQuery } from '../middleware/paginationQuery';
 
 type Env = { Variables: { user: AuthUser } };
 
 export function activityRoutes(reviewService: ReviewService): Hono<Env> {
   const router = new Hono<Env>();
+  // :id tem de ser UUID → 400 (sem consultar a base). Depois de auth/papéis.
+  router.use('/:id', requireUuidParam('id'));
+  router.use('/:id/*', requireUuidParam('id'));
 
   router.get('/', async (c) => {
+    const invalid = rejectInvalidIntQuery(c, ['page', 'pageSize']);
+    if (invalid) return invalid;
     try {
       const result = await reviewService.listActivities({
         page:             c.req.query('page')             ? Number(c.req.query('page'))             : undefined,

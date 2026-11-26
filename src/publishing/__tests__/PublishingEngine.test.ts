@@ -55,7 +55,7 @@ function makeRunRepo(): IPublicationRunRepository {
 }
 
 function makeEventRepo(): IPublicationEventRepository {
-  return { record: vi.fn().mockResolvedValue('evt-001' as PublicationEventId) };
+  return { record: vi.fn().mockResolvedValue('evt-001' as PublicationEventId), hasVenuePublishedEvent: vi.fn().mockResolvedValue(false) };
 }
 
 // ── Orquestração e ordem ──────────────────────────────────────────────────────

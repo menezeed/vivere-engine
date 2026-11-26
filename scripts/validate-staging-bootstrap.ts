@@ -51,7 +51,13 @@ const EXPECTED_STAGING_TABLES = [
   'raw_venue_items', 'ingestion_runs', 'venue_resolution_candidates',
   'venue_resolution_decisions', 'venue_resolution_runs',
 ];
-const EXPECTED_FUNCTIONS = ['guard_activities_update', 'increment_activity_interest'];
+// Lote 2: 0024 (set_activity_interest, get_my_interests) e 0025
+// (delete_my_account). increment_activity_interest continua a existir (0020),
+// mas sem EXECUTE para anon/authenticated desde a 0024.
+const EXPECTED_FUNCTIONS = [
+  'guard_activities_update', 'increment_activity_interest',
+  'set_activity_interest', 'get_my_interests', 'delete_my_account',
+];
 const EXPECTED_TRIGGER = 'guard_activities_update';
 
 // Nenhuma coluna engine_* deve existir em 0000 por si só — só depois

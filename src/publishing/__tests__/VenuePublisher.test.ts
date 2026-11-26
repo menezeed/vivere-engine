@@ -57,6 +57,8 @@ function makeRepos(overrides: {
   updateImpl?:       ReturnType<typeof vi.fn>;
   archiveImpl?:      ReturnType<typeof vi.fn>;
   publicationState?: ReturnType<typeof vi.fn>;
+  findByEngineId?:   ReturnType<typeof vi.fn>;
+  hasVenuePublishedEvent?: ReturnType<typeof vi.fn>;
 } = {}) {
   const publishableVenue: IPublishableVenueRepository = {
     findUnpublished: vi.fn().mockResolvedValue(overrides.findUnpublished ?? []),
@@ -69,12 +71,13 @@ function makeRepos(overrides: {
     update:                         (overrides.updateImpl       ?? vi.fn().mockResolvedValue(undefined)) as IPublicVenueRepository['update'],
     archive:                        (overrides.archiveImpl      ?? vi.fn().mockResolvedValue(undefined)) as IPublicVenueRepository['archive'],
     linkToStaging:                  vi.fn().mockResolvedValue(undefined),
-    findByEngineId:                 vi.fn().mockResolvedValue(null),
+    findByEngineId:                 (overrides.findByEngineId ?? vi.fn().mockResolvedValue(null)) as IPublicVenueRepository['findByEngineId'],
     findPublicationStateByEngineId: (overrides.publicationState ?? vi.fn().mockResolvedValue(null)) as IPublicVenueRepository['findPublicationStateByEngineId'],
   };
 
   const eventRepo: IPublicationEventRepository = {
     record: vi.fn().mockResolvedValue('evt-001' as PublicationEventId),
+    hasVenuePublishedEvent: (overrides.hasVenuePublishedEvent ?? vi.fn().mockResolvedValue(false)) as IPublicationEventRepository['hasVenuePublishedEvent'],
   };
 
   return { publishableVenue, publicVenue, eventRepo };
@@ -273,6 +276,8 @@ describe('VenuePublisher — métricas', () => {
       venuesArchived:  1,
       errors:          0,
       durationMs:      0, // clock injectado é constante (NOW) → duração 0
+      venuesRelinked:        0, // #53 R1
+      venuesSkippedRemoved:  0, // #53 R1
     });
   });
 
@@ -457,5 +462,92 @@ describe('VenuePublisher.preview', () => {
 
     expect(decisions[0]!.action).toBe('update');
     expect(publishRepos.publicVenue.update).toHaveBeenCalledTimes(1);
+  });
+});
+
+// ── #53 R1 — guarda de não-recriação de venues removidos de public.venues ───
+
+describe('VenuePublisher — #53 R1: não recria venues removidos a jusante', () => {
+  it('publicado antes e removido de public.venues → skip_removed_downstream: zero insert, zero link, zero evento', async () => {
+    const venue = makeVenue({ stagingId: 'sv-removido' as StagingVenueId });
+    const hasEvent = vi.fn().mockResolvedValue(true);
+    const { publishableVenue, publicVenue, eventRepo } = makeRepos({ findUnpublished: [venue], hasVenuePublishedEvent: hasEvent });
+
+    const metrics = await new VenuePublisher(publishableVenue, publicVenue, eventRepo, () => NOW).publish(PRODUCT_KEY, RUN_ID);
+
+    expect(hasEvent).toHaveBeenCalledWith('sv-removido');
+    expect(publicVenue.insert).not.toHaveBeenCalled();
+    expect(publicVenue.linkToStaging).not.toHaveBeenCalled();
+    expect(eventRepo.record).not.toHaveBeenCalled();
+    expect(metrics).toMatchObject({ venuesPublished: 0, venuesSkippedRemoved: 1, errors: 0 });
+  });
+
+  it('53 removidos (cenário da produção) → 0 inserts; 1 venue genuinamente novo continua a ser inserido', async () => {
+    const removed = Array.from({ length: 53 }, (_, i) => makeVenue({ stagingId: `sv-rem-${i}` as StagingVenueId }));
+    const fresh = makeVenue({ stagingId: 'sv-novo' as StagingVenueId });
+    const hasEvent = vi.fn(async (id: string) => id.startsWith('sv-rem-'));
+    const { publishableVenue, publicVenue, eventRepo } = makeRepos({ findUnpublished: [...removed, fresh], hasVenuePublishedEvent: hasEvent });
+
+    const metrics = await new VenuePublisher(publishableVenue, publicVenue, eventRepo, () => NOW).publish(PRODUCT_KEY, RUN_ID);
+
+    expect(publicVenue.insert).toHaveBeenCalledTimes(1);
+    expect((publicVenue.insert as ReturnType<typeof vi.fn>).mock.calls[0]![0].stagingId).toBe('sv-novo');
+    expect(metrics).toMatchObject({ venuesPublished: 1, venuesSkippedRemoved: 53, errors: 0 });
+  });
+
+  it('público ainda existe (vínculo perdido) → relink: só linkToStaging, sem insert nem evento', async () => {
+    const venue = makeVenue({ stagingId: 'sv-desligado' as StagingVenueId });
+    const findByEngineId = vi.fn().mockResolvedValue('venue-vivo' as PublicVenueId);
+    const hasEvent = vi.fn();
+    const { publishableVenue, publicVenue, eventRepo } = makeRepos({ findUnpublished: [venue], findByEngineId, hasVenuePublishedEvent: hasEvent });
+
+    const metrics = await new VenuePublisher(publishableVenue, publicVenue, eventRepo, () => NOW).publish(PRODUCT_KEY, RUN_ID);
+
+    expect(publicVenue.insert).not.toHaveBeenCalled();
+    expect(publicVenue.linkToStaging).toHaveBeenCalledWith('sv-desligado', 'venue-vivo');
+    expect(eventRepo.record).not.toHaveBeenCalled();
+    expect(hasEvent).not.toHaveBeenCalled();
+    expect(metrics).toMatchObject({ venuesPublished: 0, venuesRelinked: 1 });
+  });
+
+  it('falha ao consultar o histórico → erro contabilizado, NUNCA insert (falha fechada)', async () => {
+    const venue = makeVenue();
+    const { publishableVenue, publicVenue, eventRepo } = makeRepos({
+      findUnpublished: [venue], hasVenuePublishedEvent: vi.fn().mockRejectedValue(new Error('timeout')),
+    });
+
+    const metrics = await new VenuePublisher(publishableVenue, publicVenue, eventRepo, () => NOW).publish(PRODUCT_KEY, RUN_ID);
+
+    expect(publicVenue.insert).not.toHaveBeenCalled();
+    expect(metrics).toMatchObject({ venuesPublished: 0, errors: 1 });
+  });
+
+  it('falha em findByEngineId → erro, nunca insert', async () => {
+    const { publishableVenue, publicVenue, eventRepo } = makeRepos({
+      findUnpublished: [makeVenue()], findByEngineId: vi.fn().mockRejectedValue(new Error('rede')),
+    });
+    const metrics = await new VenuePublisher(publishableVenue, publicVenue, eventRepo, () => NOW).publish(PRODUCT_KEY, RUN_ID);
+    expect(publicVenue.insert).not.toHaveBeenCalled();
+    expect(metrics.errors).toBe(1);
+  });
+
+  it('preview mostra skip_removed_downstream / relink / insert sem escrever nada', async () => {
+    const removed = makeVenue({ stagingId: 'sv-rem' as StagingVenueId });
+    const linked  = makeVenue({ stagingId: 'sv-link' as StagingVenueId });
+    const fresh   = makeVenue({ stagingId: 'sv-new' as StagingVenueId });
+    const { publishableVenue, publicVenue, eventRepo } = makeRepos({
+      findUnpublished: [removed, linked, fresh],
+      findByEngineId: vi.fn(async (id: string) => (id === 'sv-link' ? 'venue-vivo' : null)),
+      hasVenuePublishedEvent: vi.fn(async (id: string) => id === 'sv-rem'),
+    });
+
+    const decisions = await new VenuePublisher(publishableVenue, publicVenue, eventRepo, () => NOW).preview(PRODUCT_KEY);
+
+    expect(decisions.map((d) => [d.venue.stagingId, d.action])).toEqual([
+      ['sv-rem', 'skip_removed_downstream'], ['sv-link', 'relink'], ['sv-new', 'insert'],
+    ]);
+    expect(publicVenue.insert).not.toHaveBeenCalled();
+    expect(publicVenue.linkToStaging).not.toHaveBeenCalled();
+    expect(eventRepo.record).not.toHaveBeenCalled();
   });
 });

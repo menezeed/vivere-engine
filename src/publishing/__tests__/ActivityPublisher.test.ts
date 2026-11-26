@@ -108,6 +108,7 @@ function makeRepos(overrides: {
 
   const eventRepo: IPublicationEventRepository = {
     record: vi.fn().mockResolvedValue('evt-001' as PublicationEventId),
+    hasVenuePublishedEvent: vi.fn().mockResolvedValue(false),
   };
 
   return { publishableActivity, publicActivity, eventRepo };
@@ -1133,5 +1134,48 @@ describe('ActivityPublisher — hora de eventos pontuais já publicados', () => 
     await new ActivityPublisher(publishableActivity, publicActivity, eventRepo, () => NOW).publish(PRODUCT_KEY, RUN_ID);
     const [, adapted] = (publicActivity.update as ReturnType<typeof vi.fn>).mock.calls[0]!;
     expect(adapted.recurrenceTime).toBe('06:00');
+  });
+});
+
+// ── #53 R1 — update não anula venue_id quando o venue de staging perdeu o vínculo ──
+
+describe('ActivityPublisher — #53 R1: venue de staging sem vínculo público', () => {
+  const dirty = (overrides: Partial<PublishableActivity>) => makeActivity({
+    stagingId:          'sa-r1' as StagingActivityId,
+    sourceItemId:       'r1-001',
+    promotedActivityId: 'activity-r1' as PublicActivityId,
+    stagingUpdatedAt:   new Date('2026-07-08T00:00:00.000Z'),
+    ...overrides,
+  });
+  const stateFn = () => vi.fn().mockResolvedValue(makeState('activity-r1' as PublicActivityId, new Date('2026-07-01T00:00:00.000Z')));
+
+  it('venue resolvido sem vínculo público → erro, update NÃO executado (venue_id preservado)', async () => {
+    const activity = dirty({ resolvedVenueStagingId: 'sv-removido' as StagingVenueId, resolvedPublicVenueId: null });
+    const { publishableActivity, publicActivity, eventRepo } = makeRepos({ findDirty: [activity], publicationState: stateFn() });
+
+    const metrics = await new ActivityPublisher(publishableActivity, publicActivity, eventRepo, () => NOW).publish(PRODUCT_KEY, RUN_ID);
+
+    expect(publicActivity.update).not.toHaveBeenCalled();
+    expect(eventRepo.record).not.toHaveBeenCalled();
+    expect(metrics.activitiesUpdated).toBe(0);
+    expect(metrics.errors).toBe(1);
+  });
+
+  it('proposed_new sem venue de staging (venue_id NULL legítimo) continua a actualizar', async () => {
+    const activity = dirty({ resolvedVenueStagingId: null, resolvedPublicVenueId: null, venueResolutionStatus: 'proposed_new' });
+    const { publishableActivity, publicActivity, eventRepo } = makeRepos({ findDirty: [activity], publicationState: stateFn() });
+
+    const metrics = await new ActivityPublisher(publishableActivity, publicActivity, eventRepo, () => NOW).publish(PRODUCT_KEY, RUN_ID);
+
+    expect(metrics.errors).toBe(0);
+  });
+
+  it('venue com vínculo público → update normal', async () => {
+    const activity = dirty({});
+    const { publishableActivity, publicActivity, eventRepo } = makeRepos({ findDirty: [activity], publicationState: stateFn() });
+
+    await new ActivityPublisher(publishableActivity, publicActivity, eventRepo, () => NOW).publish(PRODUCT_KEY, RUN_ID);
+
+    expect(publicActivity.update).toHaveBeenCalledTimes(1);
   });
 });

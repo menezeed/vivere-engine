@@ -1,9 +1,12 @@
 name: CI
 
+# Push em qualquer branch (inclui lote*/ e sec-o/*). Os PRs internos já têm
+# os checks do push no mesmo commit; o evento pull_request só corre para forks
+# (condição "if" em cada job), para não duplicar pipelines.
 on:
-  pull_request:
   push:
-    branches: [main]
+    branches: ['**']
+  pull_request:
 
 permissions:
   contents: read
@@ -12,6 +15,7 @@ jobs:
   engine:
     name: Engine — typecheck e testes
     runs-on: ubuntu-latest
+    if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name != github.repository
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -19,12 +23,15 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
+      - name: Guarda das migrações (numeração, rollbacks, aplicadas congeladas)
+        run: node scripts/check-migrations.mjs
       - run: npx tsc --noEmit
       - run: npx vitest run
 
   admin-panel:
     name: Admin Panel — typecheck
     runs-on: ubuntu-latest
+    if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name != github.repository
     defaults:
       run:
         working-directory: admin-panel
@@ -41,6 +48,7 @@ jobs:
   secrets:
     name: Secret scan (gitleaks)
     runs-on: ubuntu-latest
+    if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name != github.repository
     steps:
       - uses: actions/checkout@v4
         with:

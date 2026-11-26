@@ -122,6 +122,7 @@ function makeMockRepos(): IPublishingRepositorySet {
     },
     event: {
       record: vi.fn().mockResolvedValue('evt-001'),
+      hasVenuePublishedEvent: vi.fn().mockResolvedValue(false),
     },
   });
 }
