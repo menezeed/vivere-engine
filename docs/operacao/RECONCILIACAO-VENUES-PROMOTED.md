@@ -191,7 +191,9 @@ O mesmo cuidado no lado das actividades: uma actividade cujo local está em `ski
 
 ### R2. Marcar o estado nos dados (migração + UPDATE na produção; precisa de backup ≤ 24 h + REF Level 2)
 
-> **Estado: PLANO, NÃO EXECUTADO.** Nada aqui foi aplicado em nenhum ambiente. Cada passo precisa de uma autorização própria do PO.
+> **Estado: ADIADO pelo PO a 26/11.** Nada aqui foi aplicado em nenhum ambiente. Cada passo precisa de uma autorização própria do PO.
+>
+> **Enquanto o R2 estiver adiado:** `public.publication_events` é **append-only** e não pode ser limpa, truncada nem podada, em nenhum ambiente. Os eventos `VenuePublished` são a única base da guarda R1 (R2.7). Qualquer limpeza dessa tabela exige reabrir o R2 antes.
 
 #### R2.0 Evidência de partida (bloco 1 corrido pelo PO na produção, 25/11: PASS)
 
