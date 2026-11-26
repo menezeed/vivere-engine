@@ -24,6 +24,15 @@ export interface ActivityStagingItem {
   /** Chave estável na fonte (ex.: "group:270"). */
   source_item_id?: string | null;
   /**
+   * Público restrito (piloto UK): para a pessoa com demência / perda de
+   * memória, para o cuidador ou para ambos. Rótulo gerado pela Review API.
+   */
+  audience_restriction?: {
+    condition: 'dementia' | 'memory_loss';
+    target: 'person' | 'carer' | 'both';
+    label: string;
+  } | null;
+  /**
    * Issue #62: elegibilidade 60+ auditada. Lista → resumo; detalhe → completo.
    * null = produto sem auditoria; ausente = flag desligada na Review API.
    */

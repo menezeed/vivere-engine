@@ -167,7 +167,8 @@ export function parseEligibilityDataset(raw: unknown): EligibilityDataset {
   const items = (d['items'] as Record<string, unknown>[]).map((it, i) => {
     const w = `items[${i}]`;
     const source_item_id = str(it['source_item_id'], `${w}.source_item_id`)!;
-    if (!/^(group|event):\d+$/.test(source_item_id)) throw new Error(`${w}.source_item_id com formato inválido`);
+    // u3a: "group:270"; ICS (FiSH): "series:<slug>:<dia>:<hhmm>". Sem espaços nem maiúsculas.
+    if (!/^[a-z][a-z0-9_-]*:[a-z0-9:._-]+$/.test(source_item_id)) throw new Error(`${w}.source_item_id com formato inválido`);
     if (seen.has(source_item_id)) throw new Error(`${w}: source_item_id duplicado ${source_item_id}`);
     seen.add(source_item_id);
     const source_url = str(it['source_url'], `${w}.source_url`)!;

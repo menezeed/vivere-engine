@@ -26,6 +26,19 @@ export function EligibilityBadge({ eligibility }: { eligibility: EligibilitySumm
   );
 }
 
+/**
+ * Público restrito (decisão do PO, 26/11/2026): a actividade é para a pessoa
+ * com demência, para o cuidador ou para ambos. Sempre visível na fila.
+ */
+export function AudienceRestrictionBadge({ restriction }: { restriction: ActivityStagingItem['audience_restriction'] }) {
+  if (!restriction) return null;
+  return (
+    <span title="Não aprovar nem publicar automaticamente" data-testid="audience-restriction">
+      <Badge variant="yellow">{restriction.label}</Badge>
+    </span>
+  );
+}
+
 export const CLASSIFICATION_NOTICE_FALLBACK =
   'Classificação de elegibilidade não é aprovação nem publicação. O estado de revisão não muda.';
 
