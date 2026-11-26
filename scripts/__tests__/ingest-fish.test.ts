@@ -52,6 +52,8 @@ describe('ingest-fish', () => {
     expect(r.contagens.a_inserir).toBe(1);
     expect(r.linhas_previstas['staging.raw_activity_items']).toBe(1);
     expect(r.resultado_escrita).toBeNull();
+    expect(r.escrita_efetuada).toBe(false);
+    expect(r.linhas_gravadas).toBe(0);
     expect(r.snapshot.pedidos_http_nesta_execucao).toBe(0);
   });
 });

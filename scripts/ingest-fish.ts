@@ -89,6 +89,9 @@ export async function main(argv: readonly string[] = process.argv): Promise<void
   const report = {
     gerado_em: new Date().toISOString(),
     modo: apply ? 'ESCRITA EM STAGING' : 'DRY-RUN (sem escrita, sem cliente Supabase)',
+    // Inequívoco: em dry-run, a_inserir é uma PREVISÃO; nada foi gravado.
+    escrita_efetuada: summary !== null,
+    linhas_gravadas: summary === null ? 0 : (summary as { stagedItems?: number }).stagedItems ?? null,
     hoje: today,
     snapshot: { ficheiro: snapshotPath, recolhido_em: snapshot.gerado_em, pedidos_http_nesta_execucao: 0 },
     produto: FISH_CONFIG.product_key,
@@ -130,7 +133,8 @@ export async function main(argv: readonly string[] = process.argv): Promise<void
   };
 
   if (reportPath) writeFileSync(reportPath, JSON.stringify(report, null, 2));
-  console.log(JSON.stringify({ modo: report.modo, contagens: report.contagens, linhas_previstas: report.linhas_previstas, resultado_escrita: summary }, null, 2));
+  console.log(summary === null ? 'NADA FOI GRAVADO: a_inserir é uma previsão.' : `GRAVADO EM STAGING: ${report.linhas_gravadas} actividade(s).`);
+  console.log(JSON.stringify({ modo: report.modo, escrita_efetuada: report.escrita_efetuada, contagens: report.contagens, linhas_previstas: report.linhas_previstas, resultado_escrita: summary }, null, 2));
   if (reportPath) console.log(`Relatório: ${reportPath}`);
   if (duplicatedInStaging.length > 0) {
     throw new Error(`ERRO: séries duplicadas em activities_staging depois da escrita (execução concorrente?): ${duplicatedInStaging.join(', ')}`);
