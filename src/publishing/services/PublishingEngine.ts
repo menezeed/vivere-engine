@@ -51,6 +51,7 @@
  */
 
 import { logger } from '../../lib/logger.js';
+import { assertPublishableProduct } from '../publicationGuard.js';
 import type { VenuePublisher, VenuePublicationMetrics, VenueDecision } from './VenuePublisher.js';
 import type { ActivityPublisher, ActivityPublicationMetrics, ActivityDecision } from './ActivityPublisher.js';
 import type {
@@ -105,6 +106,8 @@ export class PublishingEngine {
    * do ficheiro.
    */
   async publish(productKey: string, triggeredBy: string): Promise<PublicationRunSummary> {
+    // Bloqueio internacional (até U8): antes de qualquer escrita, incluindo o start da run.
+    assertPublishableProduct(productKey);
     const startedAt = this.clock();
     const runId = await this.runRepo.start(productKey, triggeredBy);
 
