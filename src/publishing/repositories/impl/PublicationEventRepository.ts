@@ -7,7 +7,7 @@
 
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { IPublicationEventRepository } from '../interfaces.js';
-import type { PublicationEvent, PublicationEventId } from '../../types/domain.js';
+import type { PublicationEvent, PublicationEventId, StagingVenueId } from '../../types/domain.js';
 
 export class PublicationEventRepository implements IPublicationEventRepository {
   constructor(private readonly db: SupabaseClient) {}
@@ -28,5 +28,19 @@ export class PublicationEventRepository implements IPublicationEventRepository {
 
     if (error || !data) throw new Error(`PublicationEventRepository.record: ${error?.message ?? 'no data'}`);
     return data.id as PublicationEventId;
+  }
+
+  async hasVenuePublishedEvent(stagingVenueId: StagingVenueId): Promise<boolean> {
+    const { data, error } = await this.db
+      .from('publication_events')
+      .select('id')
+      .eq('event_type', 'VenuePublished')
+      .eq('entity_type', 'venue')
+      .eq('payload->>engineVenueId', stagingVenueId)
+      .limit(1);
+
+    // Falha fechada: o chamador trata o erro como "não inserir".
+    if (error) throw new Error(`PublicationEventRepository.hasVenuePublishedEvent: ${error.message}`);
+    return (data ?? []).length > 0;
   }
 }
