@@ -25,6 +25,7 @@ import { detectRecurrenceItems } from '../src/pipeline/stages/02-recurrence-dete
 import { crossSourceDuplicates } from '../src/review-api/eligibility/proposal';
 import type { RawActivityItem } from '../src/types/RawActivityItem';
 import type { SourceConfigContract } from '../src/persistence/types/collectorContracts';
+import { assertSourceExists, assertNoRunningRun, stagedCountsBySeries } from '../src/collectors/fish-ics/fishStagingState';
 
 const arg = (argv: readonly string[], name: string) => argv.find(a => a.startsWith(`--${name}=`))?.slice(name.length + 3);
 
@@ -32,22 +33,9 @@ export function londonToday(d = new Date()): string {
   return new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/London', year: 'numeric', month: '2-digit', day: '2-digit' }).format(d);
 }
 
-/** Séries FiSH já em staging para o produto do piloto (leitura; só no modo --apply). */
-async function existingSeriesIds(): Promise<Set<string>> {
+async function stagingDb() {
   const { getSupabaseClient } = await import('../src/persistence/client/supabase');
-  const db = getSupabaseClient(); // envGuard: só staging
-  const src = await db.from('sources').select('source_key').eq('source_key', FISH_CONFIG.source_key);
-  if (src.error) throw new Error(`leitura de sources: ${src.error.message}`);
-  if ((src.data ?? []).length === 0) throw new Error(`RECUSA: a fonte ${FISH_CONFIG.source_key} não existe — correr primeiro scripts/staging/fonte-fish.staging.sql`);
-  const raw = await db.schema('staging').from('raw_activity_items').select('id, source_item_id').eq('source_key', FISH_CONFIG.source_key);
-  if (raw.error) throw new Error(`leitura de raw_activity_items: ${raw.error.message}`);
-  const rows = raw.data ?? [];
-  if (rows.length === 0) return new Set();
-  const staged = await db.schema('staging').from('activities_staging').select('raw_activity_item_id')
-    .eq('product_key', FISH_CONFIG.product_key).in('raw_activity_item_id', rows.map(r => r.id as string));
-  if (staged.error) throw new Error(`leitura de activities_staging: ${staged.error.message}`);
-  const stagedRaw = new Set((staged.data ?? []).map(r => r.raw_activity_item_id as string));
-  return new Set(rows.filter(r => stagedRaw.has(r.id as string)).map(r => r.source_item_id as string));
+  return getSupabaseClient(); // envGuard: só staging
 }
 
 export async function main(argv: readonly string[] = process.argv): Promise<void> {
@@ -61,7 +49,15 @@ export async function main(argv: readonly string[] = process.argv): Promise<void
   const snapshot = parsePreviewSnapshot(JSON.parse(readFileSync(snapshotPath, 'utf8')));
   const plan = planFromSnapshot(snapshot, today);
 
-  const existing = apply ? await existingSeriesIds() : new Set<string>();
+  const planned = plan.items.map(i => i.source_item_id);
+  const db = apply ? await stagingDb() : null;
+  let existing = new Set<string>();
+  if (db) {
+    await assertSourceExists(db, FISH_CONFIG.source_key);
+    await assertNoRunningRun(db, FISH_CONFIG.source_key);
+    const before = await stagedCountsBySeries(db, FISH_CONFIG.source_key, FISH_CONFIG.product_key, planned);
+    existing = new Set([...before].filter(([, n]) => n > 0).map(([id]) => id));
+  }
   const { insert, skip } = splitByExisting(plan.items, existing);
 
   const u3a = JSON.parse(readFileSync(new URL('../src/review-api/eligibility/richmond-u3a-60plus.v1.json', import.meta.url), 'utf8')) as {
@@ -82,6 +78,12 @@ export async function main(argv: readonly string[] = process.argv): Promise<void
     const collector = { sourceKey: FISH_CONFIG.source_key, collect: async () => ({ items: insert as RawActivityItem[], errors: [] }) };
     const sourceConfig: SourceConfigContract = { source_key: FISH_CONFIG.source_key, product_key: FISH_CONFIG.product_key };
     summary = await orchestrator.runActivityIngestion(collector, sourceConfig, { dryRun: false });
+  }
+  // Verificação depois da escrita (concorrência): nenhuma série pode ficar duplicada.
+  let duplicatedInStaging: string[] = [];
+  if (db) {
+    const after = await stagedCountsBySeries(db, FISH_CONFIG.source_key, FISH_CONFIG.product_key, planned);
+    duplicatedInStaging = [...after].filter(([, n]) => n > 1).map(([id]) => id);
   }
 
   const report = {
@@ -124,11 +126,15 @@ export async function main(argv: readonly string[] = process.argv): Promise<void
       elegibilidade: (item.raw_payload['eligibility_proposal'] as { classification: string }).classification,
     })),
     resultado_escrita: summary,
+    duplicados_em_staging_apos_escrita: duplicatedInStaging,
   };
 
   if (reportPath) writeFileSync(reportPath, JSON.stringify(report, null, 2));
   console.log(JSON.stringify({ modo: report.modo, contagens: report.contagens, linhas_previstas: report.linhas_previstas, resultado_escrita: summary }, null, 2));
   if (reportPath) console.log(`Relatório: ${reportPath}`);
+  if (duplicatedInStaging.length > 0) {
+    throw new Error(`ERRO: séries duplicadas em activities_staging depois da escrita (execução concorrente?): ${duplicatedInStaging.join(', ')}`);
+  }
 }
 
 if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {

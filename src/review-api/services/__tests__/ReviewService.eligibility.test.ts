@@ -51,7 +51,7 @@ describe('listActivities', () => {
     const { svc, repo } = make(SEATED);
     await svc.listActivities({ product_key: UK, page: 2, pageSize: 20, eligibility: ['confirmed_60plus'] });
     expect(repo.list).toHaveBeenCalledWith(expect.objectContaining({
-      page: 2, pageSize: 20, source_item_ids: { mode: 'in', ids: ['group:270'] },
+      page: 2, pageSize: 20, source_item_ids: { mode: 'in', source_key: 'u3a_richmond', ids: ['group:270'], urls: [expect.stringMatching(/^https:\/\//)] },
     }));
   });
 

@@ -17,7 +17,7 @@ const AUDIENCE = /\b(older|elderly|over[- ]?(50|55|60|65|70)s?|aged? \d\d|\d\d\s
 /** Evidência EXPLÍCITA de público mais velho (60+). Condições de saúde não contam. */
 export const EXPLICIT_OLDER = /\b(older (people|adults|members|residents|community|person)|elderly|over[- ]?(55|60|65|70)s?|aged (55|60|65|70)\s?(\+|and over|or over)|(55|60|65|70)\s?\+|seniors?|pensioners?|later life|retired people|retirement)\b/i;
 
-const PRICE = /£\s?\d+(?:[.,]\d{2})?(?:\s*(?:per|a|each|for (?:a|the))\s+(?:session|class|lesson|person|week|month|year|term|course|visit|meal|lunch))?/i;
+export const PRICE = /£\s?\d+(?:[.,]\d{2})?(?:\s*(?:per|a|each|for (?:a|the))\s+(?:session|class|lesson|person|week|month|year|term|course|visit|meal|lunch))?/i;
 const FREE = /\bfree (of charge|to attend|entry|admission|session)\b|\bno charge\b|\bentry is free\b/i;
 
 /** Sinal de actividade física (título, categorias ou frases seguras). */

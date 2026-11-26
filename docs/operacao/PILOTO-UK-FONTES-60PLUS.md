@@ -180,3 +180,17 @@ npx tsx --env-file="<ficheiro de ambiente de staging, fora do repo>" scripts/ing
 
 - **Viabilidade:** técnica alta (JSON-LD estruturado com horário, preço, idade, local e código postal), mas volume baixo (4 activas, 1 explícita).
 - Os dados foram modificados entre abril e setembro de 2026. Antes de carregar, confirmar ocorrências futuras em `scheduled-sessions`.
+
+## 9. Revisão independente (Codex isolado)
+
+**Ronda 0** (cópia `2eae7f5`): veredicto ALTERAÇÕES, com 5 achados, todos confirmados no código e corrigidos com testes.
+
+| # | Achado | Correcção |
+|---|---|---|
+| 1 | ALTO: frases da fonte (público, evidência, preço) gravadas em staging | Ficam só etiquetas fixas (`audience_tags`, `explicit_older_level`) e valores de preço (ex.: "£8.00 (lunch)"). A guarda de telefone passa a cobrir números internacionais. Títulos com possível nome de pessoa (não fundidos) ficam fora |
+| 2 | ALTO: idempotência com leituras sem limite e sem protecção contra execuções concorrentes | Leituras limitadas às séries do plano, com limite explícito e falha se for atingido. Recusa se houver um `ingestion_run` "running" da fonte. Depois da escrita, uma série duplicada faz a execução falhar. **Resíduo:** a garantia atómica exige um índice único na BD (migração, decisão do PO) |
+| 3 | MÉDIO: o filtro de elegibilidade da Review API usava só `source_item_id` | O filtro usa a mesma chave da classificação: fonte + id + URL canónica, em `in` e em `not_in`. Uma linha com URL divergente ou de outra fonte cai em `not_audited` |
+| 4 | MÉDIO: "older people", "over 55s" e "retired" davam `confirmed_60plus` | Só um limiar 60+ explícito (over 60, 65+, aged 60 and over…) confirma. O resto fica em `likely_suitable` |
+| 5 | MÉDIO: o URL de recurso (`url_oficial`) não era validado | Todos os URLs gravados têm de ser do site oficial |
+
+As contagens do dry-run não mudaram: 11 inserções, 27 ocorrências, 8 `likely_suitable` e 3 `unclear`.

@@ -282,16 +282,34 @@ export class EligibilityAuditIndex {
    * Filtro por classificação, para aplicar NO SERVIDOR (antes do range),
    * mantendo a paginação correcta. null = produto não coberto (sem filtro possível).
    */
-  filterIds(productKey: string, filters: EligibilityFilter[]): { mode: 'in' | 'not_in'; ids: string[] } | null {
+  /**
+   * Filtro para o repositório, com a MESMA chave da classificação (lookup):
+   * fonte + source_item_id + URL canónica. Uma linha com id auditado mas URL
+   * divergente (mismatch) ou de outra fonte nunca entra numa classe; fica em
+   * not_audited. Resíduo conhecido: duas linhas de classes pedidas com URLs
+   * trocadas entre si passariam no filtro (o badge e a guarda 403 usam o
+   * lookup exacto e mostram mismatch).
+   */
+  filterIds(productKey: string, filters: EligibilityFilter[]): EligibilityRepoFilter | null {
     const entry = this.byProduct.get(productKey);
     if (!entry) return null;
     const classes = new Set(filters.filter((f): f is EligibilityClass => f !== NOT_AUDITED));
-    const wanted = entry.dataset.items.filter(i => classes.has(i.classification)).map(i => i.source_item_id);
-    if (!filters.includes(NOT_AUDITED)) return { mode: 'in', ids: wanted };
-    // not_audited (+ classes): tudo menos as classes NÃO pedidas.
-    const excluded = entry.dataset.items.filter(i => !classes.has(i.classification)).map(i => i.source_item_id);
-    return { mode: 'not_in', ids: excluded };
+    const pick = (keep: (i: EligibilityRecord) => boolean) => {
+      const items = entry.dataset.items.filter(keep);
+      return { ids: items.map(i => i.source_item_id), urls: items.map(i => i.source_url) };
+    };
+    const source_key = entry.dataset.source_key;
+    if (!filters.includes(NOT_AUDITED)) return { mode: 'in', source_key, ...pick(i => classes.has(i.classification)) };
+    // not_audited (+ classes): tudo menos as linhas que CASAM com as classes NÃO pedidas.
+    return { mode: 'not_in', source_key, ...pick(i => !classes.has(i.classification)) };
   }
+}
+
+export interface EligibilityRepoFilter {
+  mode: 'in' | 'not_in';
+  source_key: string;
+  ids: string[];
+  urls: string[];
 }
 
 export function parseEligibilityFilter(raw: string | undefined): EligibilityFilter[] | null | 'invalid' {

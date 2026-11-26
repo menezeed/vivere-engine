@@ -148,11 +148,14 @@ describe('filtro por classificação', () => {
     const f = index.filterIds(UK, ['unclear', 'unsuitable'])!;
     expect(f.mode).toBe('in');
     expect(f.ids).toHaveLength(8);
+    // cada id leva a SUA URL canónica (a mesma usada no lookup)
+    f.ids.forEach((id, k) => expect(DS.items.find(i => i.source_item_id === id)!.source_url).toBe(f.urls[k]));
   });
   it('not_audited → not_in com todos os ids auditados', () => {
     const f = index.filterIds(UK, ['not_audited'])!;
-    expect(f).toEqual({ mode: 'not_in', ids: expect.any(Array) });
+    expect(f).toEqual({ mode: 'not_in', source_key: 'u3a_richmond', ids: expect.any(Array), urls: expect.any(Array) });
     expect(f.ids).toHaveLength(133);
+    expect(f.urls).toHaveLength(133);
   });
   it('not_audited + likely → exclui só as outras classes', () => {
     expect(index.filterIds(UK, ['not_audited', 'likely_suitable'])!.ids).toHaveLength(9);

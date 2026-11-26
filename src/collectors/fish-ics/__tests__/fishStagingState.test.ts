@@ -1,0 +1,56 @@
+/**
+ * Leituras de estado do staging (Codex r0, achado 2). BD falsa, sem rede.
+ */
+import { describe, it, expect } from 'vitest';
+import type { SupabaseClient } from '@supabase/supabase-js';
+import { assertNoRunningRun, assertSourceExists, stagedCountsBySeries, READ_LIMIT } from '../fishStagingState';
+
+type Call = unknown[];
+/** Cada tabela devolve as linhas dadas; regista as chamadas. */
+function fakeDb(tables: Record<string, unknown[]>) {
+  const calls: Call[] = [];
+  const db = {
+    schema: (sc: string) => { calls.push(['schema', sc]); return db; },
+    from: (t: string) => {
+      const b: Record<string, unknown> = {};
+      for (const m of ['select', 'eq', 'in', 'limit']) b[m] = (...a: unknown[]) => { calls.push([t, m, ...a]); return b; };
+      b['then'] = (res: (v: unknown) => unknown) => res({ data: tables[t] ?? [], error: null });
+      return b;
+    },
+  };
+  return { db: db as unknown as SupabaseClient, calls };
+}
+
+describe('fishStagingState', () => {
+  it('lê só as séries do plano, com limite explícito', async () => {
+    const { db, calls } = fakeDb({
+      raw_activity_items: [{ id: 'r1', source_item_id: 'series:a:wed:1030' }, { id: 'r2', source_item_id: 'series:a:wed:1030' }],
+      activities_staging: [{ raw_activity_item_id: 'r1' }, { raw_activity_item_id: 'r2' }],
+    });
+    const c = await stagedCountsBySeries(db, 'fish', 'uk', ['series:a:wed:1030', 'series:b:thu:1030']);
+    expect(c.get('series:a:wed:1030')).toBe(2);   // duplicado detectado (verificação depois da escrita)
+    expect(c.get('series:b:thu:1030')).toBe(0);
+    expect(calls).toContainEqual(['raw_activity_items', 'in', 'source_item_id', ['series:a:wed:1030', 'series:b:thu:1030']]);
+    expect(calls).toContainEqual(['raw_activity_items', 'limit', READ_LIMIT]);
+  });
+
+  it('raw sem linha em activities_staging não conta como existente (é reinserido)', async () => {
+    const { db } = fakeDb({ raw_activity_items: [{ id: 'r1', source_item_id: 'series:a:wed:1030' }], activities_staging: [] });
+    expect((await stagedCountsBySeries(db, 'fish', 'uk', ['series:a:wed:1030'])).get('series:a:wed:1030')).toBe(0);
+  });
+
+  it('limite de leitura atingido → recusa (nunca corte silencioso)', async () => {
+    const many = Array.from({ length: READ_LIMIT }, (_, i) => ({ id: `r${i}`, source_item_id: 'series:a:wed:1030' }));
+    const { db } = fakeDb({ raw_activity_items: many });
+    await expect(stagedCountsBySeries(db, 'fish', 'uk', ['series:a:wed:1030'])).rejects.toThrow(/limite de leitura/);
+  });
+
+  it('ingestion_run "running" da fonte → recusa (execução concorrente)', async () => {
+    await expect(assertNoRunningRun(fakeDb({ ingestion_runs: [{ id: 'x' }] }).db, 'fish')).rejects.toThrow(/running/);
+    await expect(assertNoRunningRun(fakeDb({ ingestion_runs: [] }).db, 'fish')).resolves.toBeUndefined();
+  });
+
+  it('fonte inexistente → recusa', async () => {
+    await expect(assertSourceExists(fakeDb({ sources: [] }).db, 'fish')).rejects.toThrow(/não existe/);
+  });
+});

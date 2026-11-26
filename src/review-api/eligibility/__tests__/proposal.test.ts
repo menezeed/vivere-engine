@@ -13,11 +13,20 @@ const base: ProposalInput = {
 };
 
 describe('proposeEligibility', () => {
-  it('evidência explícita na actividade → confirmed_60plus, mas confiança nunca "high" (automático)', () => {
-    const r = proposeEligibility({ ...base, explicit_older: 'A class for older people.' });
-    expect(r.classification).toBe('confirmed_60plus');
-    expect(r.confidence).toBe('medium');
-    expect(r.evidence).toMatch(/older people/);
+  it('limiar 60+ explícito na actividade → confirmed_60plus, mas confiança nunca "high" (automático)', () => {
+    for (const t of ['Anyone over 60 welcome.', 'For the over 60s.', 'Aged 65 and over.', 'A 60+ class.']) {
+      const r = proposeEligibility({ ...base, explicit_older: t });
+      expect(r.classification, t).toBe('confirmed_60plus');
+      expect(r.confidence).toBe('medium');
+    }
+  });
+
+  it('pessoas mais velhas sem limiar 60+ (older, over 55s, retired, seniors) → likely_suitable (Codex r0, achado 4)', () => {
+    for (const t of ['A class for older people.', 'For the over 55s.', 'Retired people welcome.', 'Seniors club', 'aged 55+']) {
+      const r = proposeEligibility({ ...base, explicit_older: t });
+      expect(r.classification, t).toBe('likely_suitable');
+      expect(r.evidence).toMatch(/não confirma 60\+/);
+    }
   });
 
   it('só evidência da organização → likely_suitable', () => {

@@ -17,7 +17,8 @@
  */
 import type { RawActivityItem, RawOccurrence } from '../../types/RawActivityItem';
 import type { EligibilityRecord } from '../../review-api/eligibility/eligibilityAudit';
-import { proposeEligibility, SERVICE } from '../../review-api/eligibility/proposal';
+import { proposeEligibility, SERVICE, RESTRICTED_AUDIENCE, EXPLICIT_60PLUS } from '../../review-api/eligibility/proposal';
+import { PRICE } from './fishText';
 import { FISH_CONFIG } from './config';
 import { slugify } from './fishText';
 
@@ -62,7 +63,46 @@ export interface FishPlan {
   past_occurrences_removed: number;
 }
 
-const PERSONAL = /[\w.+-]+@[\w-]+\.[\w.]+|(?:\+44\s?|\b0)\d[\d\s-]{8,}\d/;
+/** E-mail, ou qualquer sequência telefónica (nacional ou internacional) com 9+ dígitos. */
+const PERSONAL = /[\w.+-]+@[\w-]+\.[\w.]+|\+?\(?\d[\d ().-]{7,}\d/;
+
+/**
+ * Público: a frase da fonte NUNCA é guardada (Codex r0, achado 1). Só uma
+ * etiqueta fixa; o revisor lê a frase na página oficial (URL guardada).
+ */
+const AUDIENCE_TAGS: ReadonlyArray<readonly [RegExp, string, string]> = [
+  [RESTRICTED_AUDIENCE, 'restricted_condition_and_carers', 'Restricted: people living with dementia or memory loss, and carers'],
+  [/\b(everyone|all) welcome\b/i, 'open_to_all', 'Open to all (source: everyone welcome)'],
+  [/\bnot (a group )?for beginners\b/i, 'not_for_beginners', 'Not for beginners'],
+  [/\bmembers? (are )?welcome\b/i, 'members_welcome', 'FiSH members welcome'],
+];
+const OTHER_AUDIENCE_TAG = ['other_audience_text', 'Other audience text in source (not copied; see official URL)'] as const;
+
+export function audienceTags(snippets: readonly string[]): Array<{ tag: string; label: string }> {
+  const out = new Map<string, string>();
+  for (const s of snippets) {
+    const hit = AUDIENCE_TAGS.find(([re]) => re.test(s));
+    const [tag, label] = hit ? [hit[1], hit[2]] : OTHER_AUDIENCE_TAG;
+    out.set(tag, label);
+  }
+  return [...out].map(([tag, label]) => ({ tag, label }));
+}
+
+/** Evidência explícita: só o nível, nunca a frase. */
+export function explicitOlderLevel(text: string | null): { level: '60plus' | 'older_no_age'; label: string } | null {
+  if (!text) return null;
+  return EXPLICIT_60PLUS.test(text)
+    ? { level: '60plus', label: 'over 60 (explicit in source; see official URL)' }
+    : { level: 'older_no_age', label: 'older people, no age threshold (see official URL)' };
+}
+
+/** Preço: só os valores (ex.: "£5.00 per session"); a frase não é guardada. */
+export function priceFacts(text: string | null): string | null {
+  if (!text) return null;
+  const all = [...text.matchAll(new RegExp(PRICE.source, 'gi'))].map(m => m[0].trim());
+  if (all.length === 0) return null;
+  return all.join('; ') + (/\b(lunch|meal)\b/i.test(text) && !/\b(lunch|meal)\b/i.test(all.join(' ')) ? ' (lunch)' : '');
+}
 const SERIES_KEY = /^series:([a-z0-9-]+):(mon|tue|wed|thu|fri|sat|sun):(\d{4}|allday)$/;
 const GENERIC_VENUE = /\b(pub|inn|arms|hotel|caf[eé]|coffee shop|restaurant|hare (and|&) hounds)\b/i;
 
@@ -79,8 +119,9 @@ export function parsePreviewSnapshot(json: unknown): PreviewSnapshot {
     if (!a.titulo?.trim()) throw new Error(`snapshot: título vazio (${a.source_item_id})`);
     if (!a.datas.every(d => /^\d{4}-\d{2}-\d{2}$/.test(d))) throw new Error(`snapshot: data inválida (${a.source_item_id})`);
     if (a.horario.length !== 1) throw new Error(`snapshot: horário não uniforme na série (${a.source_item_id})`);
-    for (const u of a.urls_ocorrencias) {
-      if (!u.startsWith(FISH_CONFIG.site_url)) throw new Error(`snapshot: URL fora do site oficial (${a.source_item_id})`);
+    // Todos os URLs que podem ser gravados, incluindo o de recurso (Codex r0, achado 5).
+    for (const u of [...a.urls_ocorrencias, ...(a.url_oficial === null ? [] : [a.url_oficial])]) {
+      if (typeof u !== 'string' || !u.startsWith(FISH_CONFIG.site_url)) throw new Error(`snapshot: URL fora do site oficial (${a.source_item_id})`);
     }
   }
   return s as PreviewSnapshot;
@@ -100,13 +141,13 @@ function themedPrefix(a: PreviewActivity): string | null {
   return a.titulo.startsWith(`${cat} - `) ? cat : null;
 }
 
-function assertNoPersonalData(item: RawActivityItem): void {
-  const hit = (v: unknown): boolean =>
-    typeof v === 'string' ? PERSONAL.test(v)
-    : Array.isArray(v) ? v.some(hit)
-    : v && typeof v === 'object' ? Object.values(v).some(hit)
-    : false;
-  if (hit(item)) throw new Error(`guarda de dados pessoais: e-mail ou telefone em ${item.source_item_id}`);
+/** Campos de TEXTO gravados (datas, ids e URLs ficam de fora: têm dígitos legítimos). */
+function assertNoPersonalData(item: RawActivityItem, extraText: readonly string[]): void {
+  const texts = [
+    item.title, item.raw_category_text, item.price_text,
+    item.venue_mention?.raw_text, item.venue_mention?.raw_address_text, ...extraText,
+  ].filter((t): t is string => typeof t === 'string');
+  if (texts.some(t => PERSONAL.test(t))) throw new Error(`guarda de dados pessoais: e-mail ou telefone em ${item.source_item_id}`);
 }
 
 export function planFromSnapshot(snapshot: PreviewSnapshot, today: string): FishPlan {
@@ -149,8 +190,10 @@ export function planFromSnapshot(snapshot: PreviewSnapshot, today: string): Fish
     const locations = [...new Set(members.map(m => m.local?.nome).filter((n): n is string => !!n))];
     const loc = members.find(m => m.local)?.local ?? null;
     const differs = locations.length > 1 || members.some(m => m.local_varia_entre_ocorrencias);
-    const audience = [...new Set(members.flatMap(m => m.publico_alvo))];
-    const explicit = members.find(m => m.evidencia_60plus)?.evidencia_60plus ?? null;
+    // Público e evidência: só etiquetas fixas; as frases da fonte não passam daqui.
+    const audience = audienceTags(members.flatMap(m => m.publico_alvo));
+    const explicit = explicitOlderLevel(members.find(m => m.evidencia_60plus)?.evidencia_60plus ?? null);
+    const price = priceFacts(first.custo);
     const categories = [...new Set(members.flatMap(m => m.categorias))];
     const booking = first.inscricao.reserva;
     const spacesLimited = members.some(m => m.disponibilidade === 'vagas limitadas');
@@ -163,11 +206,11 @@ export function planFromSnapshot(snapshot: PreviewSnapshot, today: string): Fish
       categories,
       organisation_evidence: FISH_CONFIG.organisation_evidence,
       membership_required: true,
-      explicit_older: explicit,
-      audience_snippets: audience,
+      explicit_older: explicit?.label ?? null,
+      audience_snippets: audience.map(a => a.label),
       booking,
       spaces_limited: spacesLimited,
-      price_text: first.custo,
+      price_text: price,
       physical_hint: members.some(m => m.elegibilidade_proposta.physical_activity),
       has_location: !!loc,
       generic_venue: GENERIC_VENUE.test(loc?.nome ?? ''),
@@ -178,6 +221,11 @@ export function planFromSnapshot(snapshot: PreviewSnapshot, today: string): Fish
     // 3. Serviços não são actividades: ficam fora da inserção.
     if (proposal.classification === 'unclear' && SERVICE.test([title, ...categories].join(' '))) {
       held.push({ source_item_id: key, title, reason: 'serviço (não é actividade de lazer) — decisão de âmbito do PO' });
+      continue;
+    }
+    // 4. Título com possível nome de pessoa (e não neutralizado pela fusão): não é gravado.
+    if (!cat && members.some(m => m.titulo_pode_ter_nome_de_pessoa)) {
+      held.push({ source_item_id: key, title: '(título omitido: pode ter nome de pessoa)', reason: 'título pode conter nome de pessoa — revisão manual' });
       continue;
     }
 
@@ -191,7 +239,7 @@ export function planFromSnapshot(snapshot: PreviewSnapshot, today: string): Fish
       occurrences,
       recurrence_text_hint: null,
       venue_mention: loc ? { raw_text: loc.nome, raw_address_text: loc.morada, confidence_hint: differs ? 'ambiguous' : 'explicit_name' } : null,
-      price_text: first.custo,
+      price_text: price,
       is_free_hint: first.gratuito_declarado ? true : null,
       image_url: null,
       external_url: urls[0] ?? null,
@@ -207,14 +255,14 @@ export function planFromSnapshot(snapshot: PreviewSnapshot, today: string): Fish
         booking,
         spaces_limited: spacesLimited,
         transport_available: members.some(m => m.inscricao.transporte_disponivel),
-        audience_snippets: audience,
-        explicit_older: explicit,
+        audience_tags: audience.map(a => a.tag),
+        explicit_older_level: explicit?.level ?? null,
         membership: { required: true, fee_text: FISH_CONFIG.membership.fee_text, source_url: FISH_CONFIG.membership.source_url },
         merged_from: cat ? members.map(m => m.source_item_id) : undefined,
         eligibility_proposal: proposal,
       },
     };
-    assertNoPersonalData(item);
+    assertNoPersonalData(item, [...categories, ...audience.map(a => a.label), proposal.evidence, ...proposal.human_review_notes]);
     items.push(item);
     proposals.push(proposal);
   }

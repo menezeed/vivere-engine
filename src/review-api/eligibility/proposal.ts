@@ -50,7 +50,13 @@ const OTHER_AUDIENCE = /\b(children only|for (children|kids|toddlers|teenagers|s
  * público 60+ em geral: fica unclear (decisão de âmbito), nunca
  * likely_suitable automático.
  */
-export const RESTRICTED_AUDIENCE = /\b(dementia|memory loss|alzheimer'?s|living with (a )?stroke|parkinson'?s)\b/i;
+/**
+ * Só um limiar de 60 ou mais confirma 60+ (Codex r0, achado 4): "older
+ * people", "over 55s", "retired" ou "seniors" ficam em likely_suitable.
+ */
+export const EXPLICIT_60PLUS = /\b(over[- ]?(60|65|70)s?|aged (60|65|70)\s?(\+|and over|or over)|anyone over (60|65|70))\b|\b(60|65|70)\s?\+/i;
+
+export const RESTRICTED_AUDIENCE =/\b(dementia|memory loss|alzheimer'?s|living with (a )?stroke|parkinson'?s)\b/i;
 
 export function proposeEligibility(p: ProposalInput): EligibilityRecord {
   const text = [p.title, ...p.categories].join(' ');
@@ -68,9 +74,13 @@ export function proposeEligibility(p: ProposalInput): EligibilityRecord {
   } else if (SERVICE.test(text)) {
     classification = 'unclear'; confidence = 'medium';
     evidence = 'Parece um serviço de apoio (ex.: transporte ou compras), não uma actividade de lazer. Decisão de âmbito para o PO.';
-  } else if (p.explicit_older) {
+  } else if (p.explicit_older && EXPLICIT_60PLUS.test(p.explicit_older)) {
     classification = 'confirmed_60plus'; confidence = 'medium'; // automático: nunca "high" sem revisão
-    evidence = `O texto da actividade refere explicitamente pessoas mais velhas: "${p.explicit_older}"`;
+    evidence = `O texto da actividade refere explicitamente 60+: "${p.explicit_older}"`;
+  } else if (p.explicit_older) {
+    // "older people", "over 55s", "retired"…: público mais velho, mas sem limiar 60+.
+    classification = 'likely_suitable'; confidence = 'medium';
+    evidence = `A actividade refere pessoas mais velhas sem limiar 60+ ("${p.explicit_older}"); não confirma 60+.`;
   } else if (!p.has_location && !p.schedule_complete) {
     classification = 'unclear'; confidence = 'low';
     evidence = 'Faltam local e horário completos na fonte; não dá para avaliar.';

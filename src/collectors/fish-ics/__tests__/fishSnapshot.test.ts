@@ -48,6 +48,8 @@ describe('parsePreviewSnapshot', () => {
     expect(() => parsePreviewSnapshot({ ...ok, produto: 'vivere-60-mais' })).toThrow(/produto/);
     expect(() => parsePreviewSnapshot(snap([act({ source_item_id: 'evil', titulo: 'X' })]))).toThrow(/source_item_id/);
     expect(() => parsePreviewSnapshot(snap([act({ source_item_id: 'series:x:wed:1030', titulo: 'X', urls_ocorrencias: ['https://evil.example/'] })]))).toThrow(/site oficial/);
+    // URL de recurso também é validado (Codex r0, achado 5)
+    expect(() => parsePreviewSnapshot(snap([act({ source_item_id: 'series:x:wed:1030', titulo: 'X', urls_ocorrencias: [], url_oficial: 'https://evil.example/x' })]))).toThrow(/site oficial/);
     expect(() => parsePreviewSnapshot(snap([act({ source_item_id: 'series:x:wed:1030', titulo: 'X', horario: ['10:00', '11:00'] })]))).toThrow(/uniforme/);
   });
 });
@@ -117,9 +119,32 @@ describe('planFromSnapshot', () => {
     expect(ds.items).toHaveLength(2);
   });
 
-  it('guarda de dados pessoais: e-mail ou telefone num campo copiado falha', () => {
-    expect(() => planFromSnapshot(snap([act({ source_item_id: 'series:a:wed:1030', titulo: 'A', custo: 'ring 020 8876 0000' })]), '2026-11-26')).toThrow(/dados pessoais/);
-    expect(() => planFromSnapshot(snap([act({ source_item_id: 'series:a:wed:1030', titulo: 'A', publico_alvo: ['email x@y.org'] })]), '2026-11-26')).toThrow(/dados pessoais/);
+  it('guarda de dados pessoais: e-mail ou telefone (britânico ou internacional) num campo gravado falha', () => {
+    expect(() => planFromSnapshot(snap([act({ source_item_id: 'series:a:wed:1030', titulo: 'Call 020 8876 0000' })]), '2026-11-26')).toThrow(/dados pessoais/);
+    expect(() => planFromSnapshot(snap([act({ source_item_id: 'series:a:wed:1030', titulo: 'A', local: { nome: 'Hall +33 1 23 45 67 89', morada: null, codigo_postal: null } })]), '2026-11-26')).toThrow(/dados pessoais/);
+    expect(() => planFromSnapshot(snap([act({ source_item_id: 'series:a:wed:1030', titulo: 'A', categorias: ['x@y.org'] })]), '2026-11-26')).toThrow(/dados pessoais/);
+  });
+
+  it('as frases da fonte (público, evidência, preço) nunca são gravadas; só etiquetas e valores (Codex r0, achado 1)', () => {
+    const p = planFromSnapshot(snap([act({
+      source_item_id: 'series:a:wed:1030', titulo: 'A',
+      publico_alvo: ['Jane Smith says everyone welcome!', 'Ask Bob about the weekly quiz'],
+      evidencia_60plus: 'Run by Jane Smith for older people',
+      custo: 'Our weekly Talk by Jane Smith, followed by an optional hot lunch (£8.00) provided by Age UK.',
+    })]), '2026-11-26');
+    const json = JSON.stringify(p.items[0]);
+    expect(json).not.toMatch(/Jane|Smith|Bob|quiz/);
+    expect(p.items[0]!.price_text).toBe('£8.00 (lunch)');
+    expect(p.items[0]!.raw_payload['audience_tags']).toEqual(['open_to_all', 'other_audience_text']);
+    expect(p.items[0]!.raw_payload['explicit_older_level']).toBe('older_no_age');
+    expect(p.proposals[0]!.classification).toBe('likely_suitable');
+    expect(JSON.stringify(p.proposals[0])).not.toMatch(/Jane|Smith|Bob/);
+  });
+
+  it('título com possível nome de pessoa (não fundido) fica fora e o título não é repetido', () => {
+    const p = planFromSnapshot(snap([act({ source_item_id: 'series:talk-jane:tue:1100', titulo: 'Talk with Jane Smith', categorias: ['Talks'], titulo_pode_ter_nome_de_pessoa: true })]), '2026-11-26');
+    expect(p.items).toHaveLength(0);
+    expect(JSON.stringify(p.held)).not.toMatch(/Jane/);
   });
 });
 
