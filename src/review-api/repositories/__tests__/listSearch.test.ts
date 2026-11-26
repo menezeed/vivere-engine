@@ -107,7 +107,7 @@ describe('filtro de elegibilidade no servidor (Issue #62)', () => {
     const { db, calls } = fakeDb({ data: [], count: 0 });
     await new ActivityReviewRepository(db).list({ source_item_ids: { mode: 'not_in', ...F } });
     expect(calls).toContainEqual(['or',
-      'source_key.neq."u3a_richmond",source_item_id.not.in.("group:1","event:2"),external_url.not.in.("https://x.uk/g1/","https://x.uk/e2/")',
+      'source_key.neq."u3a_richmond",source_item_id.not.in.("group:1","event:2"),external_url.is.null,external_url.not.in.("https://x.uk/g1/","https://x.uk/e2/")',
       { referencedTable: 'raw_activity_items' }]);
     expect(calls.some(([m]) => m === 'not')).toBe(false);
   });
