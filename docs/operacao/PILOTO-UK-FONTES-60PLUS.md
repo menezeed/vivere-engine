@@ -257,3 +257,15 @@ Relatórios transcritos em `C:\Projects\Vivere\reviews\2026-11-26-UK-62-65-r0.md
   - apaga só o que é da FiSH, por esta ordem: `activities_staging` → `raw_activity_items` → `ingestion_runs` e, opcionalmente, `sources`;
   - recusa se houver revisão humana, Entity Resolution, uma run em curso ou venues FiSH.
 - As verificações foram validadas por leitura no staging (todas a 0) e as colunas confirmadas no catálogo.
+
+**4.ª revisão do Codex** (ronda 3, autorizada pelo PO, só leitura; cópia `e940ffb`): veredicto ALTERAÇÕES, com 5 achados. Todos foram confirmados e corrigidos com testes; **não foram re-revistos** (uma 5.ª ronda precisa do PO).
+
+| # | Achado | Correcção |
+|---|---|---|
+| 1 | ALTO: o rollback (e o seed) não identificavam o projecto | Exigem o marcador do staging: a primeira run u3a do piloto, com id e hora exactos, que só existe ali. Validado por leitura |
+| 2 | ALTO: corrida entre a avaliação e o DELETE do rollback | `LOCK` das três tabelas em SHARE ROW EXCLUSIVE. Os DELETE repetem as condições e comparam as contagens com as avaliadas; qualquer diferença aborta |
+| 3 | MÉDIO: o rollback apagava pela fonte e não pelo produto | O alvo passa a ser fonte FiSH **e** produto do piloto. Recusa se houver raw FiSH noutro produto, runs FiSH com venues ou items de outra fonte |
+| 4 | ALTO: telefones em grupos 2-4-4 nos slugs; `reserva` sem validação | O detector soma grupos numéricos consecutivos. `reserva`, os booleanos, as listas e o custo são validados em runtime |
+| 5 | MÉDIO: Parkinson e AVC rotulados como perda de memória; "carers of people with dementia" dado como ambos | O badge só aparece para demência ou perda de memória (Parkinson e AVC continuam `unclear`, sem badge). "Carers of…" passa a cuidador |
+
+Os rótulos reais não mudam: Picassos e Singing for the Brain → ambos; Retro Club → pessoa com perda de memória.

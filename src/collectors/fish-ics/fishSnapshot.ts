@@ -88,11 +88,15 @@ export type RestrictedAudience = Pick<AudienceRestriction, 'condition' | 'target
 
 export function restrictedAudience(snippets: readonly string[]): RestrictedAudience | null {
   const text = snippets.join(' ');
-  if (!RESTRICTED_AUDIENCE.test(text)) return null;
-  const condition: RestrictedAudience['condition'] = /\b(dementia|alzheimer'?s)\b/i.test(text) ? 'dementia' : 'memory_loss';
-  const carer = /\bcarers?\b/i.test(text);
-  const person = /\b(people|person|those|anyone|someone)\b[^.]*\b(living with|with|who have)\b/i.test(text);
-  const target: RestrictedAudience['target'] = carer && person ? 'both' : carer ? 'carer' : 'person';
+  // Só as condições suportadas pelo badge (Codex r3, achado 5). Parkinson ou
+  // AVC continuam a dar proposta unclear (RESTRICTED_AUDIENCE), mas sem badge.
+  const condition: RestrictedAudience['condition'] | null =
+    /\b(dementia|alzheimer'?s)\b/i.test(text) ? 'dementia' : /\bmemory loss\b/i.test(text) ? 'memory_loss' : null;
+  if (!condition) return null;
+  // Destinatário ≠ pessoa mencionada: "carers of people with dementia" é para cuidadores.
+  const both = /\b(people|person|those|anyone|someone)\b[^.]*?\b(living with|with|who have)\b[^.]*?\b(and|&)\s+(their\s+|his\s+|her\s+)?carers?\b/i.test(text);
+  const carerOnly = !both && /\bcarers?\b/i.test(text);
+  const target: RestrictedAudience['target'] = both ? 'both' : carerOnly ? 'carer' : 'person';
   return { condition, target };
 }
 
@@ -137,6 +141,13 @@ export function parsePreviewSnapshot(json: unknown): PreviewSnapshot {
     if (!a.titulo?.trim()) throw new Error(`snapshot: título vazio (${a.source_item_id})`);
     if (!a.datas.every(d => /^\d{4}-\d{2}-\d{2}$/.test(d))) throw new Error(`snapshot: data inválida (${a.source_item_id})`);
     if (a.horario.length !== 1) throw new Error(`snapshot: horário não uniforme na série (${a.source_item_id})`);
+    // Campos enumerados/booleanos/listas validados em runtime (Codex r3, achado 4).
+    if (!a.inscricao || !BOOKING.includes(a.inscricao.reserva)) throw new Error(`snapshot: reserva inválida (${a.source_item_id})`);
+    if (typeof a.inscricao.transporte_disponivel !== 'boolean' || typeof a.gratuito_declarado !== 'boolean'
+      || typeof a.local_varia_entre_ocorrencias !== 'boolean') throw new Error(`snapshot: booleano inválido (${a.source_item_id})`);
+    if (!Array.isArray(a.categorias) || !a.categorias.every(c => typeof c === 'string')
+      || !Array.isArray(a.publico_alvo) || !a.publico_alvo.every(c => typeof c === 'string')) throw new Error(`snapshot: listas inválidas (${a.source_item_id})`);
+    if (a.custo !== null && typeof a.custo !== 'string') throw new Error(`snapshot: custo inválido (${a.source_item_id})`);
     // Todos os URLs que podem ser gravados, incluindo o de recurso (Codex r0, achado 5),
     // com forma estrita: sem query, fragmento, credenciais nem conteúdo codificado (r1, achado 1).
     for (const u of [...a.urls_ocorrencias, ...(a.url_oficial === null ? [] : [a.url_oficial])]) {
@@ -165,8 +176,17 @@ const UK_POSTCODE = /^[A-Z]{1,2}\d[A-Z\d]? \d[A-Z]{2}$/;
  * ("-2-2-2") têm grupos de 1 dígito e não contam.
  */
 export function slugLooksLikePhone(slug: string): boolean {
-  return /(?:^|-)\d{3,5}(?:-\d{3,5}){1,3}(?:-|$)|\d{9,}/.test(slug);
+  // Grupos numéricos consecutivos (2+ dígitos cada) que somam 9+ dígitos:
+  // apanha 3-4-4, 2-4-4, 5-6… (Codex r3, achado 4). Sufixos "-2-2-2" do
+  // WordPress (grupos de 1 dígito) não contam.
+  let run = 0;
+  for (const tok of slug.split('-')) {
+    if (/^\d{2,}$/.test(tok)) { run += tok.length; if (run >= 9) return true; } else run = 0;
+  }
+  return /\d{9,}/.test(slug);
 }
+
+const BOOKING: readonly unknown[] = [null, 'booking_essential', 'booking_advisable', 'drop_in'];
 
 /** https://www.fishhelp.org.uk/event/<slug>/[<AAAA-MM-DD>/] — nada mais. */
 const EVENT_URL = /^https:\/\/www\.fishhelp\.org\.uk\/event\/[a-z0-9-]{1,120}\/(\d{4}-\d{2}-\d{2}\/)?$/;

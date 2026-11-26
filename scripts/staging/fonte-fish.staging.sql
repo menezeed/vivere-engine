@@ -27,6 +27,16 @@ begin
   if v_confirm is distinct from 'staging' then
     raise exception 'RECUSA: v_confirm tem de ser staging (confirmar o projecto no URL do Dashboard)';
   end if;
+  -- Marcador do staging (Codex r3, achado 1): a primeira run da u3a do piloto,
+  -- que só existe neste projecto.
+  if not exists (
+    select 1 from staging.ingestion_runs r
+    where r.id = 'd2fcdb9e-bb12-4cd3-8bda-f92836d4ee90'
+      and r.source_key = 'u3a_richmond'
+      and r.started_at = '2026-11-26 10:25:06.953671+00'
+  ) then
+    raise exception 'RECUSA: marcador do staging ausente — este não é o projecto de staging do piloto UK';
+  end if;
   if not exists (select 1 from public.products p where p.product_key in ('vivere-60-plus-uk-test')) then
     raise exception 'RECUSA: produto vivere-60-plus-uk-test não existe neste projecto';
   end if;

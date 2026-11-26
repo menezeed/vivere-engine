@@ -13,7 +13,10 @@ describe('restrictedAudience (colector FiSH)', () => {
     [['For people living with early stage dementia and their carers.'], { condition: 'dementia', target: 'both' }],
     [['An opportunity for people with dementia and their carers to meet others and sing.'], { condition: 'dementia', target: 'both' }],
     [['An opportunity for people living with memory loss in East Sheen to meet each other.'], { condition: 'memory_loss', target: 'person' }],
-    [['A support group for carers of someone with dementia.'], { condition: 'dementia', target: 'both' }],
+    [['A support group for carers of someone with dementia.'], { condition: 'dementia', target: 'carer' }],
+    [['Carers of people with dementia welcome'], { condition: 'dementia', target: 'carer' }],
+    [["For people living with Parkinson's and their carers"], null],
+    [['For people who have had a stroke'], null],
     [['Support for carers looking after loved ones with dementia'], { condition: 'dementia', target: 'carer' }],
     [['Everyone welcome!'], null],
   ])('%j → %j', (snippets, expected) => {

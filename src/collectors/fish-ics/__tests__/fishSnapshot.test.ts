@@ -68,6 +68,12 @@ describe('parsePreviewSnapshot', () => {
     expect(() => parsePreviewSnapshot(snap([act({ source_item_id: 'series:x:wed:1030', titulo: 'X', fuso: 'x@y.org' })]))).toThrow(/fuso/);
     expect(() => parsePreviewSnapshot(snap([act({ source_item_id: 'series:x:wed:1030', titulo: 'X', local: { nome: 'Hall', morada: null, codigo_postal: 'x@y.org' } })]))).toThrow(/código postal/);
     expect(slugLooksLikePhone('board-games-2-2-2-2-2-2-2-2-2-2-2')).toBe(false);
+    expect(slugLooksLikePhone('christmas-lunch-2026')).toBe(false);
+    for (const p of ['ring-20-8876-0000', 'call-020-8876-0000', 'tel-07700-900123', 'x-447700900123']) expect(slugLooksLikePhone(p), p).toBe(true);
+    // Reserva e outros campos validados em runtime (Codex r3, achado 4).
+    expect(() => parsePreviewSnapshot(snap([act({ source_item_id: 'series:x:wed:1030', titulo: 'X', inscricao: { reserva: 'call 020 8876 0000' as never, transporte_disponivel: false } })]))).toThrow(/reserva/);
+    expect(() => parsePreviewSnapshot(snap([act({ source_item_id: 'series:x:wed:1030', titulo: 'X', gratuito_declarado: 'x@y.org' as never })]))).toThrow(/booleano/);
+    expect(() => parsePreviewSnapshot(snap([act({ source_item_id: 'series:x:wed:1030', titulo: 'X', publico_alvo: [42 as never] })]))).toThrow(/listas/);
     // URL de recurso também é validado (Codex r0, achado 5)
     expect(() => parsePreviewSnapshot(snap([act({ source_item_id: 'series:x:wed:1030', titulo: 'X', urls_ocorrencias: [], url_oficial: 'https://evil.example/x' })]))).toThrow(/site oficial/);
     expect(() => parsePreviewSnapshot(snap([act({ source_item_id: 'series:x:wed:1030', titulo: 'X', horario: ['10:00', '11:00'] })]))).toThrow(/uniforme/);
