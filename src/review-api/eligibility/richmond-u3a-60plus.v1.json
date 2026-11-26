@@ -66,7 +66,8 @@
       "access_notes": null,
       "schedule_complete_in_source": true,
       "generic_venue": true,
-      "recommendation": "Manter em pending_review (hold, decisão do PO)."
+      "recommendation": "Manter em pending_review (hold, decisão do PO).",
+      "human_review_notes": []
     },
     {
       "source_item_id": "group:187",
@@ -86,7 +87,8 @@
       "access_notes": null,
       "schedule_complete_in_source": false,
       "generic_venue": false,
-      "recommendation": "Fora de publicação."
+      "recommendation": "Fora de publicação.",
+      "human_review_notes": []
     },
     {
       "source_item_id": "group:194",
@@ -106,7 +108,8 @@
       "access_notes": null,
       "schedule_complete_in_source": true,
       "generic_venue": false,
-      "recommendation": "Manter em pending_review (hold, decisão do PO). Indicar a lista de espera."
+      "recommendation": "Manter em pending_review (hold, decisão do PO). Indicar a lista de espera.",
+      "human_review_notes": []
     },
     {
       "source_item_id": "group:198",
@@ -126,7 +129,8 @@
       "access_notes": null,
       "schedule_complete_in_source": true,
       "generic_venue": false,
-      "recommendation": "Manter em pending_review (hold, decisão do PO)."
+      "recommendation": "Manter em pending_review (hold, decisão do PO).",
+      "human_review_notes": []
     },
     {
       "source_item_id": "group:203",
@@ -146,7 +150,8 @@
       "access_notes": null,
       "schedule_complete_in_source": true,
       "generic_venue": false,
-      "recommendation": "Manter em pending_review (hold, decisão do PO)."
+      "recommendation": "Manter em pending_review (hold, decisão do PO).",
+      "human_review_notes": []
     },
     {
       "source_item_id": "group:208",
@@ -169,7 +174,8 @@
       "access_notes": null,
       "schedule_complete_in_source": true,
       "generic_venue": false,
-      "recommendation": "Manter em pending_review (hold, decisão do PO)."
+      "recommendation": "Manter em pending_review (hold, decisão do PO).",
+      "human_review_notes": []
     },
     {
       "source_item_id": "group:210",
@@ -191,7 +197,8 @@
       "access_notes": null,
       "schedule_complete_in_source": true,
       "generic_venue": false,
-      "recommendation": "Manter em pending_review (hold, decisão do PO)."
+      "recommendation": "Manter em pending_review (hold, decisão do PO).",
+      "human_review_notes": []
     },
     {
       "source_item_id": "group:212",
@@ -213,7 +220,8 @@
       "access_notes": null,
       "schedule_complete_in_source": true,
       "generic_venue": false,
-      "recommendation": "Manter em pending_review (hold, decisão do PO)."
+      "recommendation": "Manter em pending_review (hold, decisão do PO).",
+      "human_review_notes": []
     },
     {
       "source_item_id": "group:214",
@@ -237,7 +245,8 @@
       "access_notes": null,
       "schedule_complete_in_source": true,
       "generic_venue": false,
-      "recommendation": "Manter em pending_review (hold, decisão do PO)."
+      "recommendation": "Manter em pending_review (hold, decisão do PO).",
+      "human_review_notes": []
     },
     {
       "source_item_id": "group:218",
@@ -257,7 +266,8 @@
       "access_notes": null,
       "schedule_complete_in_source": true,
       "generic_venue": true,
-      "recommendation": "Manter em pending_review (hold, decisão do PO). Indicar a lista de espera."
+      "recommendation": "Manter em pending_review (hold, decisão do PO). Indicar a lista de espera.",
+      "human_review_notes": []
     },
     {
       "source_item_id": "group:220",
@@ -277,7 +287,8 @@
       "access_notes": null,
       "schedule_complete_in_source": true,
       "generic_venue": false,
-      "recommendation": "Manter em pending_review (hold, decisão do PO)."
+      "recommendation": "Manter em pending_review (hold, decisão do PO).",
+      "human_review_notes": []
     },
     {
       "source_item_id": "group:222",
@@ -297,7 +308,8 @@
       "access_notes": null,
       "schedule_complete_in_source": true,
       "generic_venue": false,
-      "recommendation": "Manter em pending_review (hold, decisão do PO). Indicar a lista de espera."
+      "recommendation": "Manter em pending_review (hold, decisão do PO). Indicar a lista de espera.",
+      "human_review_notes": []
     },
     {
       "source_item_id": "group:225",
@@ -317,7 +329,8 @@
       "access_notes": null,
       "schedule_complete_in_source": true,
       "generic_venue": false,
-      "recommendation": "Manter em pending_review (hold, decisão do PO)."
+      "recommendation": "Manter em pending_review (hold, decisão do PO).",
+      "human_review_notes": []
     },
     {
       "source_item_id": "group:227",
@@ -337,7 +350,8 @@
       "access_notes": null,
       "schedule_complete_in_source": true,
       "generic_venue": false,
-      "recommendation": "Manter em pending_review (hold, decisão do PO). Indicar a lista de espera."
+      "recommendation": "Manter em pending_review (hold, decisão do PO). Indicar a lista de espera.",
+      "human_review_notes": []
     },
     {
       "source_item_id": "group:230",
@@ -357,7 +371,8 @@
       "access_notes": null,
       "schedule_complete_in_source": true,
       "generic_venue": true,
-      "recommendation": "Manter em pending_review (hold, decisão do PO)."
+      "recommendation": "Manter em pending_review (hold, decisão do PO).",
+      "human_review_notes": []
     },
     {
       "source_item_id": "group:232",
@@ -377,7 +392,8 @@
       "access_notes": null,
       "schedule_complete_in_source": true,
       "generic_venue": true,
-      "recommendation": "Manter em pending_review (hold, decisão do PO). Indicar a lista de espera."
+      "recommendation": "Manter em pending_review (hold, decisão do PO). Indicar a lista de espera.",
+      "human_review_notes": []
     },
     {
       "source_item_id": "group:236",
@@ -399,7 +415,8 @@
       "access_notes": null,
       "schedule_complete_in_source": true,
       "generic_venue": false,
-      "recommendation": "Manter em pending_review (hold, decisão do PO)."
+      "recommendation": "Manter em pending_review (hold, decisão do PO).",
+      "human_review_notes": []
     },
     {
       "source_item_id": "group:240",
@@ -421,7 +438,8 @@
       "access_notes": "A página refere um parque de estacionamento grande junto à igreja.",
       "schedule_complete_in_source": true,
       "generic_venue": false,
-      "recommendation": "Manter em pending_review (hold, decisão do PO)."
+      "recommendation": "Manter em pending_review (hold, decisão do PO).",
+      "human_review_notes": []
     },
     {
       "source_item_id": "group:242",
@@ -441,7 +459,8 @@
       "access_notes": null,
       "schedule_complete_in_source": false,
       "generic_venue": false,
-      "recommendation": "Manter em pending_review (hold, decisão do PO). Confirmar o horário antes de qualquer agenda."
+      "recommendation": "Manter em pending_review (hold, decisão do PO). Confirmar o horário antes de qualquer agenda.",
+      "human_review_notes": []
     },
     {
       "source_item_id": "group:260",
@@ -461,7 +480,8 @@
       "access_notes": null,
       "schedule_complete_in_source": true,
       "generic_venue": false,
-      "recommendation": "Manter em pending_review (hold, decisão do PO). Indicar a lista de espera."
+      "recommendation": "Manter em pending_review (hold, decisão do PO). Indicar a lista de espera.",
+      "human_review_notes": []
     },
     {
       "source_item_id": "group:263",
@@ -481,7 +501,8 @@
       "access_notes": null,
       "schedule_complete_in_source": true,
       "generic_venue": false,
-      "recommendation": "Manter em pending_review (hold, decisão do PO)."
+      "recommendation": "Manter em pending_review (hold, decisão do PO).",
+      "human_review_notes": []
     },
     {
       "source_item_id": "group:264",
@@ -501,7 +522,8 @@
       "access_notes": null,
       "schedule_complete_in_source": false,
       "generic_venue": false,
-      "recommendation": "Manter em pending_review (hold, decisão do PO). Confirmar o horário antes de qualquer agenda."
+      "recommendation": "Manter em pending_review (hold, decisão do PO). Confirmar o horário antes de qualquer agenda.",
+      "human_review_notes": []
     },
     {
       "source_item_id": "group:267",
@@ -521,7 +543,8 @@
       "access_notes": null,
       "schedule_complete_in_source": true,
       "generic_venue": true,
-      "recommendation": "Manter em pending_review (hold, decisão do PO)."
+      "recommendation": "Manter em pending_review (hold, decisão do PO).",
+      "human_review_notes": []
     },
     {
       "source_item_id": "group:268",
@@ -541,7 +564,8 @@
       "access_notes": null,
       "schedule_complete_in_source": true,
       "generic_venue": false,
-      "recommendation": "Manter em pending_review (hold, decisão do PO)."
+      "recommendation": "Manter em pending_review (hold, decisão do PO).",
+      "human_review_notes": []
     },
     {
       "source_item_id": "group:270",
@@ -561,7 +585,10 @@
       "access_notes": "Exercício sentado; a página refere aptidão para pessoas com deficiência.",
       "schedule_complete_in_source": true,
       "generic_venue": false,
-      "recommendation": "Manter em pending_review; primeira candidata à revisão humana. Indicar a lista de espera."
+      "recommendation": "Manter em pending_review; primeira candidata à revisão humana. Indicar a lista de espera.",
+      "human_review_notes": [
+        "Actividade física não marcada: o relatório classificou esse campo pelo título e pela categoria (Social), mas a actividade é exercício sentado. Confirmar em revisão humana antes de qualquer decisão; a classificação 60+ não foi alterada."
+      ]
     },
     {
       "source_item_id": "group:272",
@@ -581,7 +608,8 @@
       "access_notes": null,
       "schedule_complete_in_source": true,
       "generic_venue": false,
-      "recommendation": "Manter em pending_review (hold, decisão do PO). Indicar a lista de espera."
+      "recommendation": "Manter em pending_review (hold, decisão do PO). Indicar a lista de espera.",
+      "human_review_notes": []
     },
     {
       "source_item_id": "group:276",
@@ -603,7 +631,8 @@
       "access_notes": null,
       "schedule_complete_in_source": true,
       "generic_venue": false,
-      "recommendation": "Manter em pending_review (hold, decisão do PO). Indicar a lista de espera."
+      "recommendation": "Manter em pending_review (hold, decisão do PO). Indicar a lista de espera.",
+      "human_review_notes": []
     },
     {
       "source_item_id": "group:277",
@@ -625,7 +654,8 @@
       "access_notes": null,
       "schedule_complete_in_source": true,
       "generic_venue": false,
-      "recommendation": "Manter em pending_review (hold, decisão do PO)."
+      "recommendation": "Manter em pending_review (hold, decisão do PO).",
+      "human_review_notes": []
     },
     {
       "source_item_id": "group:279",
@@ -645,7 +675,8 @@
       "access_notes": null,
       "schedule_complete_in_source": true,
       "generic_venue": false,
-      "recommendation": "Manter em pending_review (hold, decisão do PO). Não divulgar como aberta."
+      "recommendation": "Manter em pending_review (hold, decisão do PO). Não divulgar como aberta.",
+      "human_review_notes": []
     },
     {
       "source_item_id": "group:281",
@@ -665,7 +696,8 @@
       "access_notes": null,
       "schedule_complete_in_source": true,
       "generic_venue": true,
-      "recommendation": "Manter em pending_review (hold, decisão do PO). Indicar a lista de espera."
+      "recommendation": "Manter em pending_review (hold, decisão do PO). Indicar a lista de espera.",
+      "human_review_notes": []
     },
     {
       "source_item_id": "group:283",
@@ -688,7 +720,8 @@
       "access_notes": null,
       "schedule_complete_in_source": true,
       "generic_venue": false,
-      "recommendation": "Manter em pending_review (hold, decisão do PO). Indicar a lista de espera."
+      "recommendation": "Manter em pending_review (hold, decisão do PO). Indicar a lista de espera.",
+      "human_review_notes": []
     },
     {
       "source_item_id": "group:285",
@@ -708,7 +741,8 @@
       "access_notes": null,
       "schedule_complete_in_source": true,
       "generic_venue": false,
-      "recommendation": "Manter em pending_review (hold, decisão do PO). Indicar a lista de espera."
+      "recommendation": "Manter em pending_review (hold, decisão do PO). Indicar a lista de espera.",
+      "human_review_notes": []
     },
     {
       "source_item_id": "group:286",
@@ -730,7 +764,8 @@
       "access_notes": null,
       "schedule_complete_in_source": true,
       "generic_venue": false,
-      "recommendation": "Manter em pending_review (hold, decisão do PO)."
+      "recommendation": "Manter em pending_review (hold, decisão do PO).",
+      "human_review_notes": []
     },
     {
       "source_item_id": "group:288",
@@ -750,7 +785,8 @@
       "access_notes": null,
       "schedule_complete_in_source": true,
       "generic_venue": false,
-      "recommendation": "Manter em pending_review (hold, decisão do PO). Indicar a lista de espera."
+      "recommendation": "Manter em pending_review (hold, decisão do PO). Indicar a lista de espera.",
+      "human_review_notes": []
     },
     {
       "source_item_id": "group:292",
@@ -772,7 +808,8 @@
       "access_notes": null,
       "schedule_complete_in_source": true,
       "generic_venue": false,
-      "recommendation": "Manter em pending_review (hold, decisão do PO)."
+      "recommendation": "Manter em pending_review (hold, decisão do PO).",
+      "human_review_notes": []
     },
     {
       "source_item_id": "group:295",
@@ -794,7 +831,8 @@
       "access_notes": null,
       "schedule_complete_in_source": true,
       "generic_venue": false,
-      "recommendation": "Manter em pending_review (hold, decisão do PO)."
+      "recommendation": "Manter em pending_review (hold, decisão do PO).",
+      "human_review_notes": []
     },
     {
       "source_item_id": "group:301",
@@ -814,7 +852,8 @@
       "access_notes": null,
       "schedule_complete_in_source": true,
       "generic_venue": false,
-      "recommendation": "Manter em pending_review (hold, decisão do PO)."
+      "recommendation": "Manter em pending_review (hold, decisão do PO).",
+      "human_review_notes": []
     },
     {
       "source_item_id": "group:304",
@@ -834,7 +873,8 @@
       "access_notes": null,
       "schedule_complete_in_source": true,
       "generic_venue": false,
-      "recommendation": "Manter em pending_review (hold, decisão do PO)."
+      "recommendation": "Manter em pending_review (hold, decisão do PO).",
+      "human_review_notes": []
     },
     {
       "source_item_id": "group:308",
@@ -857,7 +897,8 @@
       "access_notes": null,
       "schedule_complete_in_source": false,
       "generic_venue": false,
-      "recommendation": "Manter em pending_review (hold, decisão do PO). Confirmar o horário antes de qualquer agenda."
+      "recommendation": "Manter em pending_review (hold, decisão do PO). Confirmar o horário antes de qualquer agenda.",
+      "human_review_notes": []
     },
     {
       "source_item_id": "group:309",
@@ -880,7 +921,8 @@
       "access_notes": null,
       "schedule_complete_in_source": true,
       "generic_venue": false,
-      "recommendation": "Manter em pending_review (hold, decisão do PO). Indicar a lista de espera."
+      "recommendation": "Manter em pending_review (hold, decisão do PO). Indicar a lista de espera.",
+      "human_review_notes": []
     },
     {
       "source_item_id": "group:312",
@@ -903,7 +945,8 @@
       "access_notes": null,
       "schedule_complete_in_source": true,
       "generic_venue": false,
-      "recommendation": "Manter em pending_review (hold, decisão do PO). Indicar a lista de espera."
+      "recommendation": "Manter em pending_review (hold, decisão do PO). Indicar a lista de espera.",
+      "human_review_notes": []
     },
     {
       "source_item_id": "group:314",
@@ -923,7 +966,8 @@
       "access_notes": null,
       "schedule_complete_in_source": true,
       "generic_venue": false,
-      "recommendation": "Manter em pending_review (hold, decisão do PO)."
+      "recommendation": "Manter em pending_review (hold, decisão do PO).",
+      "human_review_notes": []
     },
     {
       "source_item_id": "group:316",
@@ -945,7 +989,8 @@
       "access_notes": null,
       "schedule_complete_in_source": true,
       "generic_venue": true,
-      "recommendation": "Manter em pending_review (hold, decisão do PO)."
+      "recommendation": "Manter em pending_review (hold, decisão do PO).",
+      "human_review_notes": []
     },
     {
       "source_item_id": "group:318",
@@ -967,7 +1012,8 @@
       "access_notes": null,
       "schedule_complete_in_source": true,
       "generic_venue": false,
-      "recommendation": "Manter em pending_review (hold, decisão do PO)."
+      "recommendation": "Manter em pending_review (hold, decisão do PO).",
+      "human_review_notes": []
     },
     {
       "source_item_id": "group:320",
@@ -989,7 +1035,8 @@
       "access_notes": null,
       "schedule_complete_in_source": true,
       "generic_venue": false,
-      "recommendation": "Manter em pending_review (hold, decisão do PO). Não divulgar como aberta."
+      "recommendation": "Manter em pending_review (hold, decisão do PO). Não divulgar como aberta.",
+      "human_review_notes": []
     },
     {
       "source_item_id": "group:322",
@@ -1009,7 +1056,8 @@
       "access_notes": null,
       "schedule_complete_in_source": true,
       "generic_venue": false,
-      "recommendation": "Manter em pending_review (hold, decisão do PO)."
+      "recommendation": "Manter em pending_review (hold, decisão do PO).",
+      "human_review_notes": []
     },
     {
       "source_item_id": "group:326",
@@ -1031,7 +1079,8 @@
       "access_notes": null,
       "schedule_complete_in_source": true,
       "generic_venue": false,
-      "recommendation": "Manter em pending_review (hold, decisão do PO)."
+      "recommendation": "Manter em pending_review (hold, decisão do PO).",
+      "human_review_notes": []
     },
     {
       "source_item_id": "group:328",
@@ -1053,7 +1102,8 @@
       "access_notes": null,
       "schedule_complete_in_source": true,
       "generic_venue": false,
-      "recommendation": "Manter em pending_review (hold, decisão do PO)."
+      "recommendation": "Manter em pending_review (hold, decisão do PO).",
+      "human_review_notes": []
     },
     {
       "source_item_id": "group:334",
@@ -1073,7 +1123,8 @@
       "access_notes": null,
       "schedule_complete_in_source": false,
       "generic_venue": false,
-      "recommendation": "Manter em pending_review (hold, decisão do PO). Confirmar o horário antes de qualquer agenda."
+      "recommendation": "Manter em pending_review (hold, decisão do PO). Confirmar o horário antes de qualquer agenda.",
+      "human_review_notes": []
     },
     {
       "source_item_id": "group:335",
@@ -1095,7 +1146,8 @@
       "access_notes": null,
       "schedule_complete_in_source": true,
       "generic_venue": false,
-      "recommendation": "Manter em pending_review (hold, decisão do PO). Indicar a lista de espera."
+      "recommendation": "Manter em pending_review (hold, decisão do PO). Indicar a lista de espera.",
+      "human_review_notes": []
     },
     {
       "source_item_id": "group:340",
@@ -1115,7 +1167,8 @@
       "access_notes": null,
       "schedule_complete_in_source": true,
       "generic_venue": false,
-      "recommendation": "Manter em pending_review (hold, decisão do PO)."
+      "recommendation": "Manter em pending_review (hold, decisão do PO).",
+      "human_review_notes": []
     },
     {
       "source_item_id": "group:345",
@@ -1138,7 +1191,8 @@
       "access_notes": null,
       "schedule_complete_in_source": true,
       "generic_venue": false,
-      "recommendation": "Manter em pending_review (hold, decisão do PO)."
+      "recommendation": "Manter em pending_review (hold, decisão do PO).",
+      "human_review_notes": []
     },
     {
       "source_item_id": "group:347",
@@ -1158,7 +1212,8 @@
       "access_notes": null,
       "schedule_complete_in_source": true,
       "generic_venue": false,
-      "recommendation": "Manter em pending_review (hold, decisão do PO)."
+      "recommendation": "Manter em pending_review (hold, decisão do PO).",
+      "human_review_notes": []
     },
     {
       "source_item_id": "group:348",
@@ -1178,7 +1233,8 @@
       "access_notes": null,
       "schedule_complete_in_source": true,
       "generic_venue": false,
-      "recommendation": "Manter em pending_review (hold, decisão do PO)."
+      "recommendation": "Manter em pending_review (hold, decisão do PO).",
+      "human_review_notes": []
     },
     {
       "source_item_id": "group:350",
@@ -1200,7 +1256,8 @@
       "access_notes": null,
       "schedule_complete_in_source": false,
       "generic_venue": false,
-      "recommendation": "Manter em pending_review (hold, decisão do PO). Confirmar o horário antes de qualquer agenda."
+      "recommendation": "Manter em pending_review (hold, decisão do PO). Confirmar o horário antes de qualquer agenda.",
+      "human_review_notes": []
     },
     {
       "source_item_id": "group:352",
@@ -1220,7 +1277,8 @@
       "access_notes": null,
       "schedule_complete_in_source": true,
       "generic_venue": false,
-      "recommendation": "Manter em pending_review (hold, decisão do PO)."
+      "recommendation": "Manter em pending_review (hold, decisão do PO).",
+      "human_review_notes": []
     },
     {
       "source_item_id": "group:356",
@@ -1240,7 +1298,8 @@
       "access_notes": null,
       "schedule_complete_in_source": true,
       "generic_venue": false,
-      "recommendation": "Manter em pending_review (hold, decisão do PO)."
+      "recommendation": "Manter em pending_review (hold, decisão do PO).",
+      "human_review_notes": []
     },
     {
       "source_item_id": "group:358",
@@ -1260,7 +1319,8 @@
       "access_notes": null,
       "schedule_complete_in_source": true,
       "generic_venue": false,
-      "recommendation": "Manter em pending_review (hold, decisão do PO). Não divulgar como aberta."
+      "recommendation": "Manter em pending_review (hold, decisão do PO). Não divulgar como aberta.",
+      "human_review_notes": []
     },
     {
       "source_item_id": "group:361",
@@ -1280,7 +1340,8 @@
       "access_notes": null,
       "schedule_complete_in_source": true,
       "generic_venue": false,
-      "recommendation": "Manter em pending_review (hold, decisão do PO)."
+      "recommendation": "Manter em pending_review (hold, decisão do PO).",
+      "human_review_notes": []
     },
     {
       "source_item_id": "group:363",
@@ -1300,7 +1361,8 @@
       "access_notes": null,
       "schedule_complete_in_source": true,
       "generic_venue": false,
-      "recommendation": "Manter em pending_review (hold, decisão do PO)."
+      "recommendation": "Manter em pending_review (hold, decisão do PO).",
+      "human_review_notes": []
     },
     {
       "source_item_id": "group:365",
@@ -1320,7 +1382,8 @@
       "access_notes": null,
       "schedule_complete_in_source": true,
       "generic_venue": true,
-      "recommendation": "Manter em pending_review (hold, decisão do PO)."
+      "recommendation": "Manter em pending_review (hold, decisão do PO).",
+      "human_review_notes": []
     },
     {
       "source_item_id": "group:366",
@@ -1340,7 +1403,8 @@
       "access_notes": null,
       "schedule_complete_in_source": true,
       "generic_venue": false,
-      "recommendation": "Manter em pending_review (hold, decisão do PO). Indicar a lista de espera."
+      "recommendation": "Manter em pending_review (hold, decisão do PO). Indicar a lista de espera.",
+      "human_review_notes": []
     },
     {
       "source_item_id": "group:367",
@@ -1360,7 +1424,8 @@
       "access_notes": null,
       "schedule_complete_in_source": true,
       "generic_venue": false,
-      "recommendation": "Manter em pending_review (hold, decisão do PO). Indicar a lista de espera."
+      "recommendation": "Manter em pending_review (hold, decisão do PO). Indicar a lista de espera.",
+      "human_review_notes": []
     },
     {
       "source_item_id": "group:369",
@@ -1380,7 +1445,8 @@
       "access_notes": null,
       "schedule_complete_in_source": true,
       "generic_venue": false,
-      "recommendation": "Manter em pending_review (hold, decisão do PO)."
+      "recommendation": "Manter em pending_review (hold, decisão do PO).",
+      "human_review_notes": []
     },
     {
       "source_item_id": "group:373",
@@ -1400,7 +1466,8 @@
       "access_notes": null,
       "schedule_complete_in_source": false,
       "generic_venue": false,
-      "recommendation": "Manter em pending_review (hold, decisão do PO). Indicar a lista de espera. Confirmar o horário antes de qualquer agenda."
+      "recommendation": "Manter em pending_review (hold, decisão do PO). Indicar a lista de espera. Confirmar o horário antes de qualquer agenda.",
+      "human_review_notes": []
     },
     {
       "source_item_id": "group:375",
@@ -1422,7 +1489,8 @@
       "access_notes": null,
       "schedule_complete_in_source": true,
       "generic_venue": false,
-      "recommendation": "Manter em pending_review (hold, decisão do PO)."
+      "recommendation": "Manter em pending_review (hold, decisão do PO).",
+      "human_review_notes": []
     },
     {
       "source_item_id": "group:378",
@@ -1444,7 +1512,8 @@
       "access_notes": null,
       "schedule_complete_in_source": false,
       "generic_venue": false,
-      "recommendation": "Manter em pending_review (hold, decisão do PO). Confirmar o horário antes de qualquer agenda."
+      "recommendation": "Manter em pending_review (hold, decisão do PO). Confirmar o horário antes de qualquer agenda.",
+      "human_review_notes": []
     },
     {
       "source_item_id": "group:381",
@@ -1464,7 +1533,8 @@
       "access_notes": null,
       "schedule_complete_in_source": false,
       "generic_venue": false,
-      "recommendation": "Manter em pending_review (hold, decisão do PO). Confirmar o horário antes de qualquer agenda."
+      "recommendation": "Manter em pending_review (hold, decisão do PO). Confirmar o horário antes de qualquer agenda.",
+      "human_review_notes": []
     },
     {
       "source_item_id": "group:382",
@@ -1484,7 +1554,8 @@
       "access_notes": null,
       "schedule_complete_in_source": true,
       "generic_venue": false,
-      "recommendation": "Manter em pending_review (hold, decisão do PO)."
+      "recommendation": "Manter em pending_review (hold, decisão do PO).",
+      "human_review_notes": []
     },
     {
       "source_item_id": "group:384",
@@ -1504,7 +1575,8 @@
       "access_notes": null,
       "schedule_complete_in_source": true,
       "generic_venue": false,
-      "recommendation": "Manter em pending_review (hold, decisão do PO)."
+      "recommendation": "Manter em pending_review (hold, decisão do PO).",
+      "human_review_notes": []
     },
     {
       "source_item_id": "group:386",
@@ -1524,7 +1596,8 @@
       "access_notes": null,
       "schedule_complete_in_source": true,
       "generic_venue": false,
-      "recommendation": "Manter em pending_review; faltam dados na fonte."
+      "recommendation": "Manter em pending_review; faltam dados na fonte.",
+      "human_review_notes": []
     },
     {
       "source_item_id": "group:392",
@@ -1544,7 +1617,8 @@
       "access_notes": null,
       "schedule_complete_in_source": true,
       "generic_venue": false,
-      "recommendation": "Manter em pending_review (hold, decisão do PO). Indicar a lista de espera."
+      "recommendation": "Manter em pending_review (hold, decisão do PO). Indicar a lista de espera.",
+      "human_review_notes": []
     },
     {
       "source_item_id": "group:394",
@@ -1564,7 +1638,8 @@
       "access_notes": null,
       "schedule_complete_in_source": true,
       "generic_venue": true,
-      "recommendation": "Manter em pending_review (hold, decisão do PO)."
+      "recommendation": "Manter em pending_review (hold, decisão do PO).",
+      "human_review_notes": []
     },
     {
       "source_item_id": "group:395",
@@ -1584,7 +1659,8 @@
       "access_notes": null,
       "schedule_complete_in_source": true,
       "generic_venue": true,
-      "recommendation": "Manter em pending_review (hold, decisão do PO)."
+      "recommendation": "Manter em pending_review (hold, decisão do PO).",
+      "human_review_notes": []
     },
     {
       "source_item_id": "group:396",
@@ -1604,7 +1680,8 @@
       "access_notes": null,
       "schedule_complete_in_source": true,
       "generic_venue": false,
-      "recommendation": "Manter em pending_review (hold, decisão do PO). Indicar a lista de espera."
+      "recommendation": "Manter em pending_review (hold, decisão do PO). Indicar a lista de espera.",
+      "human_review_notes": []
     },
     {
       "source_item_id": "group:397",
@@ -1624,7 +1701,8 @@
       "access_notes": null,
       "schedule_complete_in_source": true,
       "generic_venue": true,
-      "recommendation": "Manter em pending_review (hold, decisão do PO)."
+      "recommendation": "Manter em pending_review (hold, decisão do PO).",
+      "human_review_notes": []
     },
     {
       "source_item_id": "group:398",
@@ -1644,7 +1722,8 @@
       "access_notes": null,
       "schedule_complete_in_source": true,
       "generic_venue": false,
-      "recommendation": "Manter em pending_review (hold, decisão do PO). Indicar a lista de espera."
+      "recommendation": "Manter em pending_review (hold, decisão do PO). Indicar a lista de espera.",
+      "human_review_notes": []
     },
     {
       "source_item_id": "group:400",
@@ -1666,7 +1745,8 @@
       "access_notes": null,
       "schedule_complete_in_source": true,
       "generic_venue": false,
-      "recommendation": "Manter em pending_review (hold, decisão do PO)."
+      "recommendation": "Manter em pending_review (hold, decisão do PO).",
+      "human_review_notes": []
     },
     {
       "source_item_id": "group:406",
@@ -1689,7 +1769,8 @@
       "access_notes": null,
       "schedule_complete_in_source": true,
       "generic_venue": false,
-      "recommendation": "Manter em pending_review (hold, decisão do PO)."
+      "recommendation": "Manter em pending_review (hold, decisão do PO).",
+      "human_review_notes": []
     },
     {
       "source_item_id": "group:408",
@@ -1709,7 +1790,8 @@
       "access_notes": null,
       "schedule_complete_in_source": true,
       "generic_venue": false,
-      "recommendation": "Manter em pending_review (hold, decisão do PO). Indicar a lista de espera."
+      "recommendation": "Manter em pending_review (hold, decisão do PO). Indicar a lista de espera.",
+      "human_review_notes": []
     },
     {
       "source_item_id": "group:410",
@@ -1729,7 +1811,8 @@
       "access_notes": null,
       "schedule_complete_in_source": true,
       "generic_venue": true,
-      "recommendation": "Manter em pending_review (hold, decisão do PO). Não divulgar como aberta."
+      "recommendation": "Manter em pending_review (hold, decisão do PO). Não divulgar como aberta.",
+      "human_review_notes": []
     },
     {
       "source_item_id": "group:412",
@@ -1751,7 +1834,8 @@
       "access_notes": null,
       "schedule_complete_in_source": true,
       "generic_venue": false,
-      "recommendation": "Manter em pending_review (hold, decisão do PO). Indicar a lista de espera."
+      "recommendation": "Manter em pending_review (hold, decisão do PO). Indicar a lista de espera.",
+      "human_review_notes": []
     },
     {
       "source_item_id": "group:414",
@@ -1771,7 +1855,8 @@
       "access_notes": null,
       "schedule_complete_in_source": true,
       "generic_venue": false,
-      "recommendation": "Manter em pending_review (hold, decisão do PO)."
+      "recommendation": "Manter em pending_review (hold, decisão do PO).",
+      "human_review_notes": []
     },
     {
       "source_item_id": "group:417",
@@ -1791,7 +1876,8 @@
       "access_notes": null,
       "schedule_complete_in_source": true,
       "generic_venue": false,
-      "recommendation": "Manter em pending_review (hold, decisão do PO). Indicar a lista de espera."
+      "recommendation": "Manter em pending_review (hold, decisão do PO). Indicar a lista de espera.",
+      "human_review_notes": []
     },
     {
       "source_item_id": "group:418",
@@ -1811,7 +1897,8 @@
       "access_notes": null,
       "schedule_complete_in_source": true,
       "generic_venue": false,
-      "recommendation": "Manter em pending_review (hold, decisão do PO)."
+      "recommendation": "Manter em pending_review (hold, decisão do PO).",
+      "human_review_notes": []
     },
     {
       "source_item_id": "group:420",
@@ -1831,7 +1918,8 @@
       "access_notes": null,
       "schedule_complete_in_source": true,
       "generic_venue": false,
-      "recommendation": "Manter em pending_review (hold, decisão do PO). Indicar a lista de espera."
+      "recommendation": "Manter em pending_review (hold, decisão do PO). Indicar a lista de espera.",
+      "human_review_notes": []
     },
     {
       "source_item_id": "group:422",
@@ -1851,7 +1939,8 @@
       "access_notes": null,
       "schedule_complete_in_source": true,
       "generic_venue": false,
-      "recommendation": "Manter em pending_review (hold, decisão do PO). Indicar a lista de espera."
+      "recommendation": "Manter em pending_review (hold, decisão do PO). Indicar a lista de espera.",
+      "human_review_notes": []
     },
     {
       "source_item_id": "group:426",
@@ -1871,7 +1960,8 @@
       "access_notes": null,
       "schedule_complete_in_source": false,
       "generic_venue": false,
-      "recommendation": "Manter em pending_review (hold, decisão do PO). Confirmar o horário antes de qualquer agenda."
+      "recommendation": "Manter em pending_review (hold, decisão do PO). Confirmar o horário antes de qualquer agenda.",
+      "human_review_notes": []
     },
     {
       "source_item_id": "group:428",
@@ -1891,7 +1981,8 @@
       "access_notes": null,
       "schedule_complete_in_source": true,
       "generic_venue": false,
-      "recommendation": "Manter em pending_review (hold, decisão do PO)."
+      "recommendation": "Manter em pending_review (hold, decisão do PO).",
+      "human_review_notes": []
     },
     {
       "source_item_id": "group:432",
@@ -1911,7 +2002,8 @@
       "access_notes": null,
       "schedule_complete_in_source": true,
       "generic_venue": false,
-      "recommendation": "Manter em pending_review (hold, decisão do PO)."
+      "recommendation": "Manter em pending_review (hold, decisão do PO).",
+      "human_review_notes": []
     },
     {
       "source_item_id": "group:433",
@@ -1931,7 +2023,8 @@
       "access_notes": null,
       "schedule_complete_in_source": true,
       "generic_venue": false,
-      "recommendation": "Manter em pending_review (hold, decisão do PO). Indicar a lista de espera."
+      "recommendation": "Manter em pending_review (hold, decisão do PO). Indicar a lista de espera.",
+      "human_review_notes": []
     },
     {
       "source_item_id": "group:435",
@@ -1951,7 +2044,8 @@
       "access_notes": null,
       "schedule_complete_in_source": true,
       "generic_venue": false,
-      "recommendation": "Manter em pending_review (hold, decisão do PO). Indicar a lista de espera."
+      "recommendation": "Manter em pending_review (hold, decisão do PO). Indicar a lista de espera.",
+      "human_review_notes": []
     },
     {
       "source_item_id": "group:437",
@@ -1973,7 +2067,8 @@
       "access_notes": null,
       "schedule_complete_in_source": true,
       "generic_venue": false,
-      "recommendation": "Manter em pending_review (hold, decisão do PO). Indicar a lista de espera."
+      "recommendation": "Manter em pending_review (hold, decisão do PO). Indicar a lista de espera.",
+      "human_review_notes": []
     },
     {
       "source_item_id": "group:441",
@@ -1993,7 +2088,8 @@
       "access_notes": null,
       "schedule_complete_in_source": true,
       "generic_venue": false,
-      "recommendation": "Manter em pending_review (hold, decisão do PO)."
+      "recommendation": "Manter em pending_review (hold, decisão do PO).",
+      "human_review_notes": []
     },
     {
       "source_item_id": "group:446",
@@ -2013,7 +2109,8 @@
       "access_notes": null,
       "schedule_complete_in_source": true,
       "generic_venue": true,
-      "recommendation": "Manter em pending_review (hold, decisão do PO)."
+      "recommendation": "Manter em pending_review (hold, decisão do PO).",
+      "human_review_notes": []
     },
     {
       "source_item_id": "group:447",
@@ -2033,7 +2130,8 @@
       "access_notes": null,
       "schedule_complete_in_source": true,
       "generic_venue": false,
-      "recommendation": "Manter em pending_review (hold, decisão do PO). Indicar a lista de espera."
+      "recommendation": "Manter em pending_review (hold, decisão do PO). Indicar a lista de espera.",
+      "human_review_notes": []
     },
     {
       "source_item_id": "group:536",
@@ -2053,7 +2151,8 @@
       "access_notes": null,
       "schedule_complete_in_source": true,
       "generic_venue": false,
-      "recommendation": "Manter em pending_review; faltam dados na fonte."
+      "recommendation": "Manter em pending_review; faltam dados na fonte.",
+      "human_review_notes": []
     },
     {
       "source_item_id": "group:580",
@@ -2075,7 +2174,8 @@
       "access_notes": null,
       "schedule_complete_in_source": true,
       "generic_venue": false,
-      "recommendation": "Manter em pending_review (hold, decisão do PO)."
+      "recommendation": "Manter em pending_review (hold, decisão do PO).",
+      "human_review_notes": []
     },
     {
       "source_item_id": "group:622",
@@ -2095,7 +2195,8 @@
       "access_notes": null,
       "schedule_complete_in_source": true,
       "generic_venue": false,
-      "recommendation": "Manter em pending_review (hold, decisão do PO)."
+      "recommendation": "Manter em pending_review (hold, decisão do PO).",
+      "human_review_notes": []
     },
     {
       "source_item_id": "group:682",
@@ -2115,7 +2216,8 @@
       "access_notes": null,
       "schedule_complete_in_source": true,
       "generic_venue": false,
-      "recommendation": "Manter em pending_review (hold, decisão do PO)."
+      "recommendation": "Manter em pending_review (hold, decisão do PO).",
+      "human_review_notes": []
     },
     {
       "source_item_id": "group:699",
@@ -2135,7 +2237,8 @@
       "access_notes": null,
       "schedule_complete_in_source": true,
       "generic_venue": false,
-      "recommendation": "Manter em pending_review (hold, decisão do PO)."
+      "recommendation": "Manter em pending_review (hold, decisão do PO).",
+      "human_review_notes": []
     },
     {
       "source_item_id": "group:707",
@@ -2155,7 +2258,8 @@
       "access_notes": null,
       "schedule_complete_in_source": true,
       "generic_venue": true,
-      "recommendation": "Manter em pending_review (hold, decisão do PO). Não divulgar como aberta."
+      "recommendation": "Manter em pending_review (hold, decisão do PO). Não divulgar como aberta.",
+      "human_review_notes": []
     },
     {
       "source_item_id": "group:720",
@@ -2175,7 +2279,8 @@
       "access_notes": null,
       "schedule_complete_in_source": true,
       "generic_venue": false,
-      "recommendation": "Manter em pending_review; faltam dados na fonte."
+      "recommendation": "Manter em pending_review; faltam dados na fonte.",
+      "human_review_notes": []
     },
     {
       "source_item_id": "group:722",
@@ -2197,7 +2302,8 @@
       "access_notes": null,
       "schedule_complete_in_source": true,
       "generic_venue": false,
-      "recommendation": "Manter em pending_review (hold, decisão do PO)."
+      "recommendation": "Manter em pending_review (hold, decisão do PO).",
+      "human_review_notes": []
     },
     {
       "source_item_id": "group:724",
@@ -2219,7 +2325,8 @@
       "access_notes": null,
       "schedule_complete_in_source": true,
       "generic_venue": false,
-      "recommendation": "Manter em pending_review (hold, decisão do PO)."
+      "recommendation": "Manter em pending_review (hold, decisão do PO).",
+      "human_review_notes": []
     },
     {
       "source_item_id": "group:731",
@@ -2241,7 +2348,8 @@
       "access_notes": null,
       "schedule_complete_in_source": true,
       "generic_venue": false,
-      "recommendation": "Manter em pending_review (hold, decisão do PO)."
+      "recommendation": "Manter em pending_review (hold, decisão do PO).",
+      "human_review_notes": []
     },
     {
       "source_item_id": "group:755",
@@ -2261,7 +2369,8 @@
       "access_notes": null,
       "schedule_complete_in_source": true,
       "generic_venue": false,
-      "recommendation": "Manter em pending_review (hold, decisão do PO). Indicar a lista de espera."
+      "recommendation": "Manter em pending_review (hold, decisão do PO). Indicar a lista de espera.",
+      "human_review_notes": []
     },
     {
       "source_item_id": "group:783",
@@ -2281,7 +2390,8 @@
       "access_notes": null,
       "schedule_complete_in_source": true,
       "generic_venue": false,
-      "recommendation": "Manter em pending_review (hold, decisão do PO)."
+      "recommendation": "Manter em pending_review (hold, decisão do PO).",
+      "human_review_notes": []
     },
     {
       "source_item_id": "group:785",
@@ -2303,7 +2413,8 @@
       "access_notes": null,
       "schedule_complete_in_source": true,
       "generic_venue": false,
-      "recommendation": "Manter em pending_review (hold, decisão do PO)."
+      "recommendation": "Manter em pending_review (hold, decisão do PO).",
+      "human_review_notes": []
     },
     {
       "source_item_id": "group:792",
@@ -2323,7 +2434,8 @@
       "access_notes": null,
       "schedule_complete_in_source": true,
       "generic_venue": false,
-      "recommendation": "Manter em pending_review (hold, decisão do PO)."
+      "recommendation": "Manter em pending_review (hold, decisão do PO).",
+      "human_review_notes": []
     },
     {
       "source_item_id": "group:815",
@@ -2346,7 +2458,8 @@
       "access_notes": null,
       "schedule_complete_in_source": true,
       "generic_venue": false,
-      "recommendation": "Manter em pending_review (hold, decisão do PO). Indicar a lista de espera."
+      "recommendation": "Manter em pending_review (hold, decisão do PO). Indicar a lista de espera.",
+      "human_review_notes": []
     },
     {
       "source_item_id": "group:867",
@@ -2366,7 +2479,8 @@
       "access_notes": null,
       "schedule_complete_in_source": false,
       "generic_venue": false,
-      "recommendation": "Manter em pending_review (hold, decisão do PO). Confirmar o horário antes de qualquer agenda."
+      "recommendation": "Manter em pending_review (hold, decisão do PO). Confirmar o horário antes de qualquer agenda.",
+      "human_review_notes": []
     },
     {
       "source_item_id": "group:893",
@@ -2386,7 +2500,8 @@
       "access_notes": null,
       "schedule_complete_in_source": true,
       "generic_venue": true,
-      "recommendation": "Manter em pending_review (hold, decisão do PO)."
+      "recommendation": "Manter em pending_review (hold, decisão do PO).",
+      "human_review_notes": []
     },
     {
       "source_item_id": "group:923",
@@ -2406,7 +2521,8 @@
       "access_notes": null,
       "schedule_complete_in_source": true,
       "generic_venue": false,
-      "recommendation": "Manter em pending_review (hold, decisão do PO)."
+      "recommendation": "Manter em pending_review (hold, decisão do PO).",
+      "human_review_notes": []
     },
     {
       "source_item_id": "group:957",
@@ -2426,7 +2542,8 @@
       "access_notes": null,
       "schedule_complete_in_source": true,
       "generic_venue": false,
-      "recommendation": "Manter em pending_review (hold, decisão do PO)."
+      "recommendation": "Manter em pending_review (hold, decisão do PO).",
+      "human_review_notes": []
     },
     {
       "source_item_id": "group:977",
@@ -2448,7 +2565,8 @@
       "access_notes": null,
       "schedule_complete_in_source": true,
       "generic_venue": false,
-      "recommendation": "Manter em pending_review (hold, decisão do PO)."
+      "recommendation": "Manter em pending_review (hold, decisão do PO).",
+      "human_review_notes": []
     },
     {
       "source_item_id": "group:1012",
@@ -2468,7 +2586,8 @@
       "access_notes": null,
       "schedule_complete_in_source": true,
       "generic_venue": true,
-      "recommendation": "Manter em pending_review; faltam dados na fonte."
+      "recommendation": "Manter em pending_review; faltam dados na fonte.",
+      "human_review_notes": []
     },
     {
       "source_item_id": "group:1013",
@@ -2488,7 +2607,8 @@
       "access_notes": null,
       "schedule_complete_in_source": true,
       "generic_venue": false,
-      "recommendation": "Manter em pending_review (hold, decisão do PO)."
+      "recommendation": "Manter em pending_review (hold, decisão do PO).",
+      "human_review_notes": []
     },
     {
       "source_item_id": "group:1017",
@@ -2508,7 +2628,8 @@
       "access_notes": null,
       "schedule_complete_in_source": true,
       "generic_venue": false,
-      "recommendation": "Manter em pending_review (hold, decisão do PO)."
+      "recommendation": "Manter em pending_review (hold, decisão do PO).",
+      "human_review_notes": []
     },
     {
       "source_item_id": "group:1019",
@@ -2528,7 +2649,8 @@
       "access_notes": null,
       "schedule_complete_in_source": false,
       "generic_venue": false,
-      "recommendation": "Manter em pending_review (hold, decisão do PO). Confirmar o horário antes de qualquer agenda."
+      "recommendation": "Manter em pending_review (hold, decisão do PO). Confirmar o horário antes de qualquer agenda.",
+      "human_review_notes": []
     },
     {
       "source_item_id": "group:1052",
@@ -2548,7 +2670,8 @@
       "access_notes": null,
       "schedule_complete_in_source": false,
       "generic_venue": true,
-      "recommendation": "Manter em pending_review (hold, decisão do PO). Confirmar o horário antes de qualquer agenda."
+      "recommendation": "Manter em pending_review (hold, decisão do PO). Confirmar o horário antes de qualquer agenda.",
+      "human_review_notes": []
     },
     {
       "source_item_id": "group:1086",
@@ -2571,7 +2694,8 @@
       "access_notes": null,
       "schedule_complete_in_source": true,
       "generic_venue": false,
-      "recommendation": "Manter em pending_review; faltam dados na fonte."
+      "recommendation": "Manter em pending_review; faltam dados na fonte.",
+      "human_review_notes": []
     },
     {
       "source_item_id": "group:1116",
@@ -2591,7 +2715,8 @@
       "access_notes": null,
       "schedule_complete_in_source": true,
       "generic_venue": false,
-      "recommendation": "Manter em pending_review (hold, decisão do PO)."
+      "recommendation": "Manter em pending_review (hold, decisão do PO).",
+      "human_review_notes": []
     },
     {
       "source_item_id": "group:1117",
@@ -2611,7 +2736,8 @@
       "access_notes": null,
       "schedule_complete_in_source": false,
       "generic_venue": false,
-      "recommendation": "Manter em pending_review (hold, decisão do PO). Confirmar o horário antes de qualquer agenda."
+      "recommendation": "Manter em pending_review (hold, decisão do PO). Confirmar o horário antes de qualquer agenda.",
+      "human_review_notes": []
     },
     {
       "source_item_id": "group:1121",
@@ -2631,7 +2757,8 @@
       "access_notes": null,
       "schedule_complete_in_source": true,
       "generic_venue": false,
-      "recommendation": "Manter em pending_review (hold, decisão do PO)."
+      "recommendation": "Manter em pending_review (hold, decisão do PO).",
+      "human_review_notes": []
     },
     {
       "source_item_id": "group:1122",
@@ -2651,7 +2778,8 @@
       "access_notes": null,
       "schedule_complete_in_source": true,
       "generic_venue": false,
-      "recommendation": "Manter em pending_review; faltam dados na fonte."
+      "recommendation": "Manter em pending_review; faltam dados na fonte.",
+      "human_review_notes": []
     },
     {
       "source_item_id": "group:1126",
@@ -2674,7 +2802,8 @@
       "access_notes": null,
       "schedule_complete_in_source": true,
       "generic_venue": false,
-      "recommendation": "Manter em pending_review (hold, decisão do PO)."
+      "recommendation": "Manter em pending_review (hold, decisão do PO).",
+      "human_review_notes": []
     },
     {
       "source_item_id": "group:1149",
@@ -2694,7 +2823,8 @@
       "access_notes": null,
       "schedule_complete_in_source": true,
       "generic_venue": false,
-      "recommendation": "Manter em pending_review (hold, decisão do PO)."
+      "recommendation": "Manter em pending_review (hold, decisão do PO).",
+      "human_review_notes": []
     },
     {
       "source_item_id": "group:1153",
@@ -2716,7 +2846,8 @@
       "access_notes": null,
       "schedule_complete_in_source": true,
       "generic_venue": false,
-      "recommendation": "Manter em pending_review (hold, decisão do PO)."
+      "recommendation": "Manter em pending_review (hold, decisão do PO).",
+      "human_review_notes": []
     },
     {
       "source_item_id": "group:1176",
@@ -2736,7 +2867,8 @@
       "access_notes": null,
       "schedule_complete_in_source": true,
       "generic_venue": false,
-      "recommendation": "Manter em pending_review (hold, decisão do PO)."
+      "recommendation": "Manter em pending_review (hold, decisão do PO).",
+      "human_review_notes": []
     },
     {
       "source_item_id": "group:1179",
@@ -2756,7 +2888,8 @@
       "access_notes": null,
       "schedule_complete_in_source": true,
       "generic_venue": false,
-      "recommendation": "Manter em pending_review (hold, decisão do PO)."
+      "recommendation": "Manter em pending_review (hold, decisão do PO).",
+      "human_review_notes": []
     },
     {
       "source_item_id": "group:1207",
@@ -2779,7 +2912,8 @@
       "access_notes": "Todos os pontos de partida são acessíveis de transporte público (gratuito com Freedom Pass).",
       "schedule_complete_in_source": false,
       "generic_venue": false,
-      "recommendation": "Manter em pending_review (hold, decisão do PO). Confirmar o horário antes de qualquer agenda."
+      "recommendation": "Manter em pending_review (hold, decisão do PO). Confirmar o horário antes de qualquer agenda.",
+      "human_review_notes": []
     },
     {
       "source_item_id": "group:1247",
@@ -2799,7 +2933,8 @@
       "access_notes": null,
       "schedule_complete_in_source": false,
       "generic_venue": false,
-      "recommendation": "Manter em pending_review; faltam dados na fonte. Confirmar o horário antes de qualquer agenda."
+      "recommendation": "Manter em pending_review; faltam dados na fonte. Confirmar o horário antes de qualquer agenda.",
+      "human_review_notes": []
     }
   ]
 }

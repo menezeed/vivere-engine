@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useOutletContext, useNavigate } from 'react-router-dom';
 import { Calendar } from 'lucide-react';
@@ -14,6 +14,8 @@ import { Pagination } from '@/components/shared/Pagination';
 import { QueryErrorBanner } from '@/components/shared/QueryErrorBanner';
 import { useUrlFilters } from '@/hooks/useUrlFilters';
 import { clampPage } from '@/hooks/urlFilterParams';
+import { EligibilityBadge, EligibilityNotice } from '@/components/eligibility/EligibilityPanel';
+import { FILTER_OPTIONS, parseFilterParam } from '@/components/eligibility/eligibilityView';
 import { useDebounce } from '@/hooks/useDebounce';
 import { useReviewMutation } from '@/hooks/useReviewMutation';
 import type { AppOutletContext } from '@/types/shell';
@@ -51,10 +53,20 @@ export function ActivitiesPage() {
     status:           'pending_review',
     search:           undefined as string | undefined,
     venue_resolution: undefined as string | undefined,
+    eligibility:      undefined as string | undefined,
     pageSize:         '20',
     sort:             'created_at',
     order:            'desc',
   }, { resetPageOn: productKey });
+
+  // Issue #62: o filtro 60+ só existe para produtos auditados → limpar ao trocar de produto.
+  const lastProduct = useRef(productKey);
+  useEffect(() => {
+    if (lastProduct.current === productKey) return;
+    lastProduct.current = productKey;
+    if (filters.eligibility) setFilter('eligibility', undefined);
+  }, [productKey, filters.eligibility, setFilter]);
+  const eligibilityFilter = parseFilterParam(filters.eligibility);
 
   const status   = (filters.status ?? 'pending_review') as ProposalStatus;
   const pageSize = Number(filters.pageSize ?? 20);
@@ -75,15 +87,22 @@ export function ActivitiesPage() {
   });
 
   const { data, isLoading, error } = useQuery({
-    queryKey: ['activities', productKey, status, page, pageSize, search, filters.venue_resolution, filters.sort, filters.order],
+    queryKey: ['activities', productKey, status, page, pageSize, search, filters.venue_resolution, eligibilityFilter, filters.sort, filters.order],
     queryFn: () => ActivityService.list({
       status, product_key: productKey, page, pageSize,
       search:           search || undefined,
       venue_resolution: filters.venue_resolution || undefined,
+      eligibility:      eligibilityFilter,
       sort:             filters.sort,
       order:            filters.order as 'asc' | 'desc',
     }),
   });
+
+  // Produto com auditoria 60+: a API devolve o bloco eligibility (null = sem auditoria).
+  const audited = !!eligibilityFilter || (data?.items.some(i => i.eligibility != null) ?? false);
+  const filterDefs: FilterDef[] = audited
+    ? [...FILTER_DEFS, { key: 'eligibility', label: 'Elegibilidade 60+', type: 'select', width: 'w-52', options: FILTER_OPTIONS }]
+    : FILTER_DEFS;
 
   // ?page fora do intervalo (URL antigo, troca de filtro) → página válida.
   useEffect(() => {
@@ -101,6 +120,10 @@ export function ActivitiesPage() {
         </p>
       ),
     },
+    ...(audited ? [{
+      key: 'eligibility', header: '60+',
+      render: (row: ActivityStagingItem) => <EligibilityBadge eligibility={row.eligibility} />,
+    }] : []),
     {
       key: 'venue_mention', header: 'Venue',
       render: (row) => (
@@ -136,6 +159,7 @@ export function ActivitiesPage() {
           status={row.proposal_status}
           onAction={(action) => review.mutate(row.id, action)}
           isLoading={review.isLoading(row.id)}
+          eligibility={row.eligibility}
           compact
         />
       ),
@@ -145,6 +169,7 @@ export function ActivitiesPage() {
   const filterValues: FilterValues = {
     search:           filters.search,
     venue_resolution: filters.venue_resolution,
+    eligibility:      filters.eligibility,
   };
 
   return (
@@ -173,8 +198,10 @@ export function ActivitiesPage() {
         }
       />
 
+      {audited && <EligibilityNotice />}
+
       <FilterBar
-        filters={FILTER_DEFS}
+        filters={filterDefs}
         values={filterValues}
         onChange={(key, val) => setFilter(key as keyof typeof filters, val)}
         onClearAll={clearFilters}

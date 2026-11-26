@@ -327,6 +327,18 @@ describe('filtro de elegibilidade (Issue #62)', () => {
     expect(svc.listActivities).not.toHaveBeenCalled();
   });
 
+  it('approve bloqueado pela elegibilidade → 403 com code; RBAC 403 sem code', async () => {
+    const { EligibilityBlockedError } = await import('../services/ReviewService');
+    svc.reviewActivity.mockRejectedValueOnce(new EligibilityBlockedError("'approve' bloqueado: elegibilidade não confirmada"));
+    const blocked = await call('PATCH', '/api/activities/00000000-0000-4000-8000-0000000000a1/approve', await tokenFor('reviewer'));
+    expect(blocked.status).toBe(403);
+    expect(await blocked.json()).toEqual({ error: "'approve' bloqueado: elegibilidade não confirmada", code: 'ELIGIBILITY_NOT_CONFIRMED' });
+
+    const rbac = await call('PATCH', '/api/activities/00000000-0000-4000-8000-0000000000a1/approve', await tokenFor('viewer'));
+    expect(rbac.status).toBe(403);
+    expect((await rbac.json()).code).toBeUndefined();
+  });
+
   it('valor válido é passado ao serviço', async () => {
     await call('GET', '/api/activities?product_key=vivere-60-plus-uk-test&eligibility=unclear', await tokenFor('viewer'));
     expect(svc.listActivities).toHaveBeenCalledWith(expect.objectContaining({ eligibility: ['unclear'] }));

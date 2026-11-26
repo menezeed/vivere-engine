@@ -1,6 +1,6 @@
 import { Hono } from 'hono';
 import type { ReviewService } from '../services/ReviewService';
-import { NotFoundError, ForbiddenError, InvalidQueryError } from '../services/ReviewService';
+import { NotFoundError, ForbiddenError, InvalidQueryError, EligibilityBlockedError } from '../services/ReviewService';
 import { parseEligibilityFilter } from '../eligibility/eligibilityAudit';
 import type { AuthUser } from '../types/reviewTypes';
 import { logger } from '../../lib/logger';
@@ -61,6 +61,8 @@ export function activityRoutes(reviewService: ReviewService): Hono<Env> {
         return c.json({ success: true, action });
       } catch (err) {
         if (err instanceof NotFoundError)  return c.json({ error: err.message }, 404);
+        // Issue #62: mesmo 403, mas com código, para a UI não o confundir com falta de papel.
+        if (err instanceof EligibilityBlockedError) return c.json({ error: err.message, code: err.code }, 403);
         if (err instanceof ForbiddenError) return c.json({ error: err.message }, 403);
         logger.error({ err, id: c.req.param('id'), action, userId: user.id }, 'activity review error');
         return c.json({ error: 'Erro interno do servidor' }, 500);

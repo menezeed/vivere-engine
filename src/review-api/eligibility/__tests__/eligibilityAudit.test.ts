@@ -114,6 +114,19 @@ describe('associação por chave estável (falha fechada)', () => {
   });
 });
 
+describe('revisão humana (Seated Exercise)', () => {
+  it('só a Seated Exercise tem nota; classificação e campos mantêm-se', () => {
+    const withNotes = DS.items.filter(i => i.human_review_notes.length > 0);
+    expect(withNotes.map(i => i.title)).toEqual(['Seated Exercise']);
+    const s = withNotes[0];
+    expect(s.classification).toBe('confirmed_60plus');
+    expect(s.physical_activity).toBe(false);
+    expect(s.human_review_notes[0]).toMatch(/revisão humana/);
+    expect(index.summary(keyOf(s))!.needs_human_review).toBe(true);
+    expect(index.summary(keyOf(item('Architecture - Modern')))!.needs_human_review).toBe(false);
+  });
+});
+
 describe('aprovação: classificação não é aprovação', () => {
   it('só confirmed_60plus permite approve/promote', () => {
     const allowed = DS.items.filter(i => index.approvalAllowed(keyOf(i)));

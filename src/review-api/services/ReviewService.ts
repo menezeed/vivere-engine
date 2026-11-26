@@ -3,7 +3,7 @@ import type { ActivityReviewRepository, ActivityListQuery } from '../repositorie
 import type { ReviewAction, AuthUser, VenueStagingRow, VenueStagingDetail, ActivityStagingRow } from '../types/reviewTypes';
 import type { ListResponse } from '../types/listTypes';
 import { ACTION_ROLES } from '../types/reviewTypes';
-import type { EligibilityAuditIndex, EligibilityFilter } from '../eligibility/eligibilityAudit';
+import { ELIGIBILITY_BLOCKED_CODE, type EligibilityAuditIndex, type EligibilityFilter } from '../eligibility/eligibilityAudit';
 
 export class NotFoundError extends Error {
   readonly statusCode = 404;
@@ -13,6 +13,15 @@ export class NotFoundError extends Error {
 export class ForbiddenError extends Error {
   readonly statusCode = 403;
   constructor(message: string) { super(message); this.name = 'ForbiddenError'; }
+}
+
+/**
+ * 403 da guarda de elegibilidade (Issue #62). Continua a ser 403 (ForbiddenError),
+ * mas com um código próprio: a UI distingue-o de "falta de papel" (RBAC).
+ */
+export class EligibilityBlockedError extends ForbiddenError {
+  readonly code = ELIGIBILITY_BLOCKED_CODE;
+  constructor(message: string) { super(message); this.name = 'EligibilityBlockedError'; }
 }
 
 /** Pedido inválido para o contexto (ex.: filtro de elegibilidade num produto sem auditoria). */
@@ -97,7 +106,7 @@ export class ReviewService {
     // confirmed_60plus pode ser aprovada/promovida; sem correspondência → recusa.
     if ((action === 'approve' || action === 'promote') && this.eligibility
         && !this.eligibility.index.approvalAllowed(keyOf(activity))) {
-      throw new ForbiddenError(`'${action}' bloqueado: a elegibilidade 60+ desta actividade não está confirmada`);
+      throw new EligibilityBlockedError(`'${action}' bloqueado: a elegibilidade 60+ desta actividade não está confirmada`);
     }
     if (action === 'promote') {
       await this.activityRepo.markPromoted(id, user.id);

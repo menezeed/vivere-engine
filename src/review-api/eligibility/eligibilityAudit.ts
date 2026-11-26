@@ -46,6 +46,11 @@ export interface EligibilityRecord {
   schedule_complete_in_source: boolean;
   generic_venue: boolean;
   recommendation: string;
+  /**
+   * Pontos encaminhados para revisão humana. NÃO mudam a classificação nem os
+   * outros campos: a correcção, se houver, é uma decisão humana e uma nova versão.
+   */
+  human_review_notes: string[];
 }
 
 export interface MembershipFee {
@@ -84,6 +89,8 @@ export interface EligibilitySummary {
   availability: EligibilityRecord['availability'] | null;
   /** Se o servidor aceita approve/promote. Classificação ≠ aprovação. */
   approval_allowed: boolean;
+  /** Há pontos encaminhados para revisão humana (record.human_review_notes). */
+  needs_human_review: boolean;
 }
 
 /** Bloco completo devolvido em GET /api/activities/:id. */
@@ -93,6 +100,9 @@ export interface EligibilityDetail extends EligibilitySummary {
   audit: { report: string; verified_at: string; schema_version: number };
   notice: string;
 }
+
+/** Código no corpo do 403 da guarda de approve/promote (≠ 403 de RBAC, que não tem código). */
+export const ELIGIBILITY_BLOCKED_CODE = 'ELIGIBILITY_NOT_CONFIRMED' as const;
 
 export const CLASSIFICATION_NOTICE =
   'Classificação de elegibilidade não é aprovação nem publicação. O estado de revisão não muda.';
@@ -184,6 +194,7 @@ export function parseEligibilityDataset(raw: unknown): EligibilityDataset {
       schedule_complete_in_source: bool(it['schedule_complete_in_source'], `${w}.schedule_complete_in_source`),
       generic_venue: bool(it['generic_venue'], `${w}.generic_venue`),
       recommendation: str(it['recommendation'], `${w}.recommendation`)!,
+      human_review_notes: strArray(it['human_review_notes'], `${w}.human_review_notes`),
     } satisfies EligibilityRecord;
   });
   return {
@@ -248,6 +259,7 @@ export class EligibilityAuditIndex {
       confidence: rec?.confidence ?? null,
       availability: rec?.availability ?? null,
       approval_allowed: this.approvalAllowed(key),
+      needs_human_review: (rec?.human_review_notes.length ?? 0) > 0,
     };
   }
 

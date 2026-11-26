@@ -4,6 +4,12 @@
 
 Este contrato **não** cria colunas, tabelas, migrações nem permissões. A classificação **não é aprovação nem publicação**, e nenhuma resposta muda o `proposal_status`.
 
+## 0. Fonte única
+
+Este contrato e `src/review-api/eligibility/richmond-u3a-60plus.v1.json` são a **única** implementação dos dados. O Admin não tem cópia: lê tudo da Review API.
+
+O PR #64 propunha uma segunda cópia no browser (`admin-panel/src/data/richmond-eligibility.json`, associada só por URL e sem guarda no servidor). **Foi substituído por este contrato** para não haver duas fontes que possam divergir.
+
 ## 1. Fonte dos dados
 
 | | |
@@ -58,6 +64,7 @@ eligibility: null | {
   confidence: 'high' | 'medium_high' | 'medium' | 'low' | null;
   availability: 'open' | 'waiting_list' | 'closed' | 'unknown' | null;
   approval_allowed: boolean;   // o servidor aceita approve/promote?
+  needs_human_review: boolean; // há record.human_review_notes
 }
 ```
 
@@ -96,6 +103,7 @@ interface EligibilityRecord {
   schedule_complete_in_source: boolean;
   generic_venue: boolean;                // pub/hotel/café: não indica público 60+
   recommendation: string;
+  human_review_notes: string[];          // encaminhado para revisão humana; NÃO muda a classe
 }
 
 interface MembershipInfo {
@@ -121,7 +129,11 @@ interface MembershipInfo {
 
 Há uma guarda no servidor, além da UI:
 - **Produtos auditados:** `approve` e `promote` só passam quando `status = 'matched'` e `classification = 'confirmed_60plus'`.
-- **Restantes casos** (`likely_suitable`, `unclear`, `unsuitable`, `not_audited` e `mismatch`): dão `403 {"error":"'approve' bloqueado: a elegibilidade 60+ desta actividade não está confirmada"}` e nada é escrito.
+- **Restantes casos** (`likely_suitable`, `unclear`, `unsuitable`, `not_audited` e `mismatch`): dão `403 {"error":"'approve' bloqueado: a elegibilidade 60+ desta actividade não está confirmada","code":"ELIGIBILITY_NOT_CONFIRMED"}` e nada é escrito.
+- **Dois tipos de 403:**
+  - o 403 de RBAC (falta de papel) **não tem** `code`;
+  - o 403 da guarda tem `code: "ELIGIBILITY_NOT_CONFIRMED"`. A UI mostra "Acção bloqueada: a elegibilidade 60+ … não está confirmada. A sua conta tem permissão…" e **não** o aviso "Acesso negado".
+- **Ordem das verificações:** o RBAC corre primeiro, por isso um viewer continua a receber o 403 de papel.
 - **`reject`:** segue só o RBAC normal.
 - **Produtos sem auditoria** (BR): não são afectados.
 - **Independência da flag:** a guarda não depende da flag e continua activa com `off`.
@@ -167,6 +179,7 @@ Obrigatório:
   "confidence": "high",
   "availability": "waiting_list",
   "approval_allowed": true,
+  "needs_human_review": true,
   "record": {
     "source_item_id": "group:270",
     "source_url": "https://rut.u3asite.uk/u3a_groups/extend-exercise/",
@@ -185,7 +198,8 @@ Obrigatório:
     "access_notes": "Exercício sentado; a página refere aptidão para pessoas com deficiência.",
     "schedule_complete_in_source": true,
     "generic_venue": false,
-    "recommendation": "Manter em pending_review; primeira candidata à revisão humana. Indicar a lista de espera."
+    "recommendation": "Manter em pending_review; primeira candidata à revisão humana. Indicar a lista de espera.",
+    "human_review_notes": ["Actividade física não marcada: … Confirmar em revisão humana …; a classificação 60+ não foi alterada."]
   },
   "membership": { "organisation": "Richmond upon Thames u3a", "valid_until": "2027-09-01", "currency": "GBP", "fees": ["…4 categorias…"] },
   "audit": { "report": "docs/operacao/AUDITORIA-60PLUS-RICHMOND.md", "verified_at": "2026-11-26", "schema_version": 1 },
@@ -213,7 +227,22 @@ Não há dados a reverter.
 - **Nova versão:** um ficheiro novo `…v2.json` (com `schema_version` novo, se o formato mudar). Os dados vêm de uma auditoria revista e documentada, e o relatório Markdown é actualizado em conjunto, porque o teste de coerência compara os dois.
 - **Re-ingestão:** se reingerir a fonte mudar `source_item_id` ou `external_url`, a actividade passa a `not_audited` ou `mismatch` e fica bloqueada para aprovação até a auditoria ser actualizada.
 
-## 7. Limitações conhecidas
+## 7. Implementação no Admin
 
-- `physical_activity` reproduz o relatório, que marcou actividade física pelo título ou pela categoria. Por isso "Seated Exercise" (categoria Social) fica `false`. Para corrigir, é preciso uma revisão da auditoria; isso não se muda só nos dados.
+| Peça | Ficheiros |
+|---|---|
+| Tipos | `admin-panel/src/types/eligibility.ts` (espelho deste contrato) |
+| Regras de apresentação | `admin-panel/src/components/eligibility/eligibilityView.ts` (testado) |
+| Componentes | `EligibilityPanel.tsx`: badge, aviso e painel de detalhe |
+| Lista (Actividades) | Coluna **60+**, filtro **Elegibilidade 60+** e aviso no topo. Aparecem só quando a API devolve blocos (produto auditado); o filtro é limpo ao trocar de produto |
+| Detalhe | Badge, painel com evidência, fonte, data, tipo, disponibilidade, adesão, custos, horário, local, restrições, recomendação, quota e notas de revisão humana |
+| Acções | `approval_allowed=false` esconde Aprovar/Promover (lista e detalhe) |
+| Erro 403 | `admin-panel/src/api/client.ts` → `isEligibilityBlocked` / `ELIGIBILITY_BLOCKED_MESSAGE` |
+
+## 8. Limitações conhecidas e revisão humana
+
+- `physical_activity` reproduz o relatório, que marcou actividade física pelo título ou pela categoria. Por isso "Seated Exercise" (categoria Social) fica `false`.
+  - **Encaminhado para revisão humana:** está em `human_review_notes` (`needs_human_review=true`), e o Admin mostra "Revisão humana pendente".
+  - **Não muda automaticamente:** nem a classificação (`confirmed_60plus`) nem `physical_activity`.
+  - **Se a revisão confirmar a correcção:** é feita numa nova versão da auditoria e dos dados.
 - A quota foi verificada a 26/11/2026. Antes de a mostrar como valor actual, confirmar `source_url`.

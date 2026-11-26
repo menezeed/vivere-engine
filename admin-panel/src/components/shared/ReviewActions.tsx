@@ -1,10 +1,14 @@
 import type { ProposalStatus, ReviewAction } from '@/types/review';
+import type { EligibilitySummary } from '@/types/eligibility';
+import { visibleReviewActions } from '@/components/eligibility/eligibilityView';
 
 interface ReviewActionsProps {
   status: ProposalStatus;
   onAction: (action: ReviewAction) => void;
   isLoading?: boolean;
   compact?: boolean;
+  /** Issue #62: approval_allowed=false esconde Aprovar/Promover (o servidor recusa com 403 na mesma). */
+  eligibility?: EligibilitySummary | null;
 }
 
 const ACTIONS_BY_STATUS: Record<ProposalStatus, ReviewAction[]> = {
@@ -20,8 +24,8 @@ const ACTION_CONFIG: Record<ReviewAction, { label: string; className: string }> 
   promote: { label: 'Promover', className: 'bg-blue-600 hover:bg-blue-700 text-white'   },
 };
 
-export function ReviewActions({ status, onAction, isLoading, compact }: ReviewActionsProps) {
-  const actions = ACTIONS_BY_STATUS[status];
+export function ReviewActions({ status, onAction, isLoading, compact, eligibility }: ReviewActionsProps) {
+  const actions = visibleReviewActions(ACTIONS_BY_STATUS[status], eligibility);
   if (actions.length === 0) return null;
 
   return (

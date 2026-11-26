@@ -3,7 +3,7 @@
  * resposta, filtro no servidor e guarda de approve/promote (não só na UI).
  */
 import { describe, it, expect, vi } from 'vitest';
-import { ReviewService, ForbiddenError, InvalidQueryError } from '../ReviewService';
+import { ReviewService, ForbiddenError, InvalidQueryError, EligibilityBlockedError } from '../ReviewService';
 import { loadEligibilityIndex } from '../../eligibility/eligibilityAudit';
 import type { ActivityStagingRow, AuthUser } from '../../types/reviewTypes';
 import type { ActivityReviewRepository } from '../../repositories/ActivityReviewRepository';
@@ -42,8 +42,8 @@ describe('listActivities', () => {
     const { svc } = make(SEATED);
     const res = await svc.listActivities({ product_key: UK });
     expect(res.items.map(i => i.eligibility)).toEqual([
-      { status: 'matched', classification: 'confirmed_60plus', confidence: 'high', availability: 'waiting_list', approval_allowed: true },
-      { status: 'matched', classification: 'likely_suitable', confidence: 'medium', availability: 'waiting_list', approval_allowed: false },
+      { status: 'matched', classification: 'confirmed_60plus', confidence: 'high', availability: 'waiting_list', approval_allowed: true, needs_human_review: true },
+      { status: 'matched', classification: 'likely_suitable', confidence: 'medium', availability: 'waiting_list', approval_allowed: false, needs_human_review: false },
     ]);
   });
 
@@ -87,6 +87,21 @@ describe('reviewActivity — guarda no servidor', () => {
     await expect(svc.reviewActivity(ARCH.id, action, admin)).rejects.toBeInstanceOf(ForbiddenError);
     expect(repo.updateStatus).not.toHaveBeenCalled();
     expect(repo.markPromoted).not.toHaveBeenCalled();
+  });
+
+  it('o 403 da guarda é EligibilityBlockedError (subclasse de ForbiddenError) com código próprio', async () => {
+    const { svc } = make(ARCH);
+    const err = await svc.reviewActivity(ARCH.id, 'approve', admin).catch(e => e);
+    expect(err).toBeInstanceOf(EligibilityBlockedError);
+    expect(err).toBeInstanceOf(ForbiddenError);
+    expect(err.code).toBe('ELIGIBILITY_NOT_CONFIRMED');
+  });
+
+  it('RBAC continua primeiro: viewer recebe ForbiddenError sem código de elegibilidade', async () => {
+    const { svc } = make(ARCH);
+    const err = await svc.reviewActivity(ARCH.id, 'approve', { ...admin, role: 'viewer' }).catch(e => e);
+    expect(err).toBeInstanceOf(ForbiddenError);
+    expect(err).not.toBeInstanceOf(EligibilityBlockedError);
   });
 
   it('approve de unsuitable → 403', async () => {
