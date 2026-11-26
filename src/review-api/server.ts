@@ -10,6 +10,7 @@ import { EntityResolutionService } from './services/EntityResolutionService.js';
 import { createApp } from './app.js';
 import { logger } from '../lib/logger.js';
 import { createJwtVerifier, resolveJwtEnvConfig, type JwtVerifier } from './middleware/jwtVerifier.js';
+import { loadEligibilityIndex, isEligibilityExposed } from './eligibility/eligibilityAudit.js';
 
 const PORT     = Number(process.env.REVIEW_API_PORT ?? 3001);
 const NODE_ENV = process.env.NODE_ENV ?? 'development';
@@ -64,7 +65,10 @@ async function buildApp(): Promise<Hono> {
   const runRepo      = new IngestionRunReadRepository(db);
   const statsRepo    = new StatsRepository(db);
   const erRepo       = new EntityResolutionReviewRepository(db);
-  const reviewService = new ReviewService(venueRepo, activityRepo);
+  // Issue #62: auditoria 60+ (ficheiro versionado). Dados inválidos → não arranca.
+  const eligibility = { index: loadEligibilityIndex(), expose: isEligibilityExposed(process.env) };
+  logger.info({ exposed: eligibility.expose }, 'Elegibilidade 60+ carregada');
+  const reviewService = new ReviewService(venueRepo, activityRepo, eligibility);
   const erService     = new EntityResolutionService(erRepo);
 
   // Rotas, autenticação e autorização (SEC-A) vivem em app.ts.

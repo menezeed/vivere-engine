@@ -85,9 +85,13 @@ export interface ActivityStagingRow {
   venue_mention_confidence_hint?: string | null;
   occurrences?: Array<{ date: string; time: string | null; end_date: string | null; end_time: string | null }>;
   source_key?: string;
+  /** Chave estável na fonte (ex.: "group:194"); usada pela auditoria de elegibilidade. */
+  source_item_id?: string | null;
   image_url?: string | null;
   external_url?: string | null;
   raw_payload?: Record<string, unknown>;
+  /** Issue #62: só para produtos com auditoria e com a flag ligada. */
+  eligibility?: import('../eligibility/eligibilityAudit').EligibilitySummary | import('../eligibility/eligibilityAudit').EligibilityDetail | null;
 }
 
 export interface ReviewContext {

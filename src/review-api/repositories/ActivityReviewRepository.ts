@@ -14,6 +14,17 @@ export interface ActivityListQuery {
   source?: string;
   sort?: string;
   order?: 'asc' | 'desc';
+  /**
+   * Issue #62: filtro por source_item_id calculado a partir da auditoria de
+   * elegibilidade. Aplicado no servidor, antes do range, para a paginação
+   * reflectir o filtro.
+   */
+  source_item_ids?: { mode: 'in' | 'not_in'; ids: string[] };
+}
+
+/** Lista PostgREST para `not.in.(...)`: valores entre aspas (contêm ':'). */
+function postgrestInList(ids: string[]): string {
+  return `(${ids.map(v => `"${v.replace(/["\\]/g, '')}"`).join(',')})`;
 }
 
 const LIST_SELECT = `
@@ -21,7 +32,7 @@ const LIST_SELECT = `
   proposal_status, venue_resolution_status,
   reviewed_by, reviewed_at, promoted_at, promoted_activity_id, created_at,
   raw_activity_items!inner (
-    title, description, source_key, image_url, external_url,
+    title, description, source_key, source_item_id, image_url, external_url,
     venue_mention_raw_text, venue_mention_confidence_hint, occurrences
   )
 `;
@@ -31,7 +42,7 @@ const DETAIL_SELECT = `
   proposal_status, venue_resolution_status,
   reviewed_by, reviewed_at, promoted_at, promoted_activity_id, created_at,
   raw_activity_items!inner (
-    title, description, source_key, image_url, external_url,
+    title, description, source_key, source_item_id, image_url, external_url,
     venue_mention_raw_text, venue_mention_confidence_hint,
     occurrences, raw_payload
   )
@@ -59,6 +70,7 @@ function flattenRow(data: Record<string, unknown>, includePayload = false): Acti
     title:                   raw['title'] as string,
     description:             raw['description'] as string | null,
     source_key:              raw['source_key'] as string,
+    source_item_id:          (raw['source_item_id'] as string | undefined) ?? null,
     image_url:               raw['image_url'] as string | null,
     external_url:            raw['external_url'] as string | null,
     venue_mention_raw_text:  raw['venue_mention_raw_text'] as string | null,
@@ -100,6 +112,13 @@ export class ActivityReviewRepository {
     // memória só a página já cortada por .range(): a pesquisa ignorava as
     // outras páginas e totalItems/totalPages não reflectiam o filtro.
     if (search)                  q = q.ilike('raw_activity_items.title', ilikeContains(search));
+    const idf = query.source_item_ids;
+    if (idf) {
+      // Lista vazia com 'in' → nenhuma linha (sem ir à base).
+      if (idf.mode === 'in' && idf.ids.length === 0) return buildListResponse([], 0, page, pageSize);
+      if (idf.mode === 'in') q = q.in('raw_activity_items.source_item_id', idf.ids);
+      else if (idf.ids.length > 0) q = q.not('raw_activity_items.source_item_id', 'in', postgrestInList(idf.ids));
+    }
 
     const { data, error, count } = await q;
     if (error) throw new Error(`ActivityReviewRepository.list: ${error.message}`);

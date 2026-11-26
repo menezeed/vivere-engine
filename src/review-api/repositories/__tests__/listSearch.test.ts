@@ -18,7 +18,7 @@ type Call = [string, ...unknown[]];
 function fakeDb(result: { data: unknown[]; count: number }) {
   const calls: Call[] = [];
   const builder: Record<string, unknown> = {};
-  for (const m of ['schema', 'from', 'select', 'order', 'range', 'eq', 'ilike']) {
+  for (const m of ['schema', 'from', 'select', 'order', 'range', 'eq', 'ilike', 'in', 'not']) {
     builder[m] = (...args: unknown[]) => { calls.push([m, ...args]); return builder; };
   }
   builder['then'] = (resolve: (v: unknown) => unknown) => resolve({ ...result, error: null });
@@ -89,6 +89,28 @@ describe('ordenação estável para a paginação (Issue #60)', () => {
     const orders = calls.filter(([m]) => m === 'order');
     expect(orders.at(-1)).toEqual(['order', 'id', { ascending: true }]);
     expect(orders).toHaveLength(2);
+  });
+});
+
+describe('filtro de elegibilidade no servidor (Issue #62)', () => {
+  it('in: filtra raw_activity_items.source_item_id antes do range', async () => {
+    const { db, calls } = fakeDb({ data: [], count: 7 });
+    await new ActivityReviewRepository(db).list({ page: 1, pageSize: 20, source_item_ids: { mode: 'in', ids: ['group:1', 'event:2'] } });
+    expect(calls).toContainEqual(['in', 'raw_activity_items.source_item_id', ['group:1', 'event:2']]);
+  });
+
+  it('not_in: lista PostgREST com valores entre aspas', async () => {
+    const { db, calls } = fakeDb({ data: [], count: 0 });
+    await new ActivityReviewRepository(db).list({ source_item_ids: { mode: 'not_in', ids: ['group:1', 'event:2'] } });
+    expect(calls).toContainEqual(['not', 'raw_activity_items.source_item_id', 'in', '("group:1","event:2")']);
+  });
+
+  it('in vazio → resposta vazia sem consultar a base', async () => {
+    const { db, calls } = fakeDb({ data: [activityRow('x')], count: 1 });
+    const res = await new ActivityReviewRepository(db).list({ source_item_ids: { mode: 'in', ids: [] } });
+    expect(res.totalItems).toBe(0);
+    expect(res.items).toEqual([]);
+    expect(calls.some(([m]) => m === 'in')).toBe(false);
   });
 });
 

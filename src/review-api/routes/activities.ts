@@ -1,6 +1,7 @@
 import { Hono } from 'hono';
 import type { ReviewService } from '../services/ReviewService';
-import { NotFoundError, ForbiddenError } from '../services/ReviewService';
+import { NotFoundError, ForbiddenError, InvalidQueryError } from '../services/ReviewService';
+import { parseEligibilityFilter } from '../eligibility/eligibilityAudit';
 import type { AuthUser } from '../types/reviewTypes';
 import { logger } from '../../lib/logger';
 import { requireUuidParam } from '../middleware/uuidParam';
@@ -17,6 +18,9 @@ export function activityRoutes(reviewService: ReviewService): Hono<Env> {
   router.get('/', async (c) => {
     const invalid = rejectInvalidIntQuery(c, ['page', 'pageSize']);
     if (invalid) return invalid;
+    // Issue #62: ?eligibility=confirmed_60plus,likely_suitable,unclear,unsuitable,not_audited
+    const eligibility = parseEligibilityFilter(c.req.query('eligibility'));
+    if (eligibility === 'invalid') return c.json({ error: 'Parâmetro eligibility inválido' }, 400);
     try {
       const result = await reviewService.listActivities({
         page:             c.req.query('page')             ? Number(c.req.query('page'))             : undefined,
@@ -28,9 +32,11 @@ export function activityRoutes(reviewService: ReviewService): Hono<Env> {
         source:           c.req.query('source')           || undefined,
         sort:             c.req.query('sort')             || undefined,
         order:            (c.req.query('order') as 'asc' | 'desc') || undefined,
+        ...(eligibility ? { eligibility } : {}),
       });
       return c.json(result);
     } catch (err) {
+      if (err instanceof InvalidQueryError) return c.json({ error: err.message }, 400);
       logger.error({ err }, 'activities list error');
       return c.json({ error: 'Erro interno do servidor' }, 500);
     }
