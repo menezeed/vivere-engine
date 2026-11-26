@@ -285,3 +285,51 @@ Só leitura e dry-run: nada foi gravado. As investigações web foram feitas por
 **Registo de conformidade:** na Ruils, o agente leu a página de política e a de actividades em simultâneo. Isso violou o Crawl-delay 10 nesse par de pedidos e fez a página de actividades ser lida antes dos termos. Não houve 429 nem 403, e o conteúdo dessa página não foi guardado.
 
 **Organizações para descobrir mais fontes** (directório do Council e expositores da feira): Ham and Petersham SOS, Linden Hall, Greenwood Centre, Teddington and Hampton Wick Voluntary Care Group, Richmond Good Neighbours, HANDS, Whitton Network, Arts Richmond, Richmond Ramblers, Stable & Strong, Your Community Centres, Sheddington, Probus, Alzheimer's Society (Singing for the Brain, já na FiSH), AquaPhysio, TW2 Club. Cada uma precisa da sua leitura de robots.txt e termos.
+
+## 13. Matriz consolidada (26/11/2026, fim do dia): pronto / autorização / descarte
+
+**Critérios do PO:**
+- actividades reais com datas futuras verificáveis, elegibilidade 60+ verificável e local em Richmond;
+- eventos gerais 18+ não contam como 60+;
+- só se ingere uma fonte com permissão de reutilização confirmada.
+
+**No staging (SELECT):** u3a 133 + FiSH 11 = **144**, todas em `pending_review`; 26 venues. Nada novo foi gravado desde então.
+
+### Prontas para ingestão em staging
+**Nenhuma.** Nenhuma fonte nova cumpre ao mesmo tempo os três critérios: licença confirmada, datas futuras confirmadas e sinal 60+.
+
+### Exigem autorização externa (pedidos em `PEDIDOS-AUTORIZACAO-FONTES-RICHMOND.md`, PR #66, não enviados)
+| Fonte | Registos verificados | Elegibilidade | Datas |
+|---|---|---|---|
+| H&HHVC / Greenwood (curadoria, PR #66) | 4: Women's Social Group (qui. 13:30–15:15), Men's Social Group (ter. 13:30–15:30), **FLexercise Over 60s** (qui. 14:15–15:15), Parkinson's Exercise Class (qui. 12:00–13:30), todas no Greenwood Community Centre, TW12 1QL | 1 explícita 60+, 2 da organização para pessoas mais velhas, 1 condição de saúde (`unclear`) | horário semanal publicado na página |
+| Richmond Good Neighbours (curadoria, PR #66) | 1: Cambrian Teas, 2.ª quarta-feira, 14:30–15:30, TW10 6SN | `likely_suitable` (organização para "elderly and housebound") | horário mensal publicado |
+| Age UK Richmond | Não recolhidas (os termos proíbem) | — | — |
+| Ruils | Não recolhidas (a política proíbe publicar) | — | — |
+| Richmond Council | 13 identificadas (§12), não recolhidas: os termos são "personal and non commercial use" e não há dados abertos de eventos | 10 explícitas (55+/60+/older) | 6 com datas futuras (bibliotecas, dez./2026 a mar./2027) |
+| Stable & Strong | 1: "Strength over Sixty" (explícita 60+, SW14 8HR) | explícita | horário só em imagem: pedir o horário ao estúdio |
+| Sheddington; Ramblers | não recolhidas (termos da e-voice; o robots.txt deu 403) | — | — |
+
+### Exigem verificação antes de qualquer decisão
+| Fonte | Registo | Motivo |
+|---|---|---|
+| Better (OpenActive, CC BY 4.0, PR #67) | **Swim for 60+**, Pools on the Park TW9 2SF, seg. a sex. 09:30–10:25 (`ageRange` mín. 60) | A licença está confirmada, mas **não há sessões futuras confirmadas**. O feed `scheduled-sessions` foi lido até ao fim (72 páginas, 35 228 sessões) e não tem nenhuma sessão desta série nem das outras 9 de Richmond. O horário da série vem de 2025 e não tem data de fim. O robots.txt de better.org.uk proíbe o timetable automático, por isso só uma verificação manual ou um contacto com a Better a confirma. Com `--sessions`, o dry-run insere 0 |
+| Playwaze, Bookwhen (OpenActive, CC BY 4.0) | Têm sessões do tipo certo (tai chi para seniors, strength and balance, chair yoga, Zumba Gold), mas fora de Richmond nas páginas lidas | Para ter a certeza é preciso uma leitura completa e controlada de cada feed, como a da Better |
+| Everyone Active, Lampton Leisure (OpenActive) | não verificados | Ficaram fora do limite de pedidos |
+
+### Descartar
+| Fonte | Registos | Motivo |
+|---|---|---|
+| Better | 6 séries activas gerais (Aqua Aerobics, Swim for all ×2, Group Cycle, Zumba, Family Fun Swim) + 3 expiradas | Gerais 16+/família, sem sinal 60+; e também sem sessões futuras no feed |
+| GoodGym (OpenActive) | 6 eventos em TW1/TW9/TW10 (28/11 a 14/12) | Corridas de voluntariado 18+, não são 60+ |
+| England Netball (OpenActive) | 1 série "Back to Netball" de 2015 (TW1 3BB) | Histórica |
+| Open Sessions (London Sport) | — | O feed só tem apagamentos (desactivado) |
+| Greenwood (curadoria) | 6 aulas de terceiros, Book Club, Brighter Together, Singing for the Brain (Hampton Hill) | Sem sinal 60+ ou sem horário fixo |
+| Richmond Good Neighbours | Shopping Bus, Transport, Shopping, Befriending | Serviços, não actividades |
+| Richmond AquaPhysio Group | 10 sessões de hidroterapia | Serviço terapêutico 18+ |
+| Ham & Petersham SOS; Linden Hall; Whitton Network; Your Community Centres; TW2 Club | — | Site oficial inacessível (TLS ou certificado), em manutenção ou não encontrado |
+
+**Volume de pedidos e conformidade:**
+- Better: 72 + 2 pedidos ao feed de sessões e 6 ao feed de séries.
+- Catálogo OpenActive: 36 pedidos.
+- Todos com o robots.txt lido primeiro e sem 429/403.
+- Sem dados pessoais e sem chamadas pagas.
