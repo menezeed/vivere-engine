@@ -3,18 +3,18 @@
  */
 import { describe, it, expect } from 'vitest';
 import type { SupabaseClient } from '@supabase/supabase-js';
-import { assertNoRunningRun, assertSourceExists, stagedCountsBySeries, READ_LIMIT } from '../fishStagingState';
+import { assertComplete, assertNoRunningRun, assertSourceExists, stagedCountsBySeries, READ_LIMIT } from '../fishStagingState';
 
 type Call = unknown[];
 /** Cada tabela devolve as linhas dadas; regista as chamadas. */
-function fakeDb(tables: Record<string, unknown[]>) {
+function fakeDb(tables: Record<string, unknown[]>, counts: Record<string, number | null> = {}) {
   const calls: Call[] = [];
   const db = {
     schema: (sc: string) => { calls.push(['schema', sc]); return db; },
     from: (t: string) => {
       const b: Record<string, unknown> = {};
       for (const m of ['select', 'eq', 'in', 'limit']) b[m] = (...a: unknown[]) => { calls.push([t, m, ...a]); return b; };
-      b['then'] = (res: (v: unknown) => unknown) => res({ data: tables[t] ?? [], error: null });
+      b['then'] = (res: (v: unknown) => unknown) => res({ data: tables[t] ?? [], count: t in counts ? counts[t] : (tables[t] ?? []).length, error: null });
       return b;
     },
   };
@@ -42,7 +42,17 @@ describe('fishStagingState', () => {
   it('limite de leitura atingido → recusa (nunca corte silencioso)', async () => {
     const many = Array.from({ length: READ_LIMIT }, (_, i) => ({ id: `r${i}`, source_item_id: 'series:a:wed:1030' }));
     const { db } = fakeDb({ raw_activity_items: many });
-    await expect(stagedCountsBySeries(db, 'fish', 'uk', ['series:a:wed:1030'])).rejects.toThrow(/limite de leitura/);
+    await expect(stagedCountsBySeries(db, 'fish', 'uk', ['series:a:wed:1030'])).rejects.toThrow(/incompleta/);
+  });
+
+  it('resposta truncada pelo servidor (count > linhas recebidas) → recusa, mesmo abaixo de READ_LIMIT (Codex r1, achado 2)', async () => {
+    const one = [{ id: 'r1', source_item_id: 'series:a:wed:1030' }];
+    await expect(stagedCountsBySeries(fakeDb({ raw_activity_items: one }, { raw_activity_items: 5 }).db, 'fish', 'uk', ['series:a:wed:1030']))
+      .rejects.toThrow(/incompleta.*1 de 5/);
+    await expect(stagedCountsBySeries(fakeDb({ raw_activity_items: one, activities_staging: [{ raw_activity_item_id: 'r1' }] }, { activities_staging: 3 }).db, 'fish', 'uk', ['series:a:wed:1030']))
+      .rejects.toThrow(/activities_staging/);
+    expect(() => assertComplete('t', null, 0)).toThrow(/sem contagem/);
+    expect(() => assertComplete('t', 2, 2)).not.toThrow();
   });
 
   it('ingestion_run "running" da fonte → recusa (execução concorrente)', async () => {

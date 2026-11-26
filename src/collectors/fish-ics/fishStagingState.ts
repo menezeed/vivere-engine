@@ -27,21 +27,34 @@ export async function assertNoRunningRun(db: SupabaseClient, sourceKey: string):
   if ((r.data ?? []).length > 0) throw new Error(`RECUSA: já existe um ingestion_run "running" para ${sourceKey} (outra execução em curso ou interrompida). Verificar antes de repetir.`);
 }
 
+/**
+ * Leitura completa ou recusa (Codex r1, achado 2): a contagem exacta do
+ * servidor tem de bater com as linhas recebidas. Um limite do servidor
+ * menor que READ_LIMIT (corte silencioso) é detectado aqui.
+ */
+export function assertComplete(table: string, count: number | null | undefined, received: number): void {
+  if (typeof count !== 'number') throw new Error(`RECUSA: ${table} sem contagem exacta — leitura não verificável`);
+  if (count !== received || received >= READ_LIMIT) {
+    throw new Error(`RECUSA: leitura incompleta de ${table} (${received} de ${count}) — verificar antes de continuar`);
+  }
+}
+
 /** Nº de linhas em activities_staging (produto) por série do plano. */
 export async function stagedCountsBySeries(
   db: SupabaseClient, sourceKey: string, productKey: string, seriesIds: readonly string[],
 ): Promise<Map<string, number>> {
   const counts = new Map<string, number>(seriesIds.map(id => [id, 0]));
   if (seriesIds.length === 0) return counts;
-  const raw = await db.schema('staging').from('raw_activity_items').select('id, source_item_id')
+  const raw = await db.schema('staging').from('raw_activity_items').select('id, source_item_id', { count: 'exact' })
     .eq('source_key', sourceKey).in('source_item_id', [...seriesIds]).limit(READ_LIMIT);
   if (raw.error) throw new Error(`leitura de raw_activity_items: ${raw.error.message}`);
   const rows = (raw.data ?? []) as Array<{ id: string; source_item_id: string }>;
-  if (rows.length >= READ_LIMIT) throw new Error(`RECUSA: ${rows.length} linhas raw para ${seriesIds.length} séries (limite de leitura atingido) — verificar duplicados antes de continuar`);
+  assertComplete('raw_activity_items', raw.count, rows.length);
   if (rows.length === 0) return counts;
-  const staged = await db.schema('staging').from('activities_staging').select('raw_activity_item_id')
+  const staged = await db.schema('staging').from('activities_staging').select('raw_activity_item_id', { count: 'exact' })
     .eq('product_key', productKey).in('raw_activity_item_id', rows.map(r => r.id)).limit(READ_LIMIT);
   if (staged.error) throw new Error(`leitura de activities_staging: ${staged.error.message}`);
+  assertComplete('activities_staging', staged.count, (staged.data ?? []).length);
   const seriesByRaw = new Map(rows.map(r => [r.id, r.source_item_id]));
   for (const s of (staged.data ?? []) as Array<{ raw_activity_item_id: string }>) {
     const id = seriesByRaw.get(s.raw_activity_item_id);

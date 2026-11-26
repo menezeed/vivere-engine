@@ -194,3 +194,8 @@ npx tsx --env-file="<ficheiro de ambiente de staging, fora do repo>" scripts/ing
 | 5 | MÉDIO: o URL de recurso (`url_oficial`) não era validado | Todos os URLs gravados têm de ser do site oficial |
 
 As contagens do dry-run não mudaram: 11 inserções, 27 ocorrências, 8 `likely_suitable` e 3 `unclear`.
+
+**Ronda 1** (cópia `c5589b9`): veredicto ALTERAÇÕES. Os achados 4 e 5 ficaram corrigidos; os 1, 2 e 3 só em parte. Correcções:
+- **1:** os URLs gravados têm forma estrita (`https://www.fishhelp.org.uk/event/<slug>/[<data>/]`, sem query, fragmento, credenciais nem codificação). Os 43 URLs reais passam. O `ics_url` gravado é a constante da configuração.
+- **2:** cada leitura pede a contagem exacta ao servidor e recusa se não bater com as linhas recebidas. Assim, um corte do servidor abaixo do limite também é detectado.
+- **3:** `external_url IS NULL` conta como `not_audited`. Verificado com as linhas reais do staging (só leitura): 133 linhas, 0 URLs nulos, uma só fonte, md5 dos pares igual ao do dataset. Logo, os totais do filtro são 1 / 124 / 7 / 1, e `not_audited` dá 0.

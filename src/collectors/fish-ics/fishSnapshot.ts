@@ -119,12 +119,21 @@ export function parsePreviewSnapshot(json: unknown): PreviewSnapshot {
     if (!a.titulo?.trim()) throw new Error(`snapshot: título vazio (${a.source_item_id})`);
     if (!a.datas.every(d => /^\d{4}-\d{2}-\d{2}$/.test(d))) throw new Error(`snapshot: data inválida (${a.source_item_id})`);
     if (a.horario.length !== 1) throw new Error(`snapshot: horário não uniforme na série (${a.source_item_id})`);
-    // Todos os URLs que podem ser gravados, incluindo o de recurso (Codex r0, achado 5).
+    // Todos os URLs que podem ser gravados, incluindo o de recurso (Codex r0, achado 5),
+    // com forma estrita: sem query, fragmento, credenciais nem conteúdo codificado (r1, achado 1).
     for (const u of [...a.urls_ocorrencias, ...(a.url_oficial === null ? [] : [a.url_oficial])]) {
-      if (typeof u !== 'string' || !u.startsWith(FISH_CONFIG.site_url)) throw new Error(`snapshot: URL fora do site oficial (${a.source_item_id})`);
+      if (!isOfficialEventUrl(u)) throw new Error(`snapshot: URL fora do site oficial (${a.source_item_id})`);
     }
   }
+  // O URL do ICS gravado é a constante da configuração, nunca o valor do JSON.
+  if (s.fonte.ics_url !== FISH_CONFIG.ics_url) throw new Error('snapshot: ics_url diferente do ICS oficial');
   return s as PreviewSnapshot;
+}
+
+/** https://www.fishhelp.org.uk/event/<slug>/[<AAAA-MM-DD>/] — nada mais. */
+const EVENT_URL = /^https:\/\/www\.fishhelp\.org\.uk\/event\/[a-z0-9-]{1,120}\/(\d{4}-\d{2}-\d{2}\/)?$/;
+export function isOfficialEventUrl(u: unknown): u is string {
+  return typeof u === 'string' && EVENT_URL.test(u);
 }
 
 function parseHorario(h: string): { time: string | null; end_time: string | null } {
@@ -247,7 +256,7 @@ export function planFromSnapshot(snapshot: PreviewSnapshot, today: string): Fish
       contact_email: null,
       language: 'en',
       raw_payload: {
-        snapshot: { generated_at: snapshot.gerado_em, ics_url: snapshot.fonte.ics_url, http_requests_in_this_run: 0 },
+        snapshot: { generated_at: snapshot.gerado_em, ics_url: FISH_CONFIG.ics_url, http_requests_in_this_run: 0 },
         occurrence_urls: urls,
         categories,
         postcode: loc?.codigo_postal ?? null,

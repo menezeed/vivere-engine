@@ -2,7 +2,7 @@
  * Plano de ingestão FiSH a partir do snapshot do preview. Dados sintéticos.
  */
 import { describe, it, expect } from 'vitest';
-import { parsePreviewSnapshot, planFromSnapshot, splitByExisting, type PreviewActivity, type PreviewSnapshot } from '../fishSnapshot';
+import { isOfficialEventUrl, parsePreviewSnapshot, planFromSnapshot, splitByExisting, type PreviewActivity, type PreviewSnapshot } from '../fishSnapshot';
 import { parseEligibilityDataset } from '../../../review-api/eligibility/eligibilityAudit';
 import u3aDataset from '../../../review-api/eligibility/richmond-u3a-60plus.v1.json';
 
@@ -48,6 +48,20 @@ describe('parsePreviewSnapshot', () => {
     expect(() => parsePreviewSnapshot({ ...ok, produto: 'vivere-60-mais' })).toThrow(/produto/);
     expect(() => parsePreviewSnapshot(snap([act({ source_item_id: 'evil', titulo: 'X' })]))).toThrow(/source_item_id/);
     expect(() => parsePreviewSnapshot(snap([act({ source_item_id: 'series:x:wed:1030', titulo: 'X', urls_ocorrencias: ['https://evil.example/'] })]))).toThrow(/site oficial/);
+    // Forma estrita (Codex r1, achado 1): sem query, fragmento, http, outro host ou conteúdo codificado.
+    for (const bad of [
+      'https://www.fishhelp.org.uk/event/coffee/?email=x@y.org',
+      'https://www.fishhelp.org.uk/event/coffee/2026-12-02/#x',
+      'https://www.fishhelp.org.uk/event/jane%40mail-com/',
+      'http://www.fishhelp.org.uk/event/coffee/',
+      'https://www.fishhelp.org.uk.evil.example/event/coffee/',
+      'https://user:pw@www.fishhelp.org.uk/event/coffee/',
+    ]) {
+      expect(() => parsePreviewSnapshot(snap([act({ source_item_id: 'series:x:wed:1030', titulo: 'X', urls_ocorrencias: [bad] })])), bad).toThrow(/site oficial/);
+    }
+    expect(isOfficialEventUrl('https://www.fishhelp.org.uk/event/board-games-2-2/2026-11-30/')).toBe(true);
+    // ics_url do JSON tem de ser o oficial; o gravado é sempre a constante.
+    expect(() => parsePreviewSnapshot({ ...ok, fonte: { ...ok.fonte, ics_url: 'https://evil.example/?q=x@y.org' } })).toThrow(/ics_url/);
     // URL de recurso também é validado (Codex r0, achado 5)
     expect(() => parsePreviewSnapshot(snap([act({ source_item_id: 'series:x:wed:1030', titulo: 'X', urls_ocorrencias: [], url_oficial: 'https://evil.example/x' })]))).toThrow(/site oficial/);
     expect(() => parsePreviewSnapshot(snap([act({ source_item_id: 'series:x:wed:1030', titulo: 'X', horario: ['10:00', '11:00'] })]))).toThrow(/uniforme/);

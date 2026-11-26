@@ -128,8 +128,10 @@ export class ActivityReviewRepository {
           .in('raw_activity_items.external_url', idf.urls);
       } else if (idf.ids.length > 0) {
         // NOT (fonte = S AND id IN E AND url IN U) — exclui só as linhas que casam.
+        // url NULL é mismatch (não casa): sem o is.null, NOT IN com NULL dá NULL e
+        // a linha sairia de not_audited (Codex r1, achado 3).
         q = q.or(
-          `source_key.neq.${postgrestValue(idf.source_key)},source_item_id.not.in.${postgrestInList(idf.ids)},external_url.not.in.${postgrestInList(idf.urls)}`,
+          `source_key.neq.${postgrestValue(idf.source_key)},source_item_id.not.in.${postgrestInList(idf.ids)},external_url.is.null,external_url.not.in.${postgrestInList(idf.urls)}`,
           { referencedTable: 'raw_activity_items' },
         );
       }
