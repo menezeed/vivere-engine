@@ -57,7 +57,7 @@
   - 27 têm morada com código postal.
   - 24 são só um nome de bairro (ex.: "Teddington", "Kew"), por isso não são geocodificáveis sem curadoria.
   - 2 são online e 1 é privado.
-  - Alguns códigos KT ficam na fronteira do borough. O gate geográfico decide, mas precisa de coordenadas.
+  - **Corrigido a 26/11 pelo dry-run U6:** os códigos KT (Hampton Wick, Hampton Court) estão todos no borough. O postcodes.io (ONS) devolve `admin_district = Richmond upon Thames` para os 26 venues geocodificados, todos dentro do raio de 8 km. Um código postal (St Mary's University, TW11 9BE) não é encontrado pelo postcodes.io.
   - Anexo A3.
 
 ### 3.2 Richmond Libraries, via HTML
@@ -153,6 +153,16 @@
 - para o U5, escolher entre (a) e (b);
 - depois disso, o U6 (primeira ingestão real em staging) pode ser corrido pelo PO.
 
+
+## 5.1 Revisão e estado (26/11/2026)
+- **Autorizado pelo PO:** U1–U4, U5 opção (b) postcodes.io e U6, com dry-run e depois escrita só em staging.
+- **Implementado no PR #59:** U1, U2, U3, U5, o seed U4, o script U6 e o **bloqueio de publicação internacional até U8**.
+- **Dry-run U6 real:** 26 venues e 133 actividades, com exclusões motivadas. Ver o PR #59.
+- **Correcções a esta proposta:**
+  - os códigos KT estão no borough (§3.1);
+  - a "Members Home" exclui 11 grupos e 1 venue;
+  - o evento cancelado é detectado pelo título.
+- **Escrita em staging (U4 seed + U6 real):** precisa das credenciais de staging, que o Claude não usa. É executada pelo PO, conforme o PR #59.
 ## 6. Anexos
 - **A1–A3:** abaixo, gerados pelo dry-run, sem dados pessoais.
 - **A4 (Libraries):** é a tabela do §3.2.
