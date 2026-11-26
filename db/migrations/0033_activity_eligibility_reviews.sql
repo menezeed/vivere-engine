@@ -33,7 +33,8 @@ create table if not exists staging.activity_eligibility_reviews (
   classification       text not null check (classification in ('confirmed_60plus','likely_suitable','unclear','unsuitable')),
   confidence           text not null check (confidence in ('high','medium_high','medium','low')),
   evidence_text        text not null check (char_length(evidence_text) between 20 and 2000),
-  evidence_url         text not null check (evidence_url ~ '^https://[^\s]{4,490}$'),
+  -- Nota: o motor de regex do Postgres limita repetições a 255; o tamanho vai à parte.
+  evidence_url         text not null check (evidence_url ~ '^https://[^[:space:]]+$' and char_length(evidence_url) between 12 and 500),
   audience             text check (audience is null or char_length(audience) <= 300),
   membership_required  boolean,
   booking              text check (booking is null or char_length(booking) <= 300),

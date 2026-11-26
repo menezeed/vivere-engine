@@ -5,6 +5,7 @@ import { describe, it, expect } from 'vitest';
 import {
   eligibilityBadge, additionalCostsText, availabilityText, membershipText, textOrNotConfirmed,
   membershipFeeLines, visibleReviewActions, parseFilterParam, NOT_CONFIRMED,
+  reviewFormDefaults, validateReviewForm,
 } from '../eligibilityView';
 import type { EligibilitySummary } from '../../../types/eligibility';
 
@@ -18,7 +19,7 @@ describe('badge', () => {
     ['confirmed_60plus', '60+ confirmado'],
     ['likely_suitable', 'Provavelmente adequada'],
     ['unclear', 'Não confirmado'],
-    ['unsuitable', 'Inadequada'],
+    ['unsuitable', 'Não adequada'],
   ] as const)('%s → %s', (cls, label) => {
     expect(eligibilityBadge(sum({ classification: cls }))?.label).toBe(label);
   });
@@ -26,7 +27,7 @@ describe('badge', () => {
     expect(eligibilityBadge(sum({ status: 'mismatch', classification: null }))?.label).toBe('Dados não correspondem');
   });
   it('not_audited → "Sem auditoria"; produto sem auditoria (null) → sem badge', () => {
-    expect(eligibilityBadge(sum({ status: 'not_audited', classification: null }))?.label).toBe('Sem auditoria');
+    expect(eligibilityBadge(sum({ status: 'not_audited', classification: null }))?.label).toBe('Sem auditoria (por rever)');
     expect(eligibilityBadge(null)).toBeNull();
     expect(eligibilityBadge(undefined)).toBeNull();
   });
@@ -75,4 +76,37 @@ describe('filtro', () => {
   it.each([['unclear', 'unclear'], ['not_audited', 'not_audited'], ['approved', undefined], [undefined, undefined]])(
     '%j → %j', (raw, exp) => { expect(parseFilterParam(raw as string | undefined)).toBe(exp); },
   );
+});
+
+describe("revisão humana (Issue #62)", () => {
+  it("Sem auditoria ≠ Não adequada; revisão humana válida prevalece sobre o dataset", () => {
+    expect(eligibilityBadge(sum({ status: "not_audited", classification: null }))?.label).toBe("Sem auditoria (por rever)");
+    expect(eligibilityBadge(sum({ status: "not_audited", classification: "unsuitable", review_source: "human_review" }))?.label).toBe("Não adequada");
+    expect(eligibilityBadge(sum({ status: "not_audited", classification: "confirmed_60plus", review_source: "human_review" }))?.label).toBe("60+ confirmado");
+    expect(eligibilityBadge(sum({ status: "mismatch", classification: "likely_suitable", review_source: "human_review" }))?.label).toBe("Provavelmente adequada");
+    expect(eligibilityBadge(sum({ status: "mismatch", classification: null }))?.label).toBe("Dados não correspondem");
+  });
+
+  it("Aprovar só aparece quando a API o permite (revisão humana válida confirmed_60plus)", () => {
+    expect(visibleReviewActions(["approve", "reject"], sum({ status: "not_audited", classification: null, approval_allowed: false }))).toEqual(["reject"]);
+    expect(visibleReviewActions(["approve", "reject"], sum({ status: "not_audited", classification: "confirmed_60plus", review_source: "human_review", approval_allowed: true }))).toEqual(["approve", "reject"]);
+  });
+
+  it("formulário: pré-preenchido com a proposta do colector e o URL oficial", () => {
+    const d = reviewFormDefaults({ external_url: "https://x.org/a/", raw_payload: { eligibility_proposal: {
+      classification: "likely_suitable", confidence: "medium", evidence: "A organização apoia pessoas mais velhas.", availability: "open",
+      additional_costs: "£5.00 per session", membership_required: true, access_notes: "Público restrito: pessoa com demência e cuidador (ambos)" } } }, "2026-11-27");
+    expect(d).toMatchObject({ classification: "likely_suitable", evidence_url: "https://x.org/a/", availability: "open",
+      additional_costs: "£5.00 per session", membership_required: true, verified_at: "2026-11-27", audience: "Público restrito: pessoa com demência e cuidador (ambos)" });
+    expect(reviewFormDefaults({}, "2026-11-27")).toMatchObject({ classification: "unclear", evidence_text: "", evidence_url: "", availability: "unknown" });
+  });
+
+  it("formulário: validação imediata", () => {
+    const ok = reviewFormDefaults({ external_url: "https://x.org/a/" }, "2026-11-27");
+    expect(validateReviewForm({ ...ok, evidence_text: "Texto com mais de vinte caracteres." }, "2026-11-27")).toEqual([]);
+    expect(validateReviewForm(ok, "2026-11-27")).toContain("A evidência tem de ter pelo menos 20 caracteres.");
+    expect(validateReviewForm({ ...ok, evidence_text: "Ligar 020 8876 0000 para saber a idade mínima.", evidence_url: "http://x" }, "2026-11-27").length).toBe(2);
+    expect(validateReviewForm({ ...ok, evidence_text: "x".repeat(25), verified_at: "2026-12-01" }, "2026-11-27")).toContain("A data de verificação não pode ser no futuro.");
+    expect(validateReviewForm({ ...ok, evidence_text: "x".repeat(25), classification: "confirmed_60plus", confidence: "low" }, "2026-11-27")).toHaveLength(1);
+  });
 });
