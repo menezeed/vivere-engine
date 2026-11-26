@@ -15,11 +15,13 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 
 export const READ_LIMIT = 1000;
 
-export async function assertSourceExists(db: SupabaseClient, sourceKey: string): Promise<void> {
-  const r = await db.from('sources').select('source_key').eq('source_key', sourceKey).limit(1);
-  if (r.error) throw new Error(`leitura de sources: ${r.error.message}`);
-  if ((r.data ?? []).length === 0) throw new Error(`RECUSA: a fonte ${sourceKey} não existe — correr primeiro scripts/staging/fonte-fish.staging.sql`);
-}
+/*
+ * Sem leitura de public.sources: o role do Engine (service_role) não tem
+ * privilégios em public.sources/products por desenho (migração 0019, menor
+ * privilégio). A existência da fonte é garantida pela FK de
+ * staging.ingestion_runs.source_key: sem a fonte, o primeiro INSERT (a run)
+ * falha e nada é gravado.
+ */
 
 export async function assertNoRunningRun(db: SupabaseClient, sourceKey: string): Promise<void> {
   const r = await db.schema('staging').from('ingestion_runs').select('id').eq('source_key', sourceKey).eq('status', 'running').limit(1);

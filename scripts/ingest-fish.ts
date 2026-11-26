@@ -25,7 +25,7 @@ import { detectRecurrenceItems } from '../src/pipeline/stages/02-recurrence-dete
 import { crossSourceDuplicates } from '../src/review-api/eligibility/proposal';
 import type { RawActivityItem } from '../src/types/RawActivityItem';
 import type { SourceConfigContract } from '../src/persistence/types/collectorContracts';
-import { assertSourceExists, assertNoRunningRun, stagedCountsBySeries } from '../src/collectors/fish-ics/fishStagingState';
+import { assertNoRunningRun, stagedCountsBySeries } from '../src/collectors/fish-ics/fishStagingState';
 
 const arg = (argv: readonly string[], name: string) => argv.find(a => a.startsWith(`--${name}=`))?.slice(name.length + 3);
 
@@ -53,7 +53,6 @@ export async function main(argv: readonly string[] = process.argv): Promise<void
   const db = apply ? await stagingDb() : null;
   let existing = new Set<string>();
   if (db) {
-    await assertSourceExists(db, FISH_CONFIG.source_key);
     await assertNoRunningRun(db, FISH_CONFIG.source_key);
     const before = await stagedCountsBySeries(db, FISH_CONFIG.source_key, FISH_CONFIG.product_key, planned);
     existing = new Set([...before].filter(([, n]) => n > 0).map(([id]) => id));

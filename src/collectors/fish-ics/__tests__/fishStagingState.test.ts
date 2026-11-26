@@ -3,7 +3,7 @@
  */
 import { describe, it, expect } from 'vitest';
 import type { SupabaseClient } from '@supabase/supabase-js';
-import { assertComplete, assertNoRunningRun, assertSourceExists, stagedCountsBySeries, READ_LIMIT } from '../fishStagingState';
+import { assertComplete, assertNoRunningRun, stagedCountsBySeries, READ_LIMIT } from '../fishStagingState';
 
 type Call = unknown[];
 /** Cada tabela devolve as linhas dadas; regista as chamadas. */
@@ -60,7 +60,10 @@ describe('fishStagingState', () => {
     await expect(assertNoRunningRun(fakeDb({ ingestion_runs: [] }).db, 'fish')).resolves.toBeUndefined();
   });
 
-  it('fonte inexistente → recusa', async () => {
-    await expect(assertSourceExists(fakeDb({ sources: [] }).db, 'fish')).rejects.toThrow(/não existe/);
+  it('nunca lê public.sources (o service_role não tem privilégios nessa tabela, migração 0019)', async () => {
+    const { db, calls } = fakeDb({ raw_activity_items: [] });
+    await stagedCountsBySeries(db, 'fish', 'uk', ['series:a:wed:1030']);
+    await assertNoRunningRun(db, 'fish');
+    expect(calls.some(c => c[0] === 'sources')).toBe(false);
   });
 });
