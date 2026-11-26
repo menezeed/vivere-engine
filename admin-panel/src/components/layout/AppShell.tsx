@@ -6,8 +6,12 @@ import { LayoutDashboard, MapPin, Calendar, Activity, LogOut, ChevronDown, Setti
 import { useEffect, useState } from 'react';
 import { ACCESS_DENIED_EVENT, ACCESS_DENIED_MESSAGE } from '@/api/client';
 
+// Piloto UK (26/11/2026) — só staging; publicação bloqueada até U8 (publicationGuard).
+const UK_PILOT_PRODUCT = 'vivere-60-plus-uk-test';
+
 const PRODUCTS = [
   { key: 'vivere-60-mais', label: 'Vivere 60+' },
+  { key: UK_PILOT_PRODUCT, label: 'Vivere 60+ UK (piloto Richmond)' },
 ];
 
 export function AppShell() {

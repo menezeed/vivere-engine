@@ -32,8 +32,16 @@ export interface RegionDefinition {
   city_label: string;
   /** Nome da cidade como aparece em region_metadata.city das fontes */
   city: string;
-  /** UF */
+  /** UF (BR) ou subdivisão equivalente (ex: "London" no GB) */
   state: string;
+  /**
+   * Piloto UK (U1, 26/11/2026) — localização da região. Opcionais e
+   * aditivos: ausentes = Brasil (DEFAULT_REGION_LOCALE), por isso as
+   * regiões existentes não mudam. Ler sempre via regionLocale().
+   */
+  country?: string;   // ISO 3166-1 alpha-2, ex: 'GB'
+  locale?: string;    // BCP 47, ex: 'en-GB'
+  timezone?: string;  // IANA, ex: 'Europe/London'
   /**
    * Centro e raio. `null` (ambos) = ainda SEM centro confirmado num mapa:
    * a região só serve fontes de conteúdo (WordPress) e não pode ser usada
@@ -51,6 +59,35 @@ export interface RegionDefinition {
 }
 
 export const GOOGLE_PLACES_SOURCE_KEY = 'google_places';
+
+/**
+ * Fontes de actividades que NÃO são WordPress de prefeitura nem Google
+ * Places — têm script próprio (ex: scripts/ingest-u3a.ts) e são recusadas,
+ * com motivo, pela ingestão por região (runRegionIngestion).
+ */
+export const U3A_RICHMOND_SOURCE_KEY = 'u3a_richmond';
+export const NON_WORDPRESS_ACTIVITY_SOURCE_KEYS: ReadonlySet<string> = new Set([U3A_RICHMOND_SOURCE_KEY]);
+
+export interface RegionLocale {
+  country: string;
+  locale: string;
+  timezone: string;
+}
+
+/** Localização por omissão: todas as regiões anteriores ao piloto UK são do Brasil. */
+export const DEFAULT_REGION_LOCALE: RegionLocale = {
+  country: 'BR',
+  locale: 'pt-BR',
+  timezone: 'America/Sao_Paulo',
+};
+
+export function regionLocale(region: RegionDefinition): RegionLocale {
+  return {
+    country: region.country ?? DEFAULT_REGION_LOCALE.country,
+    locale: region.locale ?? DEFAULT_REGION_LOCALE.locale,
+    timezone: region.timezone ?? DEFAULT_REGION_LOCALE.timezone,
+  };
+}
 
 export const REGIONS: readonly RegionDefinition[] = [
   {
@@ -197,6 +234,22 @@ export const REGIONS: readonly RegionDefinition[] = [
     radius_m: null,
     sources: ['prefeitura_rio_das_ostras'],
   },
+  // Piloto UK (U1, 26/11/2026; ADR-0010) — SÓ STAGING, produto
+  // vivere-60-plus-uk-test. Centro do ADR-0010 (51.4613, -0.3037), o mesmo
+  // centro do mapa oficial da Visit Richmond. Raio 8 km (ADR-0010).
+  // Publicação bloqueada para produtos não-BR até U8 (fuso por região).
+  {
+    key: 'richmond_upon_thames',
+    city_label: 'Richmond upon Thames, London',
+    city: 'Richmond upon Thames',
+    state: 'London',
+    country: 'GB',
+    locale: 'en-GB',
+    timezone: 'Europe/London',
+    center: { lat: 51.4613, lng: -0.3037 },
+    radius_m: 8000,
+    sources: [U3A_RICHMOND_SOURCE_KEY],
+  },
 ];
 
 /**
@@ -246,6 +299,19 @@ export function validateRegions(regions: readonly RegionDefinition[]): void {
     }
     if (new Set(r.sources).size !== r.sources.length) {
       throw new Error(`regions.ts: "${r.key}" tem sources duplicadas`);
+    }
+    if (r.country !== undefined && !/^[A-Z]{2}$/.test(r.country)) {
+      throw new Error(`regions.ts: "${r.key}" tem country inválido (esperado ISO 3166-1 alpha-2)`);
+    }
+    if (r.locale !== undefined && !/^[a-z]{2}-[A-Z]{2}$/.test(r.locale)) {
+      throw new Error(`regions.ts: "${r.key}" tem locale inválido (esperado ex: en-GB)`);
+    }
+    if (r.timezone !== undefined) {
+      try {
+        new Intl.DateTimeFormat('en-GB', { timeZone: r.timezone });
+      } catch {
+        throw new Error(`regions.ts: "${r.key}" tem timezone IANA inválido (${r.timezone})`);
+      }
     }
   }
 }

@@ -11,6 +11,7 @@ import { PageHeader } from '@/components/ui/Cards';
 import { BulkActions } from '@/components/ui/BulkActions';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { Pagination } from '@/components/shared/Pagination';
+import { QueryErrorBanner } from '@/components/shared/QueryErrorBanner';
 import { useUrlFilters } from '@/hooks/useUrlFilters';
 import { useDebounce } from '@/hooks/useDebounce';
 import { useReviewMutation } from '@/hooks/useReviewMutation';
@@ -113,7 +114,7 @@ export function VenuesPage() {
     labels: ACTION_LABELS,
   });
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, error } = useQuery({
     queryKey: ['venues', productKey, status, page, pageSize, search, city, filters.category, filters.geographic_status, filters.sort, filters.order],
     queryFn: () => VenueService.list({
       status, product_key: productKey, page, pageSize,
@@ -251,6 +252,8 @@ export function VenuesPage() {
         onClearSelection={() => setSelectedIds(new Set())}
         batchEnabled={false}
       />
+
+      <QueryErrorBanner error={error} />
 
       {/* Tabela */}
       <DataTable
