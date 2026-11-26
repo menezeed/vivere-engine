@@ -46,6 +46,7 @@
 import { parseTimeRangePt } from '../../../collectors/prefeitura-agenda-cultural/parsers/sharedTextUtils.js';
 import type { RawActivityItem } from '../../../types/RawActivityItem.js';
 import type { RecurrenceDetectedItem, RecurrenceReviewReason } from './types.js';
+import { detectRecurrenceEn } from './detectRecurrenceEn.js';
 
 const WEEKDAY_TO_NUMBER: Record<string, number> = {
   domingo: 0,
@@ -399,6 +400,9 @@ export function hasQualifyingRecurrenceEvidence(text: string): boolean {
 }
 
 export function detectRecurrence(item: RawActivityItem): RecurrenceDetectedItem {
+  // Piloto UK (U3) — caminho EN isolado; o caminho PT abaixo não muda.
+  if (item.language === 'en') return detectRecurrenceEn(item);
+
   const candidateText = buildCandidateText(item);
   const days = detectWeekdays(candidateText);
 
