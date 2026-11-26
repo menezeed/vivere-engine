@@ -18,7 +18,7 @@ type Call = [string, ...unknown[]];
 function fakeDb(result: { data: unknown[]; count: number }) {
   const calls: Call[] = [];
   const builder: Record<string, unknown> = {};
-  for (const m of ['schema', 'from', 'select', 'order', 'range', 'eq', 'ilike', 'in', 'not']) {
+  for (const m of ['schema', 'from', 'select', 'order', 'range', 'eq', 'ilike', 'in', 'not', 'or']) {
     builder[m] = (...args: unknown[]) => { calls.push([m, ...args]); return builder; };
   }
   builder['then'] = (resolve: (v: unknown) => unknown) => resolve({ ...result, error: null });
@@ -93,21 +93,28 @@ describe('ordenação estável para a paginação (Issue #60)', () => {
 });
 
 describe('filtro de elegibilidade no servidor (Issue #62)', () => {
-  it('in: filtra raw_activity_items.source_item_id antes do range', async () => {
+  const F = { source_key: 'u3a_richmond', ids: ['group:1', 'event:2'], urls: ['https://x.uk/g1/', 'https://x.uk/e2/'] };
+
+  it('in: mesma chave da classificação (fonte + id + URL)', async () => {
     const { db, calls } = fakeDb({ data: [], count: 7 });
-    await new ActivityReviewRepository(db).list({ page: 1, pageSize: 20, source_item_ids: { mode: 'in', ids: ['group:1', 'event:2'] } });
+    await new ActivityReviewRepository(db).list({ page: 1, pageSize: 20, source_item_ids: { mode: 'in', ...F } });
+    expect(calls).toContainEqual(['eq', 'raw_activity_items.source_key', 'u3a_richmond']);
     expect(calls).toContainEqual(['in', 'raw_activity_items.source_item_id', ['group:1', 'event:2']]);
+    expect(calls).toContainEqual(['in', 'raw_activity_items.external_url', ['https://x.uk/g1/', 'https://x.uk/e2/']]);
   });
 
-  it('not_in: lista PostgREST com valores entre aspas', async () => {
+  it('not_in: exclui só as linhas que casam (outra fonte ou URL divergente ficam em not_audited)', async () => {
     const { db, calls } = fakeDb({ data: [], count: 0 });
-    await new ActivityReviewRepository(db).list({ source_item_ids: { mode: 'not_in', ids: ['group:1', 'event:2'] } });
-    expect(calls).toContainEqual(['not', 'raw_activity_items.source_item_id', 'in', '("group:1","event:2")']);
+    await new ActivityReviewRepository(db).list({ source_item_ids: { mode: 'not_in', ...F } });
+    expect(calls).toContainEqual(['or',
+      'source_key.neq."u3a_richmond",source_item_id.not.in.("group:1","event:2"),external_url.not.in.("https://x.uk/g1/","https://x.uk/e2/")',
+      { referencedTable: 'raw_activity_items' }]);
+    expect(calls.some(([m]) => m === 'not')).toBe(false);
   });
 
   it('in vazio → resposta vazia sem consultar a base', async () => {
     const { db, calls } = fakeDb({ data: [activityRow('x')], count: 1 });
-    const res = await new ActivityReviewRepository(db).list({ source_item_ids: { mode: 'in', ids: [] } });
+    const res = await new ActivityReviewRepository(db).list({ source_item_ids: { mode: 'in', source_key: 's', ids: [], urls: [] } });
     expect(res.totalItems).toBe(0);
     expect(res.items).toEqual([]);
     expect(calls.some(([m]) => m === 'in')).toBe(false);

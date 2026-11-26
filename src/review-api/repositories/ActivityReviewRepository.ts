@@ -19,7 +19,13 @@ export interface ActivityListQuery {
    * elegibilidade. Aplicado no servidor, antes do range, para a paginação
    * reflectir o filtro.
    */
-  source_item_ids?: { mode: 'in' | 'not_in'; ids: string[] };
+  /** Filtro de elegibilidade: mesma chave da classificação (fonte + id + URL). */
+  source_item_ids?: { mode: 'in' | 'not_in'; source_key: string; ids: string[]; urls: string[] };
+}
+
+/** Valor PostgREST entre aspas (para filtros dentro de or()). */
+function postgrestValue(v: string): string {
+  return `"${v.replace(/["\\]/g, '')}"`;
 }
 
 /** Lista PostgREST para `not.in.(...)`: valores entre aspas (contêm ':'). */
@@ -116,8 +122,17 @@ export class ActivityReviewRepository {
     if (idf) {
       // Lista vazia com 'in' → nenhuma linha (sem ir à base).
       if (idf.mode === 'in' && idf.ids.length === 0) return buildListResponse([], 0, page, pageSize);
-      if (idf.mode === 'in') q = q.in('raw_activity_items.source_item_id', idf.ids);
-      else if (idf.ids.length > 0) q = q.not('raw_activity_items.source_item_id', 'in', postgrestInList(idf.ids));
+      if (idf.mode === 'in') {
+        q = q.eq('raw_activity_items.source_key', idf.source_key)
+          .in('raw_activity_items.source_item_id', idf.ids)
+          .in('raw_activity_items.external_url', idf.urls);
+      } else if (idf.ids.length > 0) {
+        // NOT (fonte = S AND id IN E AND url IN U) — exclui só as linhas que casam.
+        q = q.or(
+          `source_key.neq.${postgrestValue(idf.source_key)},source_item_id.not.in.${postgrestInList(idf.ids)},external_url.not.in.${postgrestInList(idf.urls)}`,
+          { referencedTable: 'raw_activity_items' },
+        );
+      }
     }
 
     const { data, error, count } = await q;
