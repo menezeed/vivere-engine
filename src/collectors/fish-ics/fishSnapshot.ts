@@ -123,11 +123,31 @@ export function parsePreviewSnapshot(json: unknown): PreviewSnapshot {
     // com forma estrita: sem query, fragmento, credenciais nem conteúdo codificado (r1, achado 1).
     for (const u of [...a.urls_ocorrencias, ...(a.url_oficial === null ? [] : [a.url_oficial])]) {
       if (!isOfficialEventUrl(u)) throw new Error(`snapshot: URL fora do site oficial (${a.source_item_id})`);
+      if (slugLooksLikePhone(u.split('/')[4] ?? '')) throw new Error(`guarda de dados pessoais: telefone no URL (${a.source_item_id})`);
+    }
+    // Segmentos variáveis e campos estruturados (Codex r2, achado 1).
+    if (slugLooksLikePhone(SERIES_KEY.exec(a.source_item_id)![1]!)) throw new Error('guarda de dados pessoais: telefone no source_item_id');
+    if (a.fuso !== FISH_CONFIG.timezone) throw new Error(`snapshot: fuso inválido (${a.source_item_id})`);
+    if (a.local) {
+      if (a.local.codigo_postal !== null && !UK_POSTCODE.test(a.local.codigo_postal)) throw new Error(`snapshot: código postal inválido (${a.source_item_id})`);
+      if (typeof a.local.nome !== 'string' || (a.local.morada !== null && typeof a.local.morada !== 'string')) throw new Error(`snapshot: local inválido (${a.source_item_id})`);
     }
   }
   // O URL do ICS gravado é a constante da configuração, nunca o valor do JSON.
   if (s.fonte.ics_url !== FISH_CONFIG.ics_url) throw new Error('snapshot: ics_url diferente do ICS oficial');
   return s as PreviewSnapshot;
+}
+
+/** Código postal britânico (forma completa). */
+const UK_POSTCODE = /^[A-Z]{1,2}\d[A-Z\d]? \d[A-Z]{2}$/;
+
+/**
+ * Slug com aspecto de telefone: grupos de 3–5 dígitos separados por hífen
+ * (020-8876-0000) ou 9+ dígitos seguidos. Os sufixos do WordPress
+ * ("-2-2-2") têm grupos de 1 dígito e não contam.
+ */
+export function slugLooksLikePhone(slug: string): boolean {
+  return /(?:^|-)\d{3,5}(?:-\d{3,5}){1,3}(?:-|$)|\d{9,}/.test(slug);
 }
 
 /** https://www.fishhelp.org.uk/event/<slug>/[<AAAA-MM-DD>/] — nada mais. */

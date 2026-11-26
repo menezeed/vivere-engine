@@ -2,7 +2,7 @@
  * Plano de ingestão FiSH a partir do snapshot do preview. Dados sintéticos.
  */
 import { describe, it, expect } from 'vitest';
-import { isOfficialEventUrl, parsePreviewSnapshot, planFromSnapshot, splitByExisting, type PreviewActivity, type PreviewSnapshot } from '../fishSnapshot';
+import { isOfficialEventUrl, slugLooksLikePhone, parsePreviewSnapshot, planFromSnapshot, splitByExisting, type PreviewActivity, type PreviewSnapshot } from '../fishSnapshot';
 import { parseEligibilityDataset } from '../../../review-api/eligibility/eligibilityAudit';
 import u3aDataset from '../../../review-api/eligibility/richmond-u3a-60plus.v1.json';
 
@@ -62,6 +62,12 @@ describe('parsePreviewSnapshot', () => {
     expect(isOfficialEventUrl('https://www.fishhelp.org.uk/event/board-games-2-2/2026-11-30/')).toBe(true);
     // ics_url do JSON tem de ser o oficial; o gravado é sempre a constante.
     expect(() => parsePreviewSnapshot({ ...ok, fonte: { ...ok.fonte, ics_url: 'https://evil.example/?q=x@y.org' } })).toThrow(/ics_url/);
+    // Telefone em segmentos variáveis e campos estruturados sem validação (Codex r2, achado 1).
+    expect(() => parsePreviewSnapshot(snap([act({ source_item_id: 'series:call-020-8876-0000:wed:1030', titulo: 'X' })]))).toThrow(/telefone/);
+    expect(() => parsePreviewSnapshot(snap([act({ source_item_id: 'series:x:wed:1030', titulo: 'X', urls_ocorrencias: ['https://www.fishhelp.org.uk/event/ring-07700900123/'] })]))).toThrow(/telefone/);
+    expect(() => parsePreviewSnapshot(snap([act({ source_item_id: 'series:x:wed:1030', titulo: 'X', fuso: 'x@y.org' })]))).toThrow(/fuso/);
+    expect(() => parsePreviewSnapshot(snap([act({ source_item_id: 'series:x:wed:1030', titulo: 'X', local: { nome: 'Hall', morada: null, codigo_postal: 'x@y.org' } })]))).toThrow(/código postal/);
+    expect(slugLooksLikePhone('board-games-2-2-2-2-2-2-2-2-2-2-2')).toBe(false);
     // URL de recurso também é validado (Codex r0, achado 5)
     expect(() => parsePreviewSnapshot(snap([act({ source_item_id: 'series:x:wed:1030', titulo: 'X', urls_ocorrencias: [], url_oficial: 'https://evil.example/x' })]))).toThrow(/site oficial/);
     expect(() => parsePreviewSnapshot(snap([act({ source_item_id: 'series:x:wed:1030', titulo: 'X', horario: ['10:00', '11:00'] })]))).toThrow(/uniforme/);
