@@ -141,7 +141,8 @@
       ],
       "explicit_60plus_quote": null,
       "organised_by_org": true,
-      "url": "https://www.richmondgoodneighbours.org.uk/"
+      "url": "https://www.richmondgoodneighbours.org.uk/",
+      "hold_reason": "A página (lida a 26/11/2026) avisa: \"Refurbishment works are due to begin in October which will change our access to the cafe. Keep an eye out for our alternate events.\" Datas futuras não verificáveis."
     }
   ],
   "excluded": [
@@ -175,5 +176,9 @@
       "title": "Singing for the Brain (Home Instead, Hampton Hill)",
       "reason": "a página só diz \"open to all; friends, family and carers welcome\": sem sinal 60+ nem de demência na fonte (regra de inclusão)"
     }
-  ]
+  ],
+  "verified_at_pages": {
+    "greenwood_hhhvc": "2026-11-26 (horários das 4 actividades reconfirmados)",
+    "richmond_good_neighbours": "2026-11-26 (aviso de obras)"
+  }
 }

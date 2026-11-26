@@ -54,16 +54,17 @@ describe('planFromCurated (dataset real)', () => {
   const all = [...p.bySource.values()].flat();
   const cls = (t: string) => p.proposals.find(x => x.title === t)!.classification;
 
-  it('5 actividades em 2 fontes; nada fora', () => {
-    expect(all).toHaveLength(5);
-    expect([...p.bySource.keys()].sort()).toEqual(['greenwood_hhhvc', 'richmond_good_neighbours']);
-    expect(p.held).toEqual([]);
+  it('4 actividades gravaveis (Greenwood); Cambrian Teas retida por obras (datas incertas)', () => {
+    expect(all).toHaveLength(4);
+    expect([...p.bySource.keys()]).toEqual(['greenwood_hhhvc']);
+    expect(p.held).toHaveLength(1);
+    expect(p.held[0]!.title).toBe('Cambrian Teas');
+    expect(p.held[0]!.reason).toMatch(/Refurbishment/);
   });
   it('elegibilidade: 60+ explícito → confirmed; Parkinson → unclear; grupos da organização → likely', () => {
     expect(cls('FLexercise Over 60s')).toBe('confirmed_60plus');
     expect(cls("Parkinson's Exercise Class")).toBe('unclear');
     expect(cls("H&HHVC Women's Social Group")).toBe('likely_suitable');
-    expect(cls('Cambrian Teas')).toBe('likely_suitable');
     expect(p.proposals.every(x => x.confidence !== 'high')).toBe(true);
     expect(p.proposals.every(x => x.human_review_notes.some(n => /Curadoria manual/.test(n)))).toBe(true);
   });

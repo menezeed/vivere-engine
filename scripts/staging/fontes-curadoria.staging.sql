@@ -4,10 +4,11 @@
 -- Porquê: staging.ingestion_runs.source_key tem FK para public.sources; o
 -- script scripts/ingest-curated.ts falha sem estas linhas (nada é gravado).
 --
--- O que faz: só INSERT (ON CONFLICT DO NOTHING) de 2 fontes do produto
+-- O que faz: só INSERT (ON CONFLICT DO NOTHING) de 1 fonte do produto
 -- vivere-60-plus-uk-test (activity_authority, prioridade 60):
 --   greenwood_hhhvc            Hampton & Hampton Hill Voluntary Care (Greenwood)
---   richmond_good_neighbours   Richmond Good Neighbours
+-- (richmond_good_neighbours fica de fora: a única actividade, Cambrian Teas,
+--  está retida por obras no local; datas futuras não verificáveis.)
 -- Não altera nem apaga linhas. Não é uma migração (sem DDL).
 --
 -- Guardas: v_confirm = 'staging' E o marcador do staging (primeira run u3a
@@ -17,7 +18,7 @@
 --   1. v_confirm := 'staging'; correr com v_aplicar := false (simulação, desfaz).
 --   2. v_aplicar := true e correr outra vez.
 -- Reverter (só sem runs/raw das fontes — a FK impede o contrário):
---   delete from public.sources where source_key in ('greenwood_hhhvc','richmond_good_neighbours');
+--   delete from public.sources where source_key in ('greenwood_hhhvc');
 -- ============================================================================
 do $fontes_curadoria$
 declare
@@ -42,8 +43,7 @@ begin
 
   insert into public.sources (source_key, display_name, product_key, source_priority, source_kind)
   values
-    ('greenwood_hhhvc', 'Hampton & Hampton Hill Voluntary Care (Greenwood)', 'vivere-60-plus-uk-test', 60, 'activity_authority'),
-    ('richmond_good_neighbours', 'Richmond Good Neighbours', 'vivere-60-plus-uk-test', 60, 'activity_authority')
+    ('greenwood_hhhvc', 'Hampton & Hampton Hill Voluntary Care (Greenwood)', 'vivere-60-plus-uk-test', 60, 'activity_authority')
   on conflict (source_key) do nothing;
   get diagnostics n_src = row_count;
 

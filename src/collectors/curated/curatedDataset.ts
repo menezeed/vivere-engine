@@ -34,6 +34,8 @@ export interface CuratedItem {
   explicit_60plus_quote: string | null;
   organised_by_org: boolean;
   url: string;
+  /** Retida (não gravada) com motivo verificado na fonte, ex.: datas futuras incertas. */
+  hold_reason?: string | null;
 }
 
 export interface CuratedOrganisation { name: string; site: string; organisation_evidence: string; terms_note: string }
@@ -137,6 +139,7 @@ export function planFromCurated(ds: CuratedDataset, today: string, windowDays = 
     const org = ds.organisations[it.source]!;
     // Monthly: janela maior para mostrar pelo menos uma ocorrência.
     const occurrences = occurrencesFor(it.schedule, today, it.schedule.type === 'monthly_nth' ? Math.max(windowDays, 62) : windowDays);
+    if (it.hold_reason) { held.push({ source: it.source, id: it.id, title: it.title, reason: it.hold_reason }); continue; }
     if (occurrences.length === 0) { held.push({ source: it.source, id: it.id, title: it.title, reason: 'sem ocorrências na janela' }); continue; }
     const restricted = restrictedAudience(it.audience_snippets);
     const proposal = proposeEligibility({

@@ -8,8 +8,8 @@
 |---|---|---|---|
 | Age UK Richmond upon Thames | Os termos proíbem reproduzir e armazenar sem consentimento escrito | info@ageukrichmond.org.uk; The White House Community Centre, 45 The Avenue, Hampton, TW12 3RN | A (abaixo); detalhe em `PEDIDO-AUTORIZACAO-AGEUK-RICHMOND.md` |
 | Ruils Independent Living | A "Website User Policy" proíbe publicar sem autorização escrita | **a confirmar pelo PO** na página Contact da Ruils (não foi lido) | A |
-| Hampton & Hampton Hill Voluntary Care (Greenwood) | Sem termos; não há licença explícita. 4 actividades em curadoria (PR #66) | **a confirmar pelo PO** na página de contacto da H&HHVC | B |
-| Richmond Good Neighbours | Rodapé "© Richmond Good Neighbours"; não há licença explícita. 1 actividade em curadoria (PR #66) | organiser@richmondgoodneighbours.org.uk (endereço de função); ETNA, 13 Rosslyn Road, East Twickenham, TW1 2AR | B |
+| Hampton & Hampton Hill Voluntary Care (Greenwood) | Sem termos; não há licença explícita. 4 actividades em curadoria (PR #66); **gravação em staging autorizada pelo PO a 26/11/2026 antes da resposta** | enquiries@greenwoodcommunity.org.uk (endereço geral, página de actividades, 26/11/2026) | B |
+| Richmond Good Neighbours | Rodapé "© Richmond Good Neighbours"; não há licença explícita. 1 actividade (Cambrian Teas) **retida**: obras no local, datas incertas. No pedido, perguntar também pelas datas | organiser@richmondgoodneighbours.org.uk (endereço de função); ETNA, 13 Rosslyn Road, East Twickenham, TW1 2AR | B |
 | Richmond Council (directório "Cost of Living", bibliotecas) | Termos: "personal and non commercial use". A licença OGL só cobre os datasets DataRich | **a confirmar pelo PO** (Open Data / Communications) | C |
 
 ## A — Organizações cujos termos exigem consentimento escrito
