@@ -9,7 +9,7 @@ import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { SectionCard } from '@/components/ui/Cards';
 import { Badge, Skeleton } from '@/components/ui/index';
 import { useReviewMutation } from '@/hooks/useReviewMutation';
-import { EligibilityPanel, EligibilityBadge } from '@/components/eligibility/EligibilityPanel';
+import { EligibilityPanel, EligibilityBadge, AudienceRestrictionBadge } from '@/components/eligibility/EligibilityPanel';
 import type { ReviewAction } from '@/types/review';
 
 export function ActivityDetailPage() {
@@ -63,6 +63,9 @@ export function ActivityDetailPage() {
         <div className="flex items-start justify-between gap-4">
           <div>
             <h1 className="text-2xl font-bold text-vivere-dark">{activity.title ?? 'Actividade sem título'}</h1>
+            {activity.audience_restriction && (
+              <div className="mt-2"><AudienceRestrictionBadge restriction={activity.audience_restriction} /></div>
+            )}
             {activity.description && (
               <p className="text-sm text-gray-500 mt-2 leading-relaxed">{activity.description}</p>
             )}

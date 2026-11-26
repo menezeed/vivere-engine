@@ -1,4 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
+import { parseAudienceRestriction } from '../eligibility/audienceRestriction';
 import type { ReviewContext, ActivityStagingRow } from '../types/reviewTypes';
 import { ALLOWED_TRANSITIONS } from '../types/reviewTypes';
 import { parseListParams, buildListResponse, ilikeContains, type ListResponse } from '../types/listTypes';
@@ -39,7 +40,8 @@ const LIST_SELECT = `
   reviewed_by, reviewed_at, promoted_at, promoted_activity_id, created_at,
   raw_activity_items!inner (
     title, description, source_key, source_item_id, image_url, external_url,
-    venue_mention_raw_text, venue_mention_confidence_hint, occurrences
+    venue_mention_raw_text, venue_mention_confidence_hint, occurrences,
+    restricted_audience:raw_payload->restricted_audience
   )
 `;
 
@@ -82,6 +84,10 @@ function flattenRow(data: Record<string, unknown>, includePayload = false): Acti
     venue_mention_raw_text:  raw['venue_mention_raw_text'] as string | null,
     venue_mention_confidence_hint: raw['venue_mention_confidence_hint'] as string | null,
     occurrences:             parseOccurrences(raw['occurrences']),
+    // Público restrito (piloto UK): só valores enumerados; rótulo gerado no servidor.
+    audience_restriction:    parseAudienceRestriction(
+      raw['restricted_audience'] ?? (raw['raw_payload'] as Record<string, unknown> | null | undefined)?.['restricted_audience'],
+    ),
     ...(includePayload ? { raw_payload: raw['raw_payload'] as Record<string, unknown> } : {}),
   };
 }

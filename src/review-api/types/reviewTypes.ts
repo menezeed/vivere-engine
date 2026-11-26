@@ -90,6 +90,8 @@ export interface ActivityStagingRow {
   image_url?: string | null;
   external_url?: string | null;
   raw_payload?: Record<string, unknown>;
+  /** Público restrito (pessoa com demência / cuidador / ambos); null se não houver. */
+  audience_restriction?: import('../eligibility/audienceRestriction').AudienceRestriction | null;
   /** Issue #62: só para produtos com auditoria e com a flag ligada. */
   eligibility?: import('../eligibility/eligibilityAudit').EligibilitySummary | import('../eligibility/eligibilityAudit').EligibilityDetail | null;
 }

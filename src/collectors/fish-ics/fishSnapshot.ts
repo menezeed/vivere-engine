@@ -19,6 +19,7 @@ import type { RawActivityItem, RawOccurrence } from '../../types/RawActivityItem
 import type { EligibilityRecord } from '../../review-api/eligibility/eligibilityAudit';
 import { proposeEligibility, SERVICE, RESTRICTED_AUDIENCE, EXPLICIT_60PLUS } from '../../review-api/eligibility/proposal';
 import { PRICE } from './fishText';
+import { audienceRestrictionLabel, type AudienceRestriction } from '../../review-api/eligibility/audienceRestriction';
 import { FISH_CONFIG } from './config';
 import { slugify } from './fishText';
 
@@ -77,6 +78,23 @@ const AUDIENCE_TAGS: ReadonlyArray<readonly [RegExp, string, string]> = [
   [/\bmembers? (are )?welcome\b/i, 'members_welcome', 'FiSH members welcome'],
 ];
 const OTHER_AUDIENCE_TAG = ['other_audience_text', 'Other audience text in source (not copied; see official URL)'] as const;
+
+/**
+ * Público restrito (decisão do PO, 26/11/2026): estas actividades entram na
+ * fila de revisão claramente identificadas como destinadas à pessoa com a
+ * condição, ao cuidador ou a ambos. Só valores enumerados; nunca a frase.
+ */
+export type RestrictedAudience = Pick<AudienceRestriction, 'condition' | 'target'>;
+
+export function restrictedAudience(snippets: readonly string[]): RestrictedAudience | null {
+  const text = snippets.join(' ');
+  if (!RESTRICTED_AUDIENCE.test(text)) return null;
+  const condition: RestrictedAudience['condition'] = /\b(dementia|alzheimer'?s)\b/i.test(text) ? 'dementia' : 'memory_loss';
+  const carer = /\bcarers?\b/i.test(text);
+  const person = /\b(people|person|those|anyone|someone)\b[^.]*\b(living with|with|who have)\b/i.test(text);
+  const target: RestrictedAudience['target'] = carer && person ? 'both' : carer ? 'carer' : 'person';
+  return { condition, target };
+}
 
 export function audienceTags(snippets: readonly string[]): Array<{ tag: string; label: string }> {
   const out = new Map<string, string>();
@@ -221,6 +239,7 @@ export function planFromSnapshot(snapshot: PreviewSnapshot, today: string): Fish
     const differs = locations.length > 1 || members.some(m => m.local_varia_entre_ocorrencias);
     // Público e evidência: só etiquetas fixas; as frases da fonte não passam daqui.
     const audience = audienceTags(members.flatMap(m => m.publico_alvo));
+    const restricted = restrictedAudience(members.flatMap(m => m.publico_alvo));
     const explicit = explicitOlderLevel(members.find(m => m.evidencia_60plus)?.evidencia_60plus ?? null);
     const price = priceFacts(first.custo);
     const categories = [...new Set(members.flatMap(m => m.categorias))];
@@ -245,6 +264,10 @@ export function planFromSnapshot(snapshot: PreviewSnapshot, today: string): Fish
       generic_venue: GENERIC_VENUE.test(loc?.nome ?? ''),
       schedule_complete: time !== null,
     });
+    if (restricted) {
+      proposal.access_notes = audienceRestrictionLabel(restricted.condition, restricted.target);
+      proposal.human_review_notes.push(`${proposal.access_notes}. Entra na fila de revisão identificada; não aprovar nem publicar automaticamente.`);
+    }
     if (cat) proposal.human_review_notes.push('Série com tema diferente em cada sessão; os temas não foram copiados (podem ter nomes de oradores).');
 
     // 3. Serviços não são actividades: ficam fora da inserção.
@@ -285,6 +308,7 @@ export function planFromSnapshot(snapshot: PreviewSnapshot, today: string): Fish
         spaces_limited: spacesLimited,
         transport_available: members.some(m => m.inscricao.transporte_disponivel),
         audience_tags: audience.map(a => a.tag),
+        restricted_audience: restricted,
         explicit_older_level: explicit?.level ?? null,
         membership: { required: true, fee_text: FISH_CONFIG.membership.fee_text, source_url: FISH_CONFIG.membership.source_url },
         merged_from: cat ? members.map(m => m.source_item_id) : undefined,

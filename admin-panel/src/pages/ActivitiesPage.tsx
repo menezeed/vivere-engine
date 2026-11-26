@@ -14,7 +14,7 @@ import { Pagination } from '@/components/shared/Pagination';
 import { QueryErrorBanner } from '@/components/shared/QueryErrorBanner';
 import { useUrlFilters } from '@/hooks/useUrlFilters';
 import { clampPage } from '@/hooks/urlFilterParams';
-import { EligibilityBadge, EligibilityNotice } from '@/components/eligibility/EligibilityPanel';
+import { AudienceRestrictionBadge, EligibilityBadge, EligibilityNotice } from '@/components/eligibility/EligibilityPanel';
 import { FILTER_OPTIONS, parseFilterParam } from '@/components/eligibility/eligibilityView';
 import { useDebounce } from '@/hooks/useDebounce';
 import { useReviewMutation } from '@/hooks/useReviewMutation';
@@ -115,9 +115,12 @@ export function ActivitiesPage() {
     {
       key: 'title', header: 'Título', sortable: true,
       render: (row) => (
-        <p className="font-medium text-vivere-dark truncate max-w-[220px]">
-          {row.title ?? <span className="text-gray-400 italic text-xs">sem título</span>}
-        </p>
+        <div>
+          <p className="font-medium text-vivere-dark truncate max-w-[220px]">
+            {row.title ?? <span className="text-gray-400 italic text-xs">sem título</span>}
+          </p>
+          <AudienceRestrictionBadge restriction={row.audience_restriction} />
+        </div>
       ),
     },
     ...(audited ? [{

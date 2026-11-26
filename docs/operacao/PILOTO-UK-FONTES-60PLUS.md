@@ -213,3 +213,47 @@ Os dados reais passam sem alterações.
 - pares id/URL trocados entre duas linhas de classes pedidas no filtro: o badge e a guarda 403 usam o lookup exacto.
 
 Relatórios transcritos em `C:\Projects\Vivere\reviews\2026-11-26-UK-62-65-r0.md`, `-r1.md` e `-r2.md`.
+
+## 10. Decisões do PO (26/11/2026) e preparação da escrita FiSH
+
+**Decisões:**
+- O Shopping Bus fica fora do piloto.
+- As 3 actividades de demência entram na fila de revisão, identificadas pelo público a que se destinam. Nada é aprovado nem publicado automaticamente.
+- O PR #64 fica aberto até a Issue #62 estar consolidada.
+- Foi autorizada a 4.ª ronda do Codex (só leitura).
+
+**Identificação do público restrito:**
+- O colector grava `raw_payload.restricted_audience = {condition, target}`, só com valores enumerados.
+- A Review API valida esse valor e gera o rótulo (`audience_restriction`).
+- O Admin mostra um badge amarelo na lista (por baixo do título) e no cabeçalho do detalhe.
+
+| Actividade | Rótulo | Proposta |
+|---|---|---|
+| Picassos in the Park Art | Público restrito: pessoa com demência e cuidador (ambos) | `unclear` |
+| Singing for the Brain | Público restrito: pessoa com demência e cuidador (ambos) | `unclear` |
+| Retro Club East Sheen | Público restrito: pessoa com perda de memória | `unclear` |
+
+**Simulação do seed:**
+- O MCP do staging só permite leitura e recusou o `INSERT` do bloco (`25006 read-only transaction`). Nada foi gravado.
+- Simulação equivalente, só de leitura:
+  - o produto `vivere-60-plus-uk-test` existe (inactivo);
+  - a fonte `fish_neighbourhood_care` ainda não existe, por isso seria **1 linha inserida**;
+  - os valores respeitam a PK, a FK para o produto, o CHECK de `source_kind` e os NOT NULL;
+  - não há triggers;
+  - a única fonte actual do produto é `u3a_richmond` (prioridade 90; a FiSH fica com 80).
+- A simulação com o bloco exacto (`v_aplicar := false`) tem de ser corrida pelo PO no SQL Editor do staging.
+
+**Quantidades, duplicados e restrições:**
+- 11 actividades e 27 ocorrências; 0 duplicados com a u3a e 0 venues.
+- Propostas: 8 `likely_suitable` e 3 `unclear`.
+- Restrições:
+  - tudo entra em `pending_review`;
+  - a guarda 403 impede aprovar ou promover o que não for `confirmed_60plus`, e a FiSH não está no dataset auditado, por isso é `not_audited`;
+  - publicar produtos não-BR está bloqueado (publicationGuard).
+
+**Rollback:** `scripts/staging/fish-rollback.staging.sql`.
+- Funcionamento:
+  - simulação por omissão;
+  - apaga só o que é da FiSH, por esta ordem: `activities_staging` → `raw_activity_items` → `ingestion_runs` e, opcionalmente, `sources`;
+  - recusa se houver revisão humana, Entity Resolution, uma run em curso ou venues FiSH.
+- As verificações foram validadas por leitura no staging (todas a 0) e as colunas confirmadas no catálogo.
