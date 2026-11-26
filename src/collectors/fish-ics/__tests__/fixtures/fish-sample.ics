@@ -1,0 +1,89 @@
+BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//Fixture sintética (estrutura do The Events Calendar)//EN
+X-WR-CALNAME:Fixture FiSH
+BEGIN:VTIMEZONE
+TZID:Europe/London
+BEGIN:STANDARD
+DTSTART:20261025T010000
+TZOFFSETFROM:+0100
+TZOFFSETTO:+0000
+END:STANDARD
+END:VTIMEZONE
+BEGIN:VEVENT
+DTSTART;TZID=Europe/London:20261203T103000
+DTEND;TZID=Europe/London:20261203T114500
+UID:10001-1796380200-1796384700@example.test
+SUMMARY:Chair Exercise Club
+DESCRIPTION:A gentle seated exercise class for older people who want to kee
+ p moving. £5.00 per session. Booking Essential. Transport available.\nFor d
+ etails contact Jane Doe on 020 7946 0000 or jane@example.test.
+URL:https://www.fishhelp.org.uk/event/chair-exercise-club-2/
+LOCATION:The Barnes Green Centre\, Church Road\, Barnes\, London\, SW13 9HE
+ \, United Kingdom
+CATEGORIES:Exercise,Weekly
+END:VEVENT
+BEGIN:VEVENT
+DTSTART;TZID=Europe/London:20261210T103000
+DTEND;TZID=Europe/London:20261210T114500
+UID:10002-1796985000-1796989500@example.test
+SUMMARY:Chair Exercise Club
+DESCRIPTION:A gentle seated exercise class for older people who want to kee
+ p moving. £5.00 per session. Booking Essential. Transport available.
+URL:https://www.fishhelp.org.uk/event/chair-exercise-club-2-2/
+LOCATION:The Barnes Green Centre\, Church Road\, Barnes\, London\, SW13 9HE
+ \, United Kingdom
+CATEGORIES:Exercise
+END:VEVENT
+BEGIN:VEVENT
+DTSTART;TZID=Europe/London:20261202T103000
+DTEND;TZID=Europe/London:20261202T120000
+UID:10003@example.test
+SUMMARY:Coffee Morning
+DESCRIPTION:Friendly company and cake. No need to book\, just drop in.
+URL:https://www.fishhelp.org.uk/event/coffee-morning/
+LOCATION:The Sheen Lane Centre\, Sheen Lane\, London\, SW14 8LP\, United Ki
+ ngdom
+END:VEVENT
+BEGIN:VEVENT
+DTSTART;TZID=Europe/London:20261202T110000
+DTEND;TZID=Europe/London:20261202T140000
+UID:10004@example.test
+SUMMARY:Shopping Bus
+DESCRIPTION:Our Wednesday Shopping Bus takes members to the supermarket. Bo
+ oking Essential.
+URL:https://www.fishhelp.org.uk/event/shopping-bus/
+END:VEVENT
+BEGIN:VEVENT
+DTSTART;TZID=Europe/London:20261101T140000
+UID:10005@example.test
+SUMMARY:Autumn Talk
+URL:https://www.fishhelp.org.uk/event/autumn-talk/
+LOCATION:The Barnes Green Centre\, Church Road\, Barnes\, London\, SW13 9HE
+END:VEVENT
+BEGIN:VEVENT
+DTSTART;TZID=Europe/London:20261204T140000
+UID:10006@example.test
+SUMMARY:CANCELLED - Quiz Afternoon
+URL:https://www.fishhelp.org.uk/event/quiz/
+END:VEVENT
+BEGIN:VEVENT
+DTSTART;TZID=Europe/London:20261205T140000
+UID:10007@example.test
+SUMMARY:Online Memory Café
+LOCATION:Zoom
+URL:https://www.fishhelp.org.uk/event/online-memory-cafe/
+END:VEVENT
+BEGIN:VEVENT
+DTSTART;VALUE=DATE:20261212
+UID:10008@example.test
+SUMMARY:Christmas Fair
+DESCRIPTION:Stalls for all the family.
+URL:https://www.fishhelp.org.uk/event/christmas-fair/
+LOCATION:The Barnes Green Centre\, Church Road\, Barnes\, London\, SW13 9HE
+BEGIN:VALARM
+ACTION:DISPLAY
+DESCRIPTION:Reminder
+END:VALARM
+END:VEVENT
+END:VCALENDAR
