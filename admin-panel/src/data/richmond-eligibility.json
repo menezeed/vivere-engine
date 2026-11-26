@@ -1,0 +1,4311 @@
+{
+  "schemaVersion": 1,
+  "productKey": "vivere-60-plus-uk-test",
+  "sourceKey": "u3a_richmond",
+  "sourceReport": {
+    "path": "docs/operacao/AUDITORIA-60PLUS-RICHMOND.md",
+    "commit": "68737b591c4ee061f80a50dc35ae54dca3fdc1b9",
+    "blobSha": "3beab49d70ee3f24a4b829e216dcfe62dd132907"
+  },
+  "checkedAt": "2026-11-26",
+  "recordCount": 133,
+  "classificationCounts": {
+    "confirmed_60plus": 1,
+    "likely_suitable": 124,
+    "unclear": 7,
+    "unsuitable": 1
+  },
+  "availabilityCounts": {
+    "open_to_new_members": 94,
+    "full_waitlist": 33,
+    "closed_to_new_members": 5,
+    "one_off_unknown_vacancies": 1
+  },
+  "membershipQuota": {
+    "currency": "GBP",
+    "sourceUrl": "https://u3abeacon.org.uk/u3ajoin.php?sc=VMQG&u3a=466",
+    "checkedAt": "2026-11-26",
+    "validUntil": "2027-09-01",
+    "categories": [
+      {
+        "name": "Individual",
+        "amount": "15.00",
+        "unit": "per member"
+      },
+      {
+        "name": "Joint",
+        "amount": "12.50",
+        "unit": "per person"
+      },
+      {
+        "name": "Associate",
+        "amount": "11.00",
+        "unit": "per member"
+      },
+      {
+        "name": "Associates-Joint",
+        "amount": "10.00",
+        "unit": "per person"
+      }
+    ],
+    "note": "Membership quota is separate from activity costs; absence of a listed activity cost does not mean free."
+  },
+  "items": [
+    {
+      "reportOrdinal": 1,
+      "canonicalSourceUrl": "https://rut.u3asite.uk/u3a_groups/extend-exercise/",
+      "title": "Seated Exercise",
+      "eligibilityClass": "confirmed_60plus",
+      "confidence": "alta",
+      "evidenceSummary": "A página diz que o professor é qualificado para exercício de pessoas com mais de 60 anos e pessoas com deficiência.",
+      "eligibilityScope": "not_confirmed",
+      "availability": {
+        "status": "full_waitlist",
+        "sourceText": "cheio, lista de espera"
+      },
+      "participation": {
+        "membershipRequired": "required",
+        "sourceText": "só membros; acesso: Exercício sentado; a página refere aptidão para pessoas com deficiência."
+      },
+      "membershipFeeNote": "adesão: quota da u3a (ver §1.1)",
+      "additionalCost": {
+        "status": "not_indicated",
+        "sourceText": "nenhum indicado na página"
+      },
+      "schedule": {
+        "status": "not_confirmed",
+        "sourceText": null
+      },
+      "location": {
+        "status": "not_confirmed",
+        "sourceText": null
+      },
+      "recommendation": "Manter em pending_review; primeira candidata à revisão humana. Indicar a lista de espera.",
+      "checkedAt": "2026-11-26"
+    },
+    {
+      "reportOrdinal": 2,
+      "canonicalSourceUrl": "https://rut.u3asite.uk/u3a_groups/architecture-modern/",
+      "title": "Architecture - Modern",
+      "eligibilityClass": "likely_suitable",
+      "confidence": "média",
+      "evidenceSummary": "Grupo da Richmond upon Thames u3a, que se descreve como \"co-operative of older people\" para reformados e semi-reformados. A página da actividade não refere idade.",
+      "eligibilityScope": "not_confirmed",
+      "availability": {
+        "status": "full_waitlist",
+        "sourceText": "cheio, lista de espera"
+      },
+      "participation": {
+        "membershipRequired": "required",
+        "sourceText": "só membros"
+      },
+      "membershipFeeNote": "adesão: quota da u3a (ver §1.1)",
+      "additionalCost": {
+        "status": "not_indicated",
+        "sourceText": "nenhum indicado na página"
+      },
+      "schedule": {
+        "status": "not_confirmed",
+        "sourceText": null
+      },
+      "location": {
+        "status": "not_confirmed",
+        "sourceText": null
+      },
+      "recommendation": "Manter em pending_review (hold, decisão do PO). Indicar a lista de espera.",
+      "checkedAt": "2026-11-26"
+    },
+    {
+      "reportOrdinal": 3,
+      "canonicalSourceUrl": "https://rut.u3asite.uk/u3a_groups/art-a-taste-of-art/",
+      "title": "Art - A Taste of Art",
+      "eligibilityClass": "likely_suitable",
+      "confidence": "média",
+      "evidenceSummary": "Grupo da Richmond upon Thames u3a, que se descreve como \"co-operative of older people\" para reformados e semi-reformados. A página da actividade não refere idade.",
+      "eligibilityScope": "not_confirmed",
+      "availability": {
+        "status": "open_to_new_members",
+        "sourceText": "aberto a novos membros"
+      },
+      "participation": {
+        "membershipRequired": "required",
+        "sourceText": "só membros"
+      },
+      "membershipFeeNote": "adesão: quota da u3a (ver §1.1)",
+      "additionalCost": {
+        "status": "not_indicated",
+        "sourceText": "nenhum indicado na página"
+      },
+      "schedule": {
+        "status": "not_confirmed",
+        "sourceText": null
+      },
+      "location": {
+        "status": "not_confirmed",
+        "sourceText": null
+      },
+      "recommendation": "Manter em pending_review (hold, decisão do PO).",
+      "checkedAt": "2026-11-26"
+    },
+    {
+      "reportOrdinal": 4,
+      "canonicalSourceUrl": "https://rut.u3asite.uk/u3a_groups/art-history-and-heritage/",
+      "title": "Art History and Heritage",
+      "eligibilityClass": "likely_suitable",
+      "confidence": "média",
+      "evidenceSummary": "Grupo da Richmond upon Thames u3a, que se descreve como \"co-operative of older people\" para reformados e semi-reformados. A página da actividade não refere idade.",
+      "eligibilityScope": "not_confirmed",
+      "availability": {
+        "status": "open_to_new_members",
+        "sourceText": "aberto a novos membros"
+      },
+      "participation": {
+        "membershipRequired": "required",
+        "sourceText": "só membros; horário incompleto na fonte"
+      },
+      "membershipFeeNote": "adesão: quota da u3a (ver §1.1)",
+      "additionalCost": {
+        "status": "not_indicated",
+        "sourceText": "nenhum indicado na página"
+      },
+      "schedule": {
+        "status": "incomplete",
+        "sourceText": null
+      },
+      "location": {
+        "status": "not_confirmed",
+        "sourceText": null
+      },
+      "recommendation": "Manter em pending_review (hold, decisão do PO). Confirmar o horário antes de qualquer agenda.",
+      "checkedAt": "2026-11-26"
+    },
+    {
+      "reportOrdinal": 5,
+      "canonicalSourceUrl": "https://rut.u3asite.uk/u3a_groups/art-workshop/",
+      "title": "Art Workshop",
+      "eligibilityClass": "likely_suitable",
+      "confidence": "média",
+      "evidenceSummary": "Grupo da Richmond upon Thames u3a, que se descreve como \"co-operative of older people\" para reformados e semi-reformados. A página da actividade não refere idade.",
+      "eligibilityScope": "not_confirmed",
+      "availability": {
+        "status": "open_to_new_members",
+        "sourceText": "aberto a novos membros"
+      },
+      "participation": {
+        "membershipRequired": "required",
+        "sourceText": "só membros"
+      },
+      "membershipFeeNote": "adesão: quota da u3a (ver §1.1)",
+      "additionalCost": {
+        "status": "not_indicated",
+        "sourceText": "nenhum indicado na página"
+      },
+      "schedule": {
+        "status": "not_confirmed",
+        "sourceText": null
+      },
+      "location": {
+        "status": "not_confirmed",
+        "sourceText": null
+      },
+      "recommendation": "Manter em pending_review (hold, decisão do PO).",
+      "checkedAt": "2026-11-26"
+    },
+    {
+      "reportOrdinal": 6,
+      "canonicalSourceUrl": "https://rut.u3asite.uk/u3a_groups/badminton-1/",
+      "title": "Badminton 1",
+      "eligibilityClass": "likely_suitable",
+      "confidence": "média",
+      "evidenceSummary": "Grupo da Richmond upon Thames u3a, que se descreve como \"co-operative of older people\" para reformados e semi-reformados. A página da actividade não refere idade.",
+      "eligibilityScope": "not_confirmed",
+      "availability": {
+        "status": "open_to_new_members",
+        "sourceText": "aberto a novos membros"
+      },
+      "participation": {
+        "membershipRequired": "required",
+        "sourceText": "só membros; actividade física; nível referido: improvers/beginners"
+      },
+      "membershipFeeNote": "adesão: quota da u3a (ver §1.1)",
+      "additionalCost": {
+        "status": "not_indicated",
+        "sourceText": "nenhum indicado na página"
+      },
+      "schedule": {
+        "status": "not_confirmed",
+        "sourceText": null
+      },
+      "location": {
+        "status": "not_confirmed",
+        "sourceText": null
+      },
+      "recommendation": "Manter em pending_review (hold, decisão do PO).",
+      "checkedAt": "2026-11-26"
+    },
+    {
+      "reportOrdinal": 7,
+      "canonicalSourceUrl": "https://rut.u3asite.uk/u3a_groups/badminton-2/",
+      "title": "Badminton 2",
+      "eligibilityClass": "likely_suitable",
+      "confidence": "média",
+      "evidenceSummary": "Grupo da Richmond upon Thames u3a, que se descreve como \"co-operative of older people\" para reformados e semi-reformados. A página da actividade não refere idade.",
+      "eligibilityScope": "not_confirmed",
+      "availability": {
+        "status": "open_to_new_members",
+        "sourceText": "aberto a novos membros"
+      },
+      "participation": {
+        "membershipRequired": "required",
+        "sourceText": "só membros; actividade física; nível referido: all levels"
+      },
+      "membershipFeeNote": "adesão: quota da u3a (ver §1.1)",
+      "additionalCost": {
+        "status": "not_indicated",
+        "sourceText": "nenhum indicado na página"
+      },
+      "schedule": {
+        "status": "not_confirmed",
+        "sourceText": null
+      },
+      "location": {
+        "status": "not_confirmed",
+        "sourceText": null
+      },
+      "recommendation": "Manter em pending_review (hold, decisão do PO).",
+      "checkedAt": "2026-11-26"
+    },
+    {
+      "reportOrdinal": 8,
+      "canonicalSourceUrl": "https://rut.u3asite.uk/u3a_groups/badminton-3/",
+      "title": "Badminton 3",
+      "eligibilityClass": "likely_suitable",
+      "confidence": "média",
+      "evidenceSummary": "Grupo da Richmond upon Thames u3a, que se descreve como \"co-operative of older people\" para reformados e semi-reformados. A página da actividade não refere idade.",
+      "eligibilityScope": "not_confirmed",
+      "availability": {
+        "status": "open_to_new_members",
+        "sourceText": "aberto a novos membros"
+      },
+      "participation": {
+        "membershipRequired": "required",
+        "sourceText": "só membros; actividade física; nível referido: all levels"
+      },
+      "membershipFeeNote": "adesão: quota da u3a (ver §1.1)",
+      "additionalCost": {
+        "status": "not_indicated",
+        "sourceText": "nenhum indicado na página"
+      },
+      "schedule": {
+        "status": "not_confirmed",
+        "sourceText": null
+      },
+      "location": {
+        "status": "not_confirmed",
+        "sourceText": null
+      },
+      "recommendation": "Manter em pending_review (hold, decisão do PO).",
+      "checkedAt": "2026-11-26"
+    },
+    {
+      "reportOrdinal": 9,
+      "canonicalSourceUrl": "https://rut.u3asite.uk/u3a_groups/birdwatching-walks-beginners/",
+      "title": "Birdwatching Walks- beginners",
+      "eligibilityClass": "likely_suitable",
+      "confidence": "média",
+      "evidenceSummary": "Grupo da Richmond upon Thames u3a, que se descreve como \"co-operative of older people\" para reformados e semi-reformados. A página da actividade não refere idade.",
+      "eligibilityScope": "not_confirmed",
+      "availability": {
+        "status": "open_to_new_members",
+        "sourceText": "aberto a novos membros"
+      },
+      "participation": {
+        "membershipRequired": "required",
+        "sourceText": "só membros; actividade física (distâncias citadas: 3 km); nível referido: beginners"
+      },
+      "membershipFeeNote": "adesão: quota da u3a (ver §1.1)",
+      "additionalCost": {
+        "status": "not_indicated",
+        "sourceText": "nenhum indicado na página"
+      },
+      "schedule": {
+        "status": "not_confirmed",
+        "sourceText": null
+      },
+      "location": {
+        "status": "not_confirmed",
+        "sourceText": null
+      },
+      "recommendation": "Manter em pending_review (hold, decisão do PO).",
+      "checkedAt": "2026-11-26"
+    },
+    {
+      "reportOrdinal": 10,
+      "canonicalSourceUrl": "https://rut.u3asite.uk/u3a_groups/bolivia/",
+      "title": "Bolivia (version of card game Canasta)",
+      "eligibilityClass": "likely_suitable",
+      "confidence": "média",
+      "evidenceSummary": "Grupo da Richmond upon Thames u3a, que se descreve como \"co-operative of older people\" para reformados e semi-reformados. A página da actividade não refere idade.",
+      "eligibilityScope": "not_confirmed",
+      "availability": {
+        "status": "open_to_new_members",
+        "sourceText": "aberto a novos membros"
+      },
+      "participation": {
+        "membershipRequired": "required",
+        "sourceText": "só membros; horário incompleto na fonte; local genérico (pub, hotel ou café)"
+      },
+      "membershipFeeNote": "adesão: quota da u3a (ver §1.1)",
+      "additionalCost": {
+        "status": "not_indicated",
+        "sourceText": "nenhum indicado na página"
+      },
+      "schedule": {
+        "status": "incomplete",
+        "sourceText": null
+      },
+      "location": {
+        "status": "generic_only",
+        "sourceText": null
+      },
+      "recommendation": "Manter em pending_review (hold, decisão do PO). Confirmar o horário antes de qualquer agenda.",
+      "checkedAt": "2026-11-26"
+    },
+    {
+      "reportOrdinal": 11,
+      "canonicalSourceUrl": "https://rut.u3asite.uk/u3a_groups/book-group-biographies-and-more/",
+      "title": "Book Group - Biographies&More",
+      "eligibilityClass": "likely_suitable",
+      "confidence": "média",
+      "evidenceSummary": "Grupo da Richmond upon Thames u3a, que se descreve como \"co-operative of older people\" para reformados e semi-reformados. A página da actividade não refere idade.",
+      "eligibilityScope": "not_confirmed",
+      "availability": {
+        "status": "full_waitlist",
+        "sourceText": "cheio, lista de espera"
+      },
+      "participation": {
+        "membershipRequired": "required",
+        "sourceText": "só membros; local genérico (pub, hotel ou café)"
+      },
+      "membershipFeeNote": "adesão: quota da u3a (ver §1.1)",
+      "additionalCost": {
+        "status": "not_indicated",
+        "sourceText": "nenhum indicado na página"
+      },
+      "schedule": {
+        "status": "not_confirmed",
+        "sourceText": null
+      },
+      "location": {
+        "status": "generic_only",
+        "sourceText": null
+      },
+      "recommendation": "Manter em pending_review (hold, decisão do PO). Indicar a lista de espera.",
+      "checkedAt": "2026-11-26"
+    },
+    {
+      "reportOrdinal": 12,
+      "canonicalSourceUrl": "https://rut.u3asite.uk/u3a_groups/book-group-classics/",
+      "title": "Book Group - Classics",
+      "eligibilityClass": "likely_suitable",
+      "confidence": "média",
+      "evidenceSummary": "Grupo da Richmond upon Thames u3a, que se descreve como \"co-operative of older people\" para reformados e semi-reformados. A página da actividade não refere idade.",
+      "eligibilityScope": "not_confirmed",
+      "availability": {
+        "status": "open_to_new_members",
+        "sourceText": "aberto a novos membros"
+      },
+      "participation": {
+        "membershipRequired": "required",
+        "sourceText": "só membros"
+      },
+      "membershipFeeNote": "adesão: quota da u3a (ver §1.1)",
+      "additionalCost": {
+        "status": "not_indicated",
+        "sourceText": "nenhum indicado na página"
+      },
+      "schedule": {
+        "status": "not_confirmed",
+        "sourceText": null
+      },
+      "location": {
+        "status": "not_confirmed",
+        "sourceText": null
+      },
+      "recommendation": "Manter em pending_review (hold, decisão do PO).",
+      "checkedAt": "2026-11-26"
+    },
+    {
+      "reportOrdinal": 13,
+      "canonicalSourceUrl": "https://rut.u3asite.uk/u3a_groups/book-group-literature/",
+      "title": "Book Group - Literature",
+      "eligibilityClass": "likely_suitable",
+      "confidence": "média",
+      "evidenceSummary": "Grupo da Richmond upon Thames u3a, que se descreve como \"co-operative of older people\" para reformados e semi-reformados. A página da actividade não refere idade.",
+      "eligibilityScope": "not_confirmed",
+      "availability": {
+        "status": "full_waitlist",
+        "sourceText": "cheio, lista de espera"
+      },
+      "participation": {
+        "membershipRequired": "required",
+        "sourceText": "só membros"
+      },
+      "membershipFeeNote": "adesão: quota da u3a (ver §1.1)",
+      "additionalCost": {
+        "status": "not_indicated",
+        "sourceText": "nenhum indicado na página"
+      },
+      "schedule": {
+        "status": "not_confirmed",
+        "sourceText": null
+      },
+      "location": {
+        "status": "not_confirmed",
+        "sourceText": null
+      },
+      "recommendation": "Manter em pending_review (hold, decisão do PO). Indicar a lista de espera.",
+      "checkedAt": "2026-11-26"
+    },
+    {
+      "reportOrdinal": 14,
+      "canonicalSourceUrl": "https://rut.u3asite.uk/u3a_groups/book-group-mainly-classics/",
+      "title": "Book Group - Mainly Classics",
+      "eligibilityClass": "likely_suitable",
+      "confidence": "média",
+      "evidenceSummary": "Grupo da Richmond upon Thames u3a, que se descreve como \"co-operative of older people\" para reformados e semi-reformados. A página da actividade não refere idade.",
+      "eligibilityScope": "not_confirmed",
+      "availability": {
+        "status": "open_to_new_members",
+        "sourceText": "aberto a novos membros"
+      },
+      "participation": {
+        "membershipRequired": "required",
+        "sourceText": "só membros"
+      },
+      "membershipFeeNote": "adesão: quota da u3a (ver §1.1)",
+      "additionalCost": {
+        "status": "not_indicated",
+        "sourceText": "nenhum indicado na página"
+      },
+      "schedule": {
+        "status": "not_confirmed",
+        "sourceText": null
+      },
+      "location": {
+        "status": "not_confirmed",
+        "sourceText": null
+      },
+      "recommendation": "Manter em pending_review (hold, decisão do PO).",
+      "checkedAt": "2026-11-26"
+    },
+    {
+      "reportOrdinal": 15,
+      "canonicalSourceUrl": "https://rut.u3asite.uk/u3a_groups/book-group-members-choice-1/",
+      "title": "Book Group - Members' Choice",
+      "eligibilityClass": "likely_suitable",
+      "confidence": "média",
+      "evidenceSummary": "Grupo da Richmond upon Thames u3a, que se descreve como \"co-operative of older people\" para reformados e semi-reformados. A página da actividade não refere idade.",
+      "eligibilityScope": "not_confirmed",
+      "availability": {
+        "status": "full_waitlist",
+        "sourceText": "cheio, lista de espera"
+      },
+      "participation": {
+        "membershipRequired": "required",
+        "sourceText": "só membros"
+      },
+      "membershipFeeNote": "adesão: quota da u3a (ver §1.1)",
+      "additionalCost": {
+        "status": "not_indicated",
+        "sourceText": "nenhum indicado na página"
+      },
+      "schedule": {
+        "status": "not_confirmed",
+        "sourceText": null
+      },
+      "location": {
+        "status": "not_confirmed",
+        "sourceText": null
+      },
+      "recommendation": "Manter em pending_review (hold, decisão do PO). Indicar a lista de espera.",
+      "checkedAt": "2026-11-26"
+    },
+    {
+      "reportOrdinal": 16,
+      "canonicalSourceUrl": "https://rut.u3asite.uk/u3a_groups/book-group-alternative/",
+      "title": "Book Group- Alternative",
+      "eligibilityClass": "likely_suitable",
+      "confidence": "média",
+      "evidenceSummary": "Grupo da Richmond upon Thames u3a, que se descreve como \"co-operative of older people\" para reformados e semi-reformados. A página da actividade não refere idade.",
+      "eligibilityScope": "not_confirmed",
+      "availability": {
+        "status": "open_to_new_members",
+        "sourceText": "aberto a novos membros"
+      },
+      "participation": {
+        "membershipRequired": "required",
+        "sourceText": "só membros; local genérico (pub, hotel ou café)"
+      },
+      "membershipFeeNote": "adesão: quota da u3a (ver §1.1)",
+      "additionalCost": {
+        "status": "not_indicated",
+        "sourceText": "nenhum indicado na página"
+      },
+      "schedule": {
+        "status": "not_confirmed",
+        "sourceText": null
+      },
+      "location": {
+        "status": "generic_only",
+        "sourceText": null
+      },
+      "recommendation": "Manter em pending_review (hold, decisão do PO).",
+      "checkedAt": "2026-11-26"
+    },
+    {
+      "reportOrdinal": 17,
+      "canonicalSourceUrl": "https://rut.u3asite.uk/u3a_groups/literature-in-the-modern-world/",
+      "title": "Book Group-Literature 2",
+      "eligibilityClass": "likely_suitable",
+      "confidence": "média",
+      "evidenceSummary": "Grupo da Richmond upon Thames u3a, que se descreve como \"co-operative of older people\" para reformados e semi-reformados. A página da actividade não refere idade.",
+      "eligibilityScope": "not_confirmed",
+      "availability": {
+        "status": "closed_to_new_members",
+        "sourceText": "fechado a novos membros"
+      },
+      "participation": {
+        "membershipRequired": "required",
+        "sourceText": "só membros; local genérico (pub, hotel ou café)"
+      },
+      "membershipFeeNote": "adesão: quota da u3a (ver §1.1)",
+      "additionalCost": {
+        "status": "not_indicated",
+        "sourceText": "nenhum indicado na página"
+      },
+      "schedule": {
+        "status": "not_confirmed",
+        "sourceText": null
+      },
+      "location": {
+        "status": "generic_only",
+        "sourceText": null
+      },
+      "recommendation": "Manter em pending_review (hold, decisão do PO). Não divulgar como aberta.",
+      "checkedAt": "2026-11-26"
+    },
+    {
+      "reportOrdinal": 18,
+      "canonicalSourceUrl": "https://rut.u3asite.uk/u3a_groups/book-grp-wonderful-world-of-books/",
+      "title": "Book Group-Wonderful World of",
+      "eligibilityClass": "likely_suitable",
+      "confidence": "média",
+      "evidenceSummary": "Grupo da Richmond upon Thames u3a, que se descreve como \"co-operative of older people\" para reformados e semi-reformados. A página da actividade não refere idade.",
+      "eligibilityScope": "not_confirmed",
+      "availability": {
+        "status": "full_waitlist",
+        "sourceText": "cheio, lista de espera"
+      },
+      "participation": {
+        "membershipRequired": "required",
+        "sourceText": "só membros; local genérico (pub, hotel ou café)"
+      },
+      "membershipFeeNote": "adesão: quota da u3a (ver §1.1)",
+      "additionalCost": {
+        "status": "not_indicated",
+        "sourceText": "nenhum indicado na página"
+      },
+      "schedule": {
+        "status": "not_confirmed",
+        "sourceText": null
+      },
+      "location": {
+        "status": "generic_only",
+        "sourceText": null
+      },
+      "recommendation": "Manter em pending_review (hold, decisão do PO). Indicar a lista de espera.",
+      "checkedAt": "2026-11-26"
+    },
+    {
+      "reportOrdinal": 19,
+      "canonicalSourceUrl": "https://rut.u3asite.uk/u3a_groups/bridge/",
+      "title": "Bridge",
+      "eligibilityClass": "likely_suitable",
+      "confidence": "média",
+      "evidenceSummary": "Grupo da Richmond upon Thames u3a, que se descreve como \"co-operative of older people\" para reformados e semi-reformados. A página da actividade não refere idade.",
+      "eligibilityScope": "not_confirmed",
+      "availability": {
+        "status": "open_to_new_members",
+        "sourceText": "aberto a novos membros"
+      },
+      "participation": {
+        "membershipRequired": "required",
+        "sourceText": "só membros"
+      },
+      "membershipFeeNote": "adesão: quota da u3a (ver §1.1)",
+      "additionalCost": {
+        "status": "not_indicated",
+        "sourceText": "nenhum indicado na página"
+      },
+      "schedule": {
+        "status": "not_confirmed",
+        "sourceText": null
+      },
+      "location": {
+        "status": "not_confirmed",
+        "sourceText": null
+      },
+      "recommendation": "Manter em pending_review (hold, decisão do PO).",
+      "checkedAt": "2026-11-26"
+    },
+    {
+      "reportOrdinal": 20,
+      "canonicalSourceUrl": "https://rut.u3asite.uk/u3a_groups/chess/",
+      "title": "Chess",
+      "eligibilityClass": "likely_suitable",
+      "confidence": "média",
+      "evidenceSummary": "Grupo da Richmond upon Thames u3a, que se descreve como \"co-operative of older people\" para reformados e semi-reformados. A página da actividade não refere idade.",
+      "eligibilityScope": "not_confirmed",
+      "availability": {
+        "status": "open_to_new_members",
+        "sourceText": "aberto a novos membros"
+      },
+      "participation": {
+        "membershipRequired": "required",
+        "sourceText": "só membros; nível referido: experienced"
+      },
+      "membershipFeeNote": "adesão: quota da u3a (ver §1.1)",
+      "additionalCost": {
+        "status": "not_indicated",
+        "sourceText": "nenhum indicado na página"
+      },
+      "schedule": {
+        "status": "not_confirmed",
+        "sourceText": null
+      },
+      "location": {
+        "status": "not_confirmed",
+        "sourceText": null
+      },
+      "recommendation": "Manter em pending_review (hold, decisão do PO).",
+      "checkedAt": "2026-11-26"
+    },
+    {
+      "reportOrdinal": 21,
+      "canonicalSourceUrl": "https://rut.u3asite.uk/u3a_groups/choral-music-appreciation/",
+      "title": "Choral Music Appreciation",
+      "eligibilityClass": "likely_suitable",
+      "confidence": "média",
+      "evidenceSummary": "Grupo da Richmond upon Thames u3a, que se descreve como \"co-operative of older people\" para reformados e semi-reformados. A página da actividade não refere idade.",
+      "eligibilityScope": "not_confirmed",
+      "availability": {
+        "status": "open_to_new_members",
+        "sourceText": "aberto a novos membros"
+      },
+      "participation": {
+        "membershipRequired": "required",
+        "sourceText": "só membros"
+      },
+      "membershipFeeNote": "adesão: quota da u3a (ver §1.1)",
+      "additionalCost": {
+        "status": "not_indicated",
+        "sourceText": "nenhum indicado na página"
+      },
+      "schedule": {
+        "status": "not_confirmed",
+        "sourceText": null
+      },
+      "location": {
+        "status": "not_confirmed",
+        "sourceText": null
+      },
+      "recommendation": "Manter em pending_review (hold, decisão do PO).",
+      "checkedAt": "2026-11-26"
+    },
+    {
+      "reportOrdinal": 22,
+      "canonicalSourceUrl": "https://rut.u3asite.uk/u3a_groups/church-bell-ringing/",
+      "title": "Church Bell Ringing",
+      "eligibilityClass": "likely_suitable",
+      "confidence": "média",
+      "evidenceSummary": "Grupo da Richmond upon Thames u3a, que se descreve como \"co-operative of older people\" para reformados e semi-reformados. A página da actividade não refere idade.",
+      "eligibilityScope": "not_confirmed",
+      "availability": {
+        "status": "open_to_new_members",
+        "sourceText": "aberto a novos membros"
+      },
+      "participation": {
+        "membershipRequired": "required",
+        "sourceText": "só membros; nível referido: beginners; acesso: A página refere um parque de estacionamento grande junto à igreja."
+      },
+      "membershipFeeNote": "adesão: quota da u3a (ver §1.1)",
+      "additionalCost": {
+        "status": "not_indicated",
+        "sourceText": "nenhum indicado na página"
+      },
+      "schedule": {
+        "status": "not_confirmed",
+        "sourceText": null
+      },
+      "location": {
+        "status": "not_confirmed",
+        "sourceText": null
+      },
+      "recommendation": "Manter em pending_review (hold, decisão do PO).",
+      "checkedAt": "2026-11-26"
+    },
+    {
+      "reportOrdinal": 23,
+      "canonicalSourceUrl": "https://rut.u3asite.uk/u3a_groups/cinema-group/",
+      "title": "Cinema Group",
+      "eligibilityClass": "likely_suitable",
+      "confidence": "média",
+      "evidenceSummary": "Grupo da Richmond upon Thames u3a, que se descreve como \"co-operative of older people\" para reformados e semi-reformados. A página da actividade não refere idade.",
+      "eligibilityScope": "not_confirmed",
+      "availability": {
+        "status": "open_to_new_members",
+        "sourceText": "aberto a novos membros"
+      },
+      "participation": {
+        "membershipRequired": "required",
+        "sourceText": "só membros; horário incompleto na fonte"
+      },
+      "membershipFeeNote": "adesão: quota da u3a (ver §1.1)",
+      "additionalCost": {
+        "status": "reported",
+        "sourceText": "Cada membro compra o seu bilhete (preço de concessão indicado de cerca de £8)."
+      },
+      "schedule": {
+        "status": "incomplete",
+        "sourceText": null
+      },
+      "location": {
+        "status": "not_confirmed",
+        "sourceText": null
+      },
+      "recommendation": "Manter em pending_review (hold, decisão do PO). Confirmar o horário antes de qualquer agenda.",
+      "checkedAt": "2026-11-26"
+    },
+    {
+      "reportOrdinal": 24,
+      "canonicalSourceUrl": "https://rut.u3asite.uk/u3a_groups/classical-music-concerts/",
+      "title": "Classical Music Concerts",
+      "eligibilityClass": "likely_suitable",
+      "confidence": "média",
+      "evidenceSummary": "Grupo da Richmond upon Thames u3a, que se descreve como \"co-operative of older people\" para reformados e semi-reformados. A página da actividade não refere idade.",
+      "eligibilityScope": "not_confirmed",
+      "availability": {
+        "status": "open_to_new_members",
+        "sourceText": "aberto a novos membros"
+      },
+      "participation": {
+        "membershipRequired": "required",
+        "sourceText": "só membros; horário incompleto na fonte"
+      },
+      "membershipFeeNote": "adesão: quota da u3a (ver §1.1)",
+      "additionalCost": {
+        "status": "not_indicated",
+        "sourceText": "nenhum indicado na página"
+      },
+      "schedule": {
+        "status": "incomplete",
+        "sourceText": null
+      },
+      "location": {
+        "status": "not_confirmed",
+        "sourceText": null
+      },
+      "recommendation": "Manter em pending_review (hold, decisão do PO). Confirmar o horário antes de qualquer agenda.",
+      "checkedAt": "2026-11-26"
+    },
+    {
+      "reportOrdinal": 25,
+      "canonicalSourceUrl": "https://rut.u3asite.uk/u3a_groups/current-affairs/",
+      "title": "Current Affairs",
+      "eligibilityClass": "likely_suitable",
+      "confidence": "média",
+      "evidenceSummary": "Grupo da Richmond upon Thames u3a, que se descreve como \"co-operative of older people\" para reformados e semi-reformados. A página da actividade não refere idade.",
+      "eligibilityScope": "not_confirmed",
+      "availability": {
+        "status": "full_waitlist",
+        "sourceText": "cheio, lista de espera"
+      },
+      "participation": {
+        "membershipRequired": "required",
+        "sourceText": "só membros"
+      },
+      "membershipFeeNote": "adesão: quota da u3a (ver §1.1)",
+      "additionalCost": {
+        "status": "not_indicated",
+        "sourceText": "nenhum indicado na página"
+      },
+      "schedule": {
+        "status": "not_confirmed",
+        "sourceText": null
+      },
+      "location": {
+        "status": "not_confirmed",
+        "sourceText": null
+      },
+      "recommendation": "Manter em pending_review (hold, decisão do PO). Indicar a lista de espera.",
+      "checkedAt": "2026-11-26"
+    },
+    {
+      "reportOrdinal": 26,
+      "canonicalSourceUrl": "https://rut.u3asite.uk/u3a_groups/richmond-cycling-group/",
+      "title": "Cycling",
+      "eligibilityClass": "likely_suitable",
+      "confidence": "média",
+      "evidenceSummary": "Grupo da Richmond upon Thames u3a, que se descreve como \"co-operative of older people\" para reformados e semi-reformados. A página da actividade não refere idade.",
+      "eligibilityScope": "not_confirmed",
+      "availability": {
+        "status": "open_to_new_members",
+        "sourceText": "aberto a novos membros"
+      },
+      "participation": {
+        "membershipRequired": "required",
+        "sourceText": "só membros; actividade física"
+      },
+      "membershipFeeNote": "adesão: quota da u3a (ver §1.1)",
+      "additionalCost": {
+        "status": "not_indicated",
+        "sourceText": "nenhum indicado na página"
+      },
+      "schedule": {
+        "status": "not_confirmed",
+        "sourceText": null
+      },
+      "location": {
+        "status": "not_confirmed",
+        "sourceText": null
+      },
+      "recommendation": "Manter em pending_review (hold, decisão do PO).",
+      "checkedAt": "2026-11-26"
+    },
+    {
+      "reportOrdinal": 27,
+      "canonicalSourceUrl": "https://rut.u3asite.uk/u3a_groups/cycling-easy-riders/",
+      "title": "Cycling: Easy Riders",
+      "eligibilityClass": "likely_suitable",
+      "confidence": "média",
+      "evidenceSummary": "Grupo da Richmond upon Thames u3a, que se descreve como \"co-operative of older people\" para reformados e semi-reformados. A página da actividade não refere idade.",
+      "eligibilityScope": "not_confirmed",
+      "availability": {
+        "status": "open_to_new_members",
+        "sourceText": "aberto a novos membros"
+      },
+      "participation": {
+        "membershipRequired": "required",
+        "sourceText": "só membros; actividade física; horário incompleto na fonte"
+      },
+      "membershipFeeNote": "adesão: quota da u3a (ver §1.1)",
+      "additionalCost": {
+        "status": "not_indicated",
+        "sourceText": "nenhum indicado na página"
+      },
+      "schedule": {
+        "status": "incomplete",
+        "sourceText": null
+      },
+      "location": {
+        "status": "not_confirmed",
+        "sourceText": null
+      },
+      "recommendation": "Manter em pending_review (hold, decisão do PO). Confirmar o horário antes de qualquer agenda.",
+      "checkedAt": "2026-11-26"
+    },
+    {
+      "reportOrdinal": 28,
+      "canonicalSourceUrl": "https://rut.u3asite.uk/u3a_groups/darts/",
+      "title": "Darts",
+      "eligibilityClass": "likely_suitable",
+      "confidence": "média",
+      "evidenceSummary": "Grupo da Richmond upon Thames u3a, que se descreve como \"co-operative of older people\" para reformados e semi-reformados. A página da actividade não refere idade.",
+      "eligibilityScope": "not_confirmed",
+      "availability": {
+        "status": "open_to_new_members",
+        "sourceText": "aberto a novos membros"
+      },
+      "participation": {
+        "membershipRequired": "required",
+        "sourceText": "só membros; actividade física; local genérico (pub, hotel ou café)"
+      },
+      "membershipFeeNote": "adesão: quota da u3a (ver §1.1)",
+      "additionalCost": {
+        "status": "not_indicated",
+        "sourceText": "nenhum indicado na página"
+      },
+      "schedule": {
+        "status": "not_confirmed",
+        "sourceText": null
+      },
+      "location": {
+        "status": "generic_only",
+        "sourceText": null
+      },
+      "recommendation": "Manter em pending_review (hold, decisão do PO).",
+      "checkedAt": "2026-11-26"
+    },
+    {
+      "reportOrdinal": 29,
+      "canonicalSourceUrl": "https://rut.u3asite.uk/u3a_events/december-christmas-pub-lunch/",
+      "title": "December Christmas Pub Lunch (evento)",
+      "eligibilityClass": "likely_suitable",
+      "confidence": "média",
+      "evidenceSummary": "Evento da Richmond upon Thames u3a. A página não refere idade; o local é um pub, que por si não indica público 60+.",
+      "eligibilityScope": "not_confirmed",
+      "availability": {
+        "status": "one_off_unknown_vacancies",
+        "sourceText": "evento único (vagas não indicadas)"
+      },
+      "participation": {
+        "membershipRequired": "not_confirmed",
+        "sourceText": "local genérico (pub, hotel ou café)"
+      },
+      "membershipFeeNote": "adesão: não indicada na página",
+      "additionalCost": {
+        "status": "not_indicated",
+        "sourceText": "nenhum indicado na página"
+      },
+      "schedule": {
+        "status": "not_confirmed",
+        "sourceText": null
+      },
+      "location": {
+        "status": "generic_only",
+        "sourceText": null
+      },
+      "recommendation": "Manter em pending_review (hold, decisão do PO).",
+      "checkedAt": "2026-11-26"
+    },
+    {
+      "reportOrdinal": 30,
+      "canonicalSourceUrl": "https://rut.u3asite.uk/u3a_groups/democracy-and-its-discontent/",
+      "title": "Democracy and its Discontent",
+      "eligibilityClass": "likely_suitable",
+      "confidence": "média",
+      "evidenceSummary": "Grupo da Richmond upon Thames u3a, que se descreve como \"co-operative of older people\" para reformados e semi-reformados. A página da actividade não refere idade.",
+      "eligibilityScope": "not_confirmed",
+      "availability": {
+        "status": "open_to_new_members",
+        "sourceText": "aberto a novos membros"
+      },
+      "participation": {
+        "membershipRequired": "required",
+        "sourceText": "só membros"
+      },
+      "membershipFeeNote": "adesão: quota da u3a (ver §1.1)",
+      "additionalCost": {
+        "status": "not_indicated",
+        "sourceText": "nenhum indicado na página"
+      },
+      "schedule": {
+        "status": "not_confirmed",
+        "sourceText": null
+      },
+      "location": {
+        "status": "not_confirmed",
+        "sourceText": null
+      },
+      "recommendation": "Manter em pending_review (hold, decisão do PO).",
+      "checkedAt": "2026-11-26"
+    },
+    {
+      "reportOrdinal": 31,
+      "canonicalSourceUrl": "https://rut.u3asite.uk/u3a_groups/dog-walking-meeting/",
+      "title": "Dog Walking",
+      "eligibilityClass": "likely_suitable",
+      "confidence": "média",
+      "evidenceSummary": "Grupo da Richmond upon Thames u3a, que se descreve como \"co-operative of older people\" para reformados e semi-reformados. A página da actividade não refere idade.",
+      "eligibilityScope": "not_confirmed",
+      "availability": {
+        "status": "open_to_new_members",
+        "sourceText": "aberto a novos membros"
+      },
+      "participation": {
+        "membershipRequired": "required",
+        "sourceText": "só membros; actividade física"
+      },
+      "membershipFeeNote": "adesão: quota da u3a (ver §1.1)",
+      "additionalCost": {
+        "status": "not_indicated",
+        "sourceText": "nenhum indicado na página"
+      },
+      "schedule": {
+        "status": "not_confirmed",
+        "sourceText": null
+      },
+      "location": {
+        "status": "not_confirmed",
+        "sourceText": null
+      },
+      "recommendation": "Manter em pending_review (hold, decisão do PO).",
+      "checkedAt": "2026-11-26"
+    },
+    {
+      "reportOrdinal": 32,
+      "canonicalSourceUrl": "https://rut.u3asite.uk/u3a_groups/rut-drama-group/",
+      "title": "Drama Group The 3rd Act",
+      "eligibilityClass": "likely_suitable",
+      "confidence": "média",
+      "evidenceSummary": "Grupo da Richmond upon Thames u3a, que se descreve como \"co-operative of older people\" para reformados e semi-reformados. A página da actividade não refere idade.",
+      "eligibilityScope": "not_confirmed",
+      "availability": {
+        "status": "open_to_new_members",
+        "sourceText": "aberto a novos membros"
+      },
+      "participation": {
+        "membershipRequired": "required",
+        "sourceText": "só membros; nível referido: all levels"
+      },
+      "membershipFeeNote": "adesão: quota da u3a (ver §1.1)",
+      "additionalCost": {
+        "status": "not_indicated",
+        "sourceText": "nenhum indicado na página"
+      },
+      "schedule": {
+        "status": "not_confirmed",
+        "sourceText": null
+      },
+      "location": {
+        "status": "not_confirmed",
+        "sourceText": null
+      },
+      "recommendation": "Manter em pending_review (hold, decisão do PO).",
+      "checkedAt": "2026-11-26"
+    },
+    {
+      "reportOrdinal": 33,
+      "canonicalSourceUrl": "https://rut.u3asite.uk/u3a_groups/finding-meaning-in-later-years/",
+      "title": "Finding meaning in later years",
+      "eligibilityClass": "likely_suitable",
+      "confidence": "média-alta",
+      "evidenceSummary": "O título e a descrição tratam dos \"later years\" (fase final da vida), mas não indicam uma idade nem restringem o público.",
+      "eligibilityScope": "not_confirmed",
+      "availability": {
+        "status": "full_waitlist",
+        "sourceText": "cheio, lista de espera"
+      },
+      "participation": {
+        "membershipRequired": "required",
+        "sourceText": "só membros"
+      },
+      "membershipFeeNote": "adesão: quota da u3a (ver §1.1)",
+      "additionalCost": {
+        "status": "not_indicated",
+        "sourceText": "nenhum indicado na página"
+      },
+      "schedule": {
+        "status": "not_confirmed",
+        "sourceText": null
+      },
+      "location": {
+        "status": "not_confirmed",
+        "sourceText": null
+      },
+      "recommendation": "Manter em pending_review (hold, decisão do PO). Indicar a lista de espera.",
+      "checkedAt": "2026-11-26"
+    },
+    {
+      "reportOrdinal": 34,
+      "canonicalSourceUrl": "https://rut.u3asite.uk/u3a_groups/french-talking-french-1/",
+      "title": "French - Talking French 1",
+      "eligibilityClass": "likely_suitable",
+      "confidence": "média",
+      "evidenceSummary": "Grupo da Richmond upon Thames u3a, que se descreve como \"co-operative of older people\" para reformados e semi-reformados. A página da actividade não refere idade.",
+      "eligibilityScope": "not_confirmed",
+      "availability": {
+        "status": "full_waitlist",
+        "sourceText": "cheio, lista de espera"
+      },
+      "participation": {
+        "membershipRequired": "required",
+        "sourceText": "só membros; nível referido: beginners"
+      },
+      "membershipFeeNote": "adesão: quota da u3a (ver §1.1)",
+      "additionalCost": {
+        "status": "not_indicated",
+        "sourceText": "nenhum indicado na página"
+      },
+      "schedule": {
+        "status": "not_confirmed",
+        "sourceText": null
+      },
+      "location": {
+        "status": "not_confirmed",
+        "sourceText": null
+      },
+      "recommendation": "Manter em pending_review (hold, decisão do PO). Indicar a lista de espera.",
+      "checkedAt": "2026-11-26"
+    },
+    {
+      "reportOrdinal": 35,
+      "canonicalSourceUrl": "https://rut.u3asite.uk/u3a_groups/french-talking-french-2/",
+      "title": "French - Talking French 2",
+      "eligibilityClass": "likely_suitable",
+      "confidence": "média",
+      "evidenceSummary": "Grupo da Richmond upon Thames u3a, que se descreve como \"co-operative of older people\" para reformados e semi-reformados. A página da actividade não refere idade.",
+      "eligibilityScope": "not_confirmed",
+      "availability": {
+        "status": "open_to_new_members",
+        "sourceText": "aberto a novos membros"
+      },
+      "participation": {
+        "membershipRequired": "required",
+        "sourceText": "só membros; nível referido: beginners"
+      },
+      "membershipFeeNote": "adesão: quota da u3a (ver §1.1)",
+      "additionalCost": {
+        "status": "not_indicated",
+        "sourceText": "nenhum indicado na página"
+      },
+      "schedule": {
+        "status": "not_confirmed",
+        "sourceText": null
+      },
+      "location": {
+        "status": "not_confirmed",
+        "sourceText": null
+      },
+      "recommendation": "Manter em pending_review (hold, decisão do PO).",
+      "checkedAt": "2026-11-26"
+    },
+    {
+      "reportOrdinal": 36,
+      "canonicalSourceUrl": "https://rut.u3asite.uk/u3a_groups/french-intermediate-conversation-1/",
+      "title": "French -Intermed Conversation1",
+      "eligibilityClass": "likely_suitable",
+      "confidence": "média",
+      "evidenceSummary": "Grupo da Richmond upon Thames u3a, que se descreve como \"co-operative of older people\" para reformados e semi-reformados. A página da actividade não refere idade.",
+      "eligibilityScope": "not_confirmed",
+      "availability": {
+        "status": "closed_to_new_members",
+        "sourceText": "fechado a novos membros"
+      },
+      "participation": {
+        "membershipRequired": "required",
+        "sourceText": "só membros"
+      },
+      "membershipFeeNote": "adesão: quota da u3a (ver §1.1)",
+      "additionalCost": {
+        "status": "not_indicated",
+        "sourceText": "nenhum indicado na página"
+      },
+      "schedule": {
+        "status": "not_confirmed",
+        "sourceText": null
+      },
+      "location": {
+        "status": "not_confirmed",
+        "sourceText": null
+      },
+      "recommendation": "Manter em pending_review (hold, decisão do PO). Não divulgar como aberta.",
+      "checkedAt": "2026-11-26"
+    },
+    {
+      "reportOrdinal": 37,
+      "canonicalSourceUrl": "https://rut.u3asite.uk/u3a_groups/french-intermediate-conversation-2/",
+      "title": "French -Intermed Conversation2",
+      "eligibilityClass": "likely_suitable",
+      "confidence": "média",
+      "evidenceSummary": "Grupo da Richmond upon Thames u3a, que se descreve como \"co-operative of older people\" para reformados e semi-reformados. A página da actividade não refere idade.",
+      "eligibilityScope": "not_confirmed",
+      "availability": {
+        "status": "full_waitlist",
+        "sourceText": "cheio, lista de espera"
+      },
+      "participation": {
+        "membershipRequired": "required",
+        "sourceText": "só membros; local genérico (pub, hotel ou café)"
+      },
+      "membershipFeeNote": "adesão: quota da u3a (ver §1.1)",
+      "additionalCost": {
+        "status": "not_indicated",
+        "sourceText": "nenhum indicado na página"
+      },
+      "schedule": {
+        "status": "not_confirmed",
+        "sourceText": null
+      },
+      "location": {
+        "status": "generic_only",
+        "sourceText": null
+      },
+      "recommendation": "Manter em pending_review (hold, decisão do PO). Indicar a lista de espera.",
+      "checkedAt": "2026-11-26"
+    },
+    {
+      "reportOrdinal": 38,
+      "canonicalSourceUrl": "https://rut.u3asite.uk/u3a_groups/french-advanced-1/",
+      "title": "French Advanced 1",
+      "eligibilityClass": "likely_suitable",
+      "confidence": "média",
+      "evidenceSummary": "Grupo da Richmond upon Thames u3a, que se descreve como \"co-operative of older people\" para reformados e semi-reformados. A página da actividade não refere idade.",
+      "eligibilityScope": "not_confirmed",
+      "availability": {
+        "status": "open_to_new_members",
+        "sourceText": "aberto a novos membros"
+      },
+      "participation": {
+        "membershipRequired": "required",
+        "sourceText": "só membros"
+      },
+      "membershipFeeNote": "adesão: quota da u3a (ver §1.1)",
+      "additionalCost": {
+        "status": "not_indicated",
+        "sourceText": "nenhum indicado na página"
+      },
+      "schedule": {
+        "status": "not_confirmed",
+        "sourceText": null
+      },
+      "location": {
+        "status": "not_confirmed",
+        "sourceText": null
+      },
+      "recommendation": "Manter em pending_review (hold, decisão do PO).",
+      "checkedAt": "2026-11-26"
+    },
+    {
+      "reportOrdinal": 39,
+      "canonicalSourceUrl": "https://rut.u3asite.uk/u3a_groups/french-advanced/",
+      "title": "French Advanced 2",
+      "eligibilityClass": "likely_suitable",
+      "confidence": "média",
+      "evidenceSummary": "Grupo da Richmond upon Thames u3a, que se descreve como \"co-operative of older people\" para reformados e semi-reformados. A página da actividade não refere idade.",
+      "eligibilityScope": "not_confirmed",
+      "availability": {
+        "status": "full_waitlist",
+        "sourceText": "cheio, lista de espera"
+      },
+      "participation": {
+        "membershipRequired": "required",
+        "sourceText": "só membros; nível referido: advanced/some knowledge"
+      },
+      "membershipFeeNote": "adesão: quota da u3a (ver §1.1)",
+      "additionalCost": {
+        "status": "not_indicated",
+        "sourceText": "nenhum indicado na página"
+      },
+      "schedule": {
+        "status": "not_confirmed",
+        "sourceText": null
+      },
+      "location": {
+        "status": "not_confirmed",
+        "sourceText": null
+      },
+      "recommendation": "Manter em pending_review (hold, decisão do PO). Indicar a lista de espera.",
+      "checkedAt": "2026-11-26"
+    },
+    {
+      "reportOrdinal": 40,
+      "canonicalSourceUrl": "https://rut.u3asite.uk/u3a_groups/french-literature-book-group-modern/",
+      "title": "French Book Group (modern)",
+      "eligibilityClass": "likely_suitable",
+      "confidence": "média",
+      "evidenceSummary": "Grupo da Richmond upon Thames u3a, que se descreve como \"co-operative of older people\" para reformados e semi-reformados. A página da actividade não refere idade.",
+      "eligibilityScope": "not_confirmed",
+      "availability": {
+        "status": "full_waitlist",
+        "sourceText": "cheio, lista de espera"
+      },
+      "participation": {
+        "membershipRequired": "required",
+        "sourceText": "só membros"
+      },
+      "membershipFeeNote": "adesão: quota da u3a (ver §1.1)",
+      "additionalCost": {
+        "status": "not_indicated",
+        "sourceText": "nenhum indicado na página"
+      },
+      "schedule": {
+        "status": "not_confirmed",
+        "sourceText": null
+      },
+      "location": {
+        "status": "not_confirmed",
+        "sourceText": null
+      },
+      "recommendation": "Manter em pending_review (hold, decisão do PO). Indicar a lista de espera.",
+      "checkedAt": "2026-11-26"
+    },
+    {
+      "reportOrdinal": 41,
+      "canonicalSourceUrl": "https://rut.u3asite.uk/u3a_groups/french-for-improvers/",
+      "title": "French for Improvers",
+      "eligibilityClass": "likely_suitable",
+      "confidence": "média",
+      "evidenceSummary": "Grupo da Richmond upon Thames u3a, que se descreve como \"co-operative of older people\" para reformados e semi-reformados. A página da actividade não refere idade.",
+      "eligibilityScope": "not_confirmed",
+      "availability": {
+        "status": "open_to_new_members",
+        "sourceText": "aberto a novos membros"
+      },
+      "participation": {
+        "membershipRequired": "required",
+        "sourceText": "só membros; nível referido: improvers"
+      },
+      "membershipFeeNote": "adesão: quota da u3a (ver §1.1)",
+      "additionalCost": {
+        "status": "not_indicated",
+        "sourceText": "nenhum indicado na página"
+      },
+      "schedule": {
+        "status": "not_confirmed",
+        "sourceText": null
+      },
+      "location": {
+        "status": "not_confirmed",
+        "sourceText": null
+      },
+      "recommendation": "Manter em pending_review (hold, decisão do PO).",
+      "checkedAt": "2026-11-26"
+    },
+    {
+      "reportOrdinal": 42,
+      "canonicalSourceUrl": "https://rut.u3asite.uk/u3a_groups/garden-enthusiasts/",
+      "title": "Garden Enthusiasts",
+      "eligibilityClass": "likely_suitable",
+      "confidence": "média",
+      "evidenceSummary": "Grupo da Richmond upon Thames u3a, que se descreve como \"co-operative of older people\" para reformados e semi-reformados. A página da actividade não refere idade.",
+      "eligibilityScope": "not_confirmed",
+      "availability": {
+        "status": "full_waitlist",
+        "sourceText": "cheio, lista de espera"
+      },
+      "participation": {
+        "membershipRequired": "required",
+        "sourceText": "só membros"
+      },
+      "membershipFeeNote": "adesão: quota da u3a (ver §1.1)",
+      "additionalCost": {
+        "status": "not_indicated",
+        "sourceText": "nenhum indicado na página"
+      },
+      "schedule": {
+        "status": "not_confirmed",
+        "sourceText": null
+      },
+      "location": {
+        "status": "not_confirmed",
+        "sourceText": null
+      },
+      "recommendation": "Manter em pending_review (hold, decisão do PO). Indicar a lista de espera.",
+      "checkedAt": "2026-11-26"
+    },
+    {
+      "reportOrdinal": 43,
+      "canonicalSourceUrl": "https://rut.u3asite.uk/u3a_groups/gardening-fans/",
+      "title": "Gardening Fans",
+      "eligibilityClass": "likely_suitable",
+      "confidence": "média",
+      "evidenceSummary": "Grupo da Richmond upon Thames u3a, que se descreve como \"co-operative of older people\" para reformados e semi-reformados. A página da actividade não refere idade.",
+      "eligibilityScope": "not_confirmed",
+      "availability": {
+        "status": "open_to_new_members",
+        "sourceText": "aberto a novos membros"
+      },
+      "participation": {
+        "membershipRequired": "required",
+        "sourceText": "só membros"
+      },
+      "membershipFeeNote": "adesão: quota da u3a (ver §1.1)",
+      "additionalCost": {
+        "status": "not_indicated",
+        "sourceText": "nenhum indicado na página"
+      },
+      "schedule": {
+        "status": "not_confirmed",
+        "sourceText": null
+      },
+      "location": {
+        "status": "not_confirmed",
+        "sourceText": null
+      },
+      "recommendation": "Manter em pending_review (hold, decisão do PO).",
+      "checkedAt": "2026-11-26"
+    },
+    {
+      "reportOrdinal": 44,
+      "canonicalSourceUrl": "https://rut.u3asite.uk/u3a_groups/german-intermediate/",
+      "title": "German Intermediate",
+      "eligibilityClass": "likely_suitable",
+      "confidence": "média",
+      "evidenceSummary": "Grupo da Richmond upon Thames u3a, que se descreve como \"co-operative of older people\" para reformados e semi-reformados. A página da actividade não refere idade.",
+      "eligibilityScope": "not_confirmed",
+      "availability": {
+        "status": "open_to_new_members",
+        "sourceText": "aberto a novos membros"
+      },
+      "participation": {
+        "membershipRequired": "required",
+        "sourceText": "só membros; nível referido: intermediate"
+      },
+      "membershipFeeNote": "adesão: quota da u3a (ver §1.1)",
+      "additionalCost": {
+        "status": "not_indicated",
+        "sourceText": "nenhum indicado na página"
+      },
+      "schedule": {
+        "status": "not_confirmed",
+        "sourceText": null
+      },
+      "location": {
+        "status": "not_confirmed",
+        "sourceText": null
+      },
+      "recommendation": "Manter em pending_review (hold, decisão do PO).",
+      "checkedAt": "2026-11-26"
+    },
+    {
+      "reportOrdinal": 45,
+      "canonicalSourceUrl": "https://rut.u3asite.uk/u3a_groups/greek-classical-ancient/",
+      "title": "Greek Classical (Ancient)",
+      "eligibilityClass": "likely_suitable",
+      "confidence": "média",
+      "evidenceSummary": "Grupo da Richmond upon Thames u3a, que se descreve como \"co-operative of older people\" para reformados e semi-reformados. A página da actividade não refere idade.",
+      "eligibilityScope": "not_confirmed",
+      "availability": {
+        "status": "open_to_new_members",
+        "sourceText": "aberto a novos membros"
+      },
+      "participation": {
+        "membershipRequired": "required",
+        "sourceText": "só membros; nível referido: beginners"
+      },
+      "membershipFeeNote": "adesão: quota da u3a (ver §1.1)",
+      "additionalCost": {
+        "status": "not_indicated",
+        "sourceText": "nenhum indicado na página"
+      },
+      "schedule": {
+        "status": "not_confirmed",
+        "sourceText": null
+      },
+      "location": {
+        "status": "not_confirmed",
+        "sourceText": null
+      },
+      "recommendation": "Manter em pending_review (hold, decisão do PO).",
+      "checkedAt": "2026-11-26"
+    },
+    {
+      "reportOrdinal": 46,
+      "canonicalSourceUrl": "https://rut.u3asite.uk/u3a_groups/history-pivotal-2/",
+      "title": "History - Pivotal",
+      "eligibilityClass": "likely_suitable",
+      "confidence": "média",
+      "evidenceSummary": "Grupo da Richmond upon Thames u3a, que se descreve como \"co-operative of older people\" para reformados e semi-reformados. A página da actividade não refere idade.",
+      "eligibilityScope": "not_confirmed",
+      "availability": {
+        "status": "open_to_new_members",
+        "sourceText": "aberto a novos membros"
+      },
+      "participation": {
+        "membershipRequired": "required",
+        "sourceText": "só membros"
+      },
+      "membershipFeeNote": "adesão: quota da u3a (ver §1.1)",
+      "additionalCost": {
+        "status": "not_indicated",
+        "sourceText": "nenhum indicado na página"
+      },
+      "schedule": {
+        "status": "not_confirmed",
+        "sourceText": null
+      },
+      "location": {
+        "status": "not_confirmed",
+        "sourceText": null
+      },
+      "recommendation": "Manter em pending_review (hold, decisão do PO).",
+      "checkedAt": "2026-11-26"
+    },
+    {
+      "reportOrdinal": 47,
+      "canonicalSourceUrl": "https://rut.u3asite.uk/u3a_groups/history-behind-the-headlines-1/",
+      "title": "History Behind the Headlines 1",
+      "eligibilityClass": "likely_suitable",
+      "confidence": "média",
+      "evidenceSummary": "Grupo da Richmond upon Thames u3a, que se descreve como \"co-operative of older people\" para reformados e semi-reformados. A página da actividade não refere idade.",
+      "eligibilityScope": "not_confirmed",
+      "availability": {
+        "status": "open_to_new_members",
+        "sourceText": "aberto a novos membros"
+      },
+      "participation": {
+        "membershipRequired": "required",
+        "sourceText": "só membros"
+      },
+      "membershipFeeNote": "adesão: quota da u3a (ver §1.1)",
+      "additionalCost": {
+        "status": "not_indicated",
+        "sourceText": "nenhum indicado na página"
+      },
+      "schedule": {
+        "status": "not_confirmed",
+        "sourceText": null
+      },
+      "location": {
+        "status": "not_confirmed",
+        "sourceText": null
+      },
+      "recommendation": "Manter em pending_review (hold, decisão do PO).",
+      "checkedAt": "2026-11-26"
+    },
+    {
+      "reportOrdinal": 48,
+      "canonicalSourceUrl": "https://rut.u3asite.uk/u3a_groups/history-behind-the-headlines-2/",
+      "title": "History Behind the Headlines 2",
+      "eligibilityClass": "likely_suitable",
+      "confidence": "média",
+      "evidenceSummary": "Grupo da Richmond upon Thames u3a, que se descreve como \"co-operative of older people\" para reformados e semi-reformados. A página da actividade não refere idade.",
+      "eligibilityScope": "not_confirmed",
+      "availability": {
+        "status": "open_to_new_members",
+        "sourceText": "aberto a novos membros"
+      },
+      "participation": {
+        "membershipRequired": "required",
+        "sourceText": "só membros"
+      },
+      "membershipFeeNote": "adesão: quota da u3a (ver §1.1)",
+      "additionalCost": {
+        "status": "not_indicated",
+        "sourceText": "nenhum indicado na página"
+      },
+      "schedule": {
+        "status": "not_confirmed",
+        "sourceText": null
+      },
+      "location": {
+        "status": "not_confirmed",
+        "sourceText": null
+      },
+      "recommendation": "Manter em pending_review (hold, decisão do PO).",
+      "checkedAt": "2026-11-26"
+    },
+    {
+      "reportOrdinal": 49,
+      "canonicalSourceUrl": "https://rut.u3asite.uk/u3a_groups/it-and-tech-help/",
+      "title": "IT Help",
+      "eligibilityClass": "likely_suitable",
+      "confidence": "média",
+      "evidenceSummary": "Grupo da Richmond upon Thames u3a, que se descreve como \"co-operative of older people\" para reformados e semi-reformados. A página da actividade não refere idade.",
+      "eligibilityScope": "not_confirmed",
+      "availability": {
+        "status": "open_to_new_members",
+        "sourceText": "aberto a novos membros"
+      },
+      "participation": {
+        "membershipRequired": "required",
+        "sourceText": "só membros; nível referido: beginner"
+      },
+      "membershipFeeNote": "adesão: quota da u3a (ver §1.1)",
+      "additionalCost": {
+        "status": "not_indicated",
+        "sourceText": "nenhum indicado na página"
+      },
+      "schedule": {
+        "status": "not_confirmed",
+        "sourceText": null
+      },
+      "location": {
+        "status": "not_confirmed",
+        "sourceText": null
+      },
+      "recommendation": "Manter em pending_review (hold, decisão do PO).",
+      "checkedAt": "2026-11-26"
+    },
+    {
+      "reportOrdinal": 50,
+      "canonicalSourceUrl": "https://rut.u3asite.uk/u3a_groups/it-support/",
+      "title": "IT Support",
+      "eligibilityClass": "likely_suitable",
+      "confidence": "média",
+      "evidenceSummary": "Grupo da Richmond upon Thames u3a, que se descreve como \"co-operative of older people\" para reformados e semi-reformados. A página da actividade não refere idade.",
+      "eligibilityScope": "not_confirmed",
+      "availability": {
+        "status": "open_to_new_members",
+        "sourceText": "aberto a novos membros"
+      },
+      "participation": {
+        "membershipRequired": "required",
+        "sourceText": "só membros; nível referido: beginner/advanced; horário incompleto na fonte"
+      },
+      "membershipFeeNote": "adesão: quota da u3a (ver §1.1)",
+      "additionalCost": {
+        "status": "not_indicated",
+        "sourceText": "nenhum indicado na página"
+      },
+      "schedule": {
+        "status": "incomplete",
+        "sourceText": null
+      },
+      "location": {
+        "status": "not_confirmed",
+        "sourceText": null
+      },
+      "recommendation": "Manter em pending_review (hold, decisão do PO). Confirmar o horário antes de qualquer agenda.",
+      "checkedAt": "2026-11-26"
+    },
+    {
+      "reportOrdinal": 51,
+      "canonicalSourceUrl": "https://rut.u3asite.uk/u3a_groups/italian-improvers/",
+      "title": "Italian - Improvers",
+      "eligibilityClass": "likely_suitable",
+      "confidence": "média",
+      "evidenceSummary": "Grupo da Richmond upon Thames u3a, que se descreve como \"co-operative of older people\" para reformados e semi-reformados. A página da actividade não refere idade.",
+      "eligibilityScope": "not_confirmed",
+      "availability": {
+        "status": "full_waitlist",
+        "sourceText": "cheio, lista de espera"
+      },
+      "participation": {
+        "membershipRequired": "required",
+        "sourceText": "só membros; nível referido: improvers/intermediate"
+      },
+      "membershipFeeNote": "adesão: quota da u3a (ver §1.1)",
+      "additionalCost": {
+        "status": "not_indicated",
+        "sourceText": "nenhum indicado na página"
+      },
+      "schedule": {
+        "status": "not_confirmed",
+        "sourceText": null
+      },
+      "location": {
+        "status": "not_confirmed",
+        "sourceText": null
+      },
+      "recommendation": "Manter em pending_review (hold, decisão do PO). Indicar a lista de espera.",
+      "checkedAt": "2026-11-26"
+    },
+    {
+      "reportOrdinal": 52,
+      "canonicalSourceUrl": "https://rut.u3asite.uk/u3a_groups/italian-intermediate-3/",
+      "title": "Italian - Intermediate",
+      "eligibilityClass": "likely_suitable",
+      "confidence": "média",
+      "evidenceSummary": "Grupo da Richmond upon Thames u3a, que se descreve como \"co-operative of older people\" para reformados e semi-reformados. A página da actividade não refere idade.",
+      "eligibilityScope": "not_confirmed",
+      "availability": {
+        "status": "full_waitlist",
+        "sourceText": "cheio, lista de espera"
+      },
+      "participation": {
+        "membershipRequired": "required",
+        "sourceText": "só membros; nível referido: intermediate/some knowledge"
+      },
+      "membershipFeeNote": "adesão: quota da u3a (ver §1.1)",
+      "additionalCost": {
+        "status": "not_indicated",
+        "sourceText": "nenhum indicado na página"
+      },
+      "schedule": {
+        "status": "not_confirmed",
+        "sourceText": null
+      },
+      "location": {
+        "status": "not_confirmed",
+        "sourceText": null
+      },
+      "recommendation": "Manter em pending_review (hold, decisão do PO). Indicar a lista de espera.",
+      "checkedAt": "2026-11-26"
+    },
+    {
+      "reportOrdinal": 53,
+      "canonicalSourceUrl": "https://rut.u3asite.uk/u3a_groups/italian-talking-italian/",
+      "title": "Italian - Talking Italian",
+      "eligibilityClass": "likely_suitable",
+      "confidence": "média",
+      "evidenceSummary": "Grupo da Richmond upon Thames u3a, que se descreve como \"co-operative of older people\" para reformados e semi-reformados. A página da actividade não refere idade.",
+      "eligibilityScope": "not_confirmed",
+      "availability": {
+        "status": "open_to_new_members",
+        "sourceText": "aberto a novos membros"
+      },
+      "participation": {
+        "membershipRequired": "required",
+        "sourceText": "só membros"
+      },
+      "membershipFeeNote": "adesão: quota da u3a (ver §1.1)",
+      "additionalCost": {
+        "status": "not_indicated",
+        "sourceText": "nenhum indicado na página"
+      },
+      "schedule": {
+        "status": "not_confirmed",
+        "sourceText": null
+      },
+      "location": {
+        "status": "not_confirmed",
+        "sourceText": null
+      },
+      "recommendation": "Manter em pending_review (hold, decisão do PO).",
+      "checkedAt": "2026-11-26"
+    },
+    {
+      "reportOrdinal": 54,
+      "canonicalSourceUrl": "https://rut.u3asite.uk/u3a_groups/italian-advanced/",
+      "title": "Italian Advanced",
+      "eligibilityClass": "likely_suitable",
+      "confidence": "média",
+      "evidenceSummary": "Grupo da Richmond upon Thames u3a, que se descreve como \"co-operative of older people\" para reformados e semi-reformados. A página da actividade não refere idade.",
+      "eligibilityScope": "not_confirmed",
+      "availability": {
+        "status": "open_to_new_members",
+        "sourceText": "aberto a novos membros"
+      },
+      "participation": {
+        "membershipRequired": "required",
+        "sourceText": "só membros; nível referido: advanced; local genérico (pub, hotel ou café)"
+      },
+      "membershipFeeNote": "adesão: quota da u3a (ver §1.1)",
+      "additionalCost": {
+        "status": "not_indicated",
+        "sourceText": "nenhum indicado na página"
+      },
+      "schedule": {
+        "status": "not_confirmed",
+        "sourceText": null
+      },
+      "location": {
+        "status": "generic_only",
+        "sourceText": null
+      },
+      "recommendation": "Manter em pending_review (hold, decisão do PO).",
+      "checkedAt": "2026-11-26"
+    },
+    {
+      "reportOrdinal": 55,
+      "canonicalSourceUrl": "https://rut.u3asite.uk/u3a_groups/italian-for-pleasure/",
+      "title": "Italian for Pleasure",
+      "eligibilityClass": "likely_suitable",
+      "confidence": "média",
+      "evidenceSummary": "Grupo da Richmond upon Thames u3a, que se descreve como \"co-operative of older people\" para reformados e semi-reformados. A página da actividade não refere idade.",
+      "eligibilityScope": "not_confirmed",
+      "availability": {
+        "status": "open_to_new_members",
+        "sourceText": "aberto a novos membros"
+      },
+      "participation": {
+        "membershipRequired": "required",
+        "sourceText": "só membros; nível referido: beginners"
+      },
+      "membershipFeeNote": "adesão: quota da u3a (ver §1.1)",
+      "additionalCost": {
+        "status": "not_indicated",
+        "sourceText": "nenhum indicado na página"
+      },
+      "schedule": {
+        "status": "not_confirmed",
+        "sourceText": null
+      },
+      "location": {
+        "status": "not_confirmed",
+        "sourceText": null
+      },
+      "recommendation": "Manter em pending_review (hold, decisão do PO).",
+      "checkedAt": "2026-11-26"
+    },
+    {
+      "reportOrdinal": 56,
+      "canonicalSourceUrl": "https://rut.u3asite.uk/u3a_groups/italian-intermediate-2-2/",
+      "title": "Italian Intermediate 2",
+      "eligibilityClass": "likely_suitable",
+      "confidence": "média",
+      "evidenceSummary": "Grupo da Richmond upon Thames u3a, que se descreve como \"co-operative of older people\" para reformados e semi-reformados. A página da actividade não refere idade.",
+      "eligibilityScope": "not_confirmed",
+      "availability": {
+        "status": "open_to_new_members",
+        "sourceText": "aberto a novos membros"
+      },
+      "participation": {
+        "membershipRequired": "required",
+        "sourceText": "só membros; nível referido: intermediate"
+      },
+      "membershipFeeNote": "adesão: quota da u3a (ver §1.1)",
+      "additionalCost": {
+        "status": "not_indicated",
+        "sourceText": "nenhum indicado na página"
+      },
+      "schedule": {
+        "status": "not_confirmed",
+        "sourceText": null
+      },
+      "location": {
+        "status": "not_confirmed",
+        "sourceText": null
+      },
+      "recommendation": "Manter em pending_review (hold, decisão do PO).",
+      "checkedAt": "2026-11-26"
+    },
+    {
+      "reportOrdinal": 57,
+      "canonicalSourceUrl": "https://rut.u3asite.uk/u3a_groups/italian-conversation-intermediate/",
+      "title": "Italian-Conversation Intermediate",
+      "eligibilityClass": "likely_suitable",
+      "confidence": "média",
+      "evidenceSummary": "Grupo da Richmond upon Thames u3a, que se descreve como \"co-operative of older people\" para reformados e semi-reformados. A página da actividade não refere idade.",
+      "eligibilityScope": "not_confirmed",
+      "availability": {
+        "status": "closed_to_new_members",
+        "sourceText": "fechado a novos membros"
+      },
+      "participation": {
+        "membershipRequired": "required",
+        "sourceText": "só membros; nível referido: intermediate"
+      },
+      "membershipFeeNote": "adesão: quota da u3a (ver §1.1)",
+      "additionalCost": {
+        "status": "not_indicated",
+        "sourceText": "nenhum indicado na página"
+      },
+      "schedule": {
+        "status": "not_confirmed",
+        "sourceText": null
+      },
+      "location": {
+        "status": "not_confirmed",
+        "sourceText": null
+      },
+      "recommendation": "Manter em pending_review (hold, decisão do PO). Não divulgar como aberta.",
+      "checkedAt": "2026-11-26"
+    },
+    {
+      "reportOrdinal": 58,
+      "canonicalSourceUrl": "https://rut.u3asite.uk/u3a_groups/kew-gardens/",
+      "title": "Kew Gardens",
+      "eligibilityClass": "likely_suitable",
+      "confidence": "média",
+      "evidenceSummary": "Grupo da Richmond upon Thames u3a, que se descreve como \"co-operative of older people\" para reformados e semi-reformados. A página da actividade não refere idade.",
+      "eligibilityScope": "not_confirmed",
+      "availability": {
+        "status": "open_to_new_members",
+        "sourceText": "aberto a novos membros"
+      },
+      "participation": {
+        "membershipRequired": "required",
+        "sourceText": "só membros; actividade física"
+      },
+      "membershipFeeNote": "adesão: quota da u3a (ver §1.1)",
+      "additionalCost": {
+        "status": "not_indicated",
+        "sourceText": "nenhum indicado na página"
+      },
+      "schedule": {
+        "status": "not_confirmed",
+        "sourceText": null
+      },
+      "location": {
+        "status": "not_confirmed",
+        "sourceText": null
+      },
+      "recommendation": "Manter em pending_review (hold, decisão do PO).",
+      "checkedAt": "2026-11-26"
+    },
+    {
+      "reportOrdinal": 59,
+      "canonicalSourceUrl": "https://rut.u3asite.uk/u3a_groups/knit-and-natter/",
+      "title": "Knit and Natter",
+      "eligibilityClass": "likely_suitable",
+      "confidence": "média",
+      "evidenceSummary": "Grupo da Richmond upon Thames u3a, que se descreve como \"co-operative of older people\" para reformados e semi-reformados. A página da actividade não refere idade.",
+      "eligibilityScope": "not_confirmed",
+      "availability": {
+        "status": "open_to_new_members",
+        "sourceText": "aberto a novos membros"
+      },
+      "participation": {
+        "membershipRequired": "required",
+        "sourceText": "só membros; nível referido: experienced"
+      },
+      "membershipFeeNote": "adesão: quota da u3a (ver §1.1)",
+      "additionalCost": {
+        "status": "not_indicated",
+        "sourceText": "nenhum indicado na página"
+      },
+      "schedule": {
+        "status": "not_confirmed",
+        "sourceText": null
+      },
+      "location": {
+        "status": "not_confirmed",
+        "sourceText": null
+      },
+      "recommendation": "Manter em pending_review (hold, decisão do PO).",
+      "checkedAt": "2026-11-26"
+    },
+    {
+      "reportOrdinal": 60,
+      "canonicalSourceUrl": "https://rut.u3asite.uk/u3a_groups/knitting-crochet-and-chat/",
+      "title": "Knitting, Crochet and Chat",
+      "eligibilityClass": "likely_suitable",
+      "confidence": "média",
+      "evidenceSummary": "Grupo da Richmond upon Thames u3a, que se descreve como \"co-operative of older people\" para reformados e semi-reformados. A página da actividade não refere idade.",
+      "eligibilityScope": "not_confirmed",
+      "availability": {
+        "status": "open_to_new_members",
+        "sourceText": "aberto a novos membros"
+      },
+      "participation": {
+        "membershipRequired": "required",
+        "sourceText": "só membros; nível referido: all levels"
+      },
+      "membershipFeeNote": "adesão: quota da u3a (ver §1.1)",
+      "additionalCost": {
+        "status": "not_indicated",
+        "sourceText": "nenhum indicado na página"
+      },
+      "schedule": {
+        "status": "not_confirmed",
+        "sourceText": null
+      },
+      "location": {
+        "status": "not_confirmed",
+        "sourceText": null
+      },
+      "recommendation": "Manter em pending_review (hold, decisão do PO).",
+      "checkedAt": "2026-11-26"
+    },
+    {
+      "reportOrdinal": 61,
+      "canonicalSourceUrl": "https://rut.u3asite.uk/u3a_groups/simply-social-twickenham/",
+      "title": "Law and Justice",
+      "eligibilityClass": "likely_suitable",
+      "confidence": "média",
+      "evidenceSummary": "Grupo da Richmond upon Thames u3a, que se descreve como \"co-operative of older people\" para reformados e semi-reformados. A página da actividade não refere idade.",
+      "eligibilityScope": "not_confirmed",
+      "availability": {
+        "status": "full_waitlist",
+        "sourceText": "cheio, lista de espera"
+      },
+      "participation": {
+        "membershipRequired": "required",
+        "sourceText": "só membros"
+      },
+      "membershipFeeNote": "adesão: quota da u3a (ver §1.1)",
+      "additionalCost": {
+        "status": "not_indicated",
+        "sourceText": "nenhum indicado na página"
+      },
+      "schedule": {
+        "status": "not_confirmed",
+        "sourceText": null
+      },
+      "location": {
+        "status": "not_confirmed",
+        "sourceText": null
+      },
+      "recommendation": "Manter em pending_review (hold, decisão do PO). Indicar a lista de espera.",
+      "checkedAt": "2026-11-26"
+    },
+    {
+      "reportOrdinal": 62,
+      "canonicalSourceUrl": "https://rut.u3asite.uk/u3a_groups/lawn-bowls/",
+      "title": "Lawn Bowls",
+      "eligibilityClass": "likely_suitable",
+      "confidence": "média",
+      "evidenceSummary": "Grupo da Richmond upon Thames u3a, que se descreve como \"co-operative of older people\" para reformados e semi-reformados. A página da actividade não refere idade.",
+      "eligibilityScope": "not_confirmed",
+      "availability": {
+        "status": "open_to_new_members",
+        "sourceText": "aberto a novos membros"
+      },
+      "participation": {
+        "membershipRequired": "required",
+        "sourceText": "só membros; actividade física; nível referido: beginners"
+      },
+      "membershipFeeNote": "adesão: quota da u3a (ver §1.1)",
+      "additionalCost": {
+        "status": "reported",
+        "sourceText": "Contribuição de £6 por sessão para o uso do green."
+      },
+      "schedule": {
+        "status": "not_confirmed",
+        "sourceText": null
+      },
+      "location": {
+        "status": "not_confirmed",
+        "sourceText": null
+      },
+      "recommendation": "Manter em pending_review (hold, decisão do PO).",
+      "checkedAt": "2026-11-26"
+    },
+    {
+      "reportOrdinal": 63,
+      "canonicalSourceUrl": "https://rut.u3asite.uk/u3a_groups/london-explorers/",
+      "title": "London Explorers",
+      "eligibilityClass": "likely_suitable",
+      "confidence": "média",
+      "evidenceSummary": "Grupo da Richmond upon Thames u3a, que se descreve como \"co-operative of older people\" para reformados e semi-reformados. A página da actividade não refere idade.",
+      "eligibilityScope": "not_confirmed",
+      "availability": {
+        "status": "open_to_new_members",
+        "sourceText": "aberto a novos membros"
+      },
+      "participation": {
+        "membershipRequired": "required",
+        "sourceText": "só membros; actividade física; horário incompleto na fonte"
+      },
+      "membershipFeeNote": "adesão: quota da u3a (ver §1.1)",
+      "additionalCost": {
+        "status": "reported",
+        "sourceText": "Alguns locais visitados cobram entrada; outros são gratuitos."
+      },
+      "schedule": {
+        "status": "incomplete",
+        "sourceText": null
+      },
+      "location": {
+        "status": "not_confirmed",
+        "sourceText": null
+      },
+      "recommendation": "Manter em pending_review (hold, decisão do PO). Confirmar o horário antes de qualquer agenda.",
+      "checkedAt": "2026-11-26"
+    },
+    {
+      "reportOrdinal": 64,
+      "canonicalSourceUrl": "https://rut.u3asite.uk/u3a_groups/mahjong/",
+      "title": "Mahjong",
+      "eligibilityClass": "likely_suitable",
+      "confidence": "média",
+      "evidenceSummary": "Grupo da Richmond upon Thames u3a, que se descreve como \"co-operative of older people\" para reformados e semi-reformados. A página da actividade não refere idade.",
+      "eligibilityScope": "not_confirmed",
+      "availability": {
+        "status": "full_waitlist",
+        "sourceText": "cheio, lista de espera"
+      },
+      "participation": {
+        "membershipRequired": "required",
+        "sourceText": "só membros; nível referido: beginners"
+      },
+      "membershipFeeNote": "adesão: quota da u3a (ver §1.1)",
+      "additionalCost": {
+        "status": "not_indicated",
+        "sourceText": "nenhum indicado na página"
+      },
+      "schedule": {
+        "status": "not_confirmed",
+        "sourceText": null
+      },
+      "location": {
+        "status": "not_confirmed",
+        "sourceText": null
+      },
+      "recommendation": "Manter em pending_review (hold, decisão do PO). Indicar a lista de espera.",
+      "checkedAt": "2026-11-26"
+    },
+    {
+      "reportOrdinal": 65,
+      "canonicalSourceUrl": "https://rut.u3asite.uk/u3a_groups/mathematical-topics-1/",
+      "title": "Mathematical Topics",
+      "eligibilityClass": "likely_suitable",
+      "confidence": "média",
+      "evidenceSummary": "Grupo da Richmond upon Thames u3a, que se descreve como \"co-operative of older people\" para reformados e semi-reformados. A página da actividade não refere idade.",
+      "eligibilityScope": "not_confirmed",
+      "availability": {
+        "status": "open_to_new_members",
+        "sourceText": "aberto a novos membros"
+      },
+      "participation": {
+        "membershipRequired": "required",
+        "sourceText": "só membros"
+      },
+      "membershipFeeNote": "adesão: quota da u3a (ver §1.1)",
+      "additionalCost": {
+        "status": "not_indicated",
+        "sourceText": "nenhum indicado na página"
+      },
+      "schedule": {
+        "status": "not_confirmed",
+        "sourceText": null
+      },
+      "location": {
+        "status": "not_confirmed",
+        "sourceText": null
+      },
+      "recommendation": "Manter em pending_review (hold, decisão do PO).",
+      "checkedAt": "2026-11-26"
+    },
+    {
+      "reportOrdinal": 66,
+      "canonicalSourceUrl": "https://rut.u3asite.uk/u3a_groups/mindfulness-in-nature/",
+      "title": "Mindfulness in Nature",
+      "eligibilityClass": "likely_suitable",
+      "confidence": "média",
+      "evidenceSummary": "Grupo da Richmond upon Thames u3a, que se descreve como \"co-operative of older people\" para reformados e semi-reformados. A página da actividade não refere idade.",
+      "eligibilityScope": "not_confirmed",
+      "availability": {
+        "status": "open_to_new_members",
+        "sourceText": "aberto a novos membros"
+      },
+      "participation": {
+        "membershipRequired": "required",
+        "sourceText": "só membros; actividade física"
+      },
+      "membershipFeeNote": "adesão: quota da u3a (ver §1.1)",
+      "additionalCost": {
+        "status": "not_indicated",
+        "sourceText": "nenhum indicado na página"
+      },
+      "schedule": {
+        "status": "not_confirmed",
+        "sourceText": null
+      },
+      "location": {
+        "status": "not_confirmed",
+        "sourceText": null
+      },
+      "recommendation": "Manter em pending_review (hold, decisão do PO).",
+      "checkedAt": "2026-11-26"
+    },
+    {
+      "reportOrdinal": 67,
+      "canonicalSourceUrl": "https://rut.u3asite.uk/u3a_groups/nordic-walking/",
+      "title": "Nordic Walking",
+      "eligibilityClass": "likely_suitable",
+      "confidence": "média",
+      "evidenceSummary": "Grupo da Richmond upon Thames u3a, que se descreve como \"co-operative of older people\" para reformados e semi-reformados. A página da actividade não refere idade.",
+      "eligibilityScope": "not_confirmed",
+      "availability": {
+        "status": "open_to_new_members",
+        "sourceText": "aberto a novos membros"
+      },
+      "participation": {
+        "membershipRequired": "required",
+        "sourceText": "só membros; actividade física; nível referido: beginners/experienced"
+      },
+      "membershipFeeNote": "adesão: quota da u3a (ver §1.1)",
+      "additionalCost": {
+        "status": "not_indicated",
+        "sourceText": "nenhum indicado na página"
+      },
+      "schedule": {
+        "status": "not_confirmed",
+        "sourceText": null
+      },
+      "location": {
+        "status": "not_confirmed",
+        "sourceText": null
+      },
+      "recommendation": "Manter em pending_review (hold, decisão do PO).",
+      "checkedAt": "2026-11-26"
+    },
+    {
+      "reportOrdinal": 68,
+      "canonicalSourceUrl": "https://rut.u3asite.uk/u3a_groups/nordic-walking-gentle-pace/",
+      "title": "Nordic Walking - gentle pace",
+      "eligibilityClass": "likely_suitable",
+      "confidence": "média",
+      "evidenceSummary": "Grupo da Richmond upon Thames u3a, que se descreve como \"co-operative of older people\" para reformados e semi-reformados. A página da actividade não refere idade.",
+      "eligibilityScope": "not_confirmed",
+      "availability": {
+        "status": "open_to_new_members",
+        "sourceText": "aberto a novos membros"
+      },
+      "participation": {
+        "membershipRequired": "required",
+        "sourceText": "só membros; actividade física; nível referido: some knowledge"
+      },
+      "membershipFeeNote": "adesão: quota da u3a (ver §1.1)",
+      "additionalCost": {
+        "status": "reported",
+        "sourceText": "Exige bastões próprios de Nordic Walking (cerca de £30 o conjunto básico)."
+      },
+      "schedule": {
+        "status": "not_confirmed",
+        "sourceText": null
+      },
+      "location": {
+        "status": "not_confirmed",
+        "sourceText": null
+      },
+      "recommendation": "Manter em pending_review (hold, decisão do PO).",
+      "checkedAt": "2026-11-26"
+    },
+    {
+      "reportOrdinal": 69,
+      "canonicalSourceUrl": "https://rut.u3asite.uk/u3a_groups/opera-for-pleasure-1/",
+      "title": "Opera for Pleasure 1",
+      "eligibilityClass": "likely_suitable",
+      "confidence": "média",
+      "evidenceSummary": "Grupo da Richmond upon Thames u3a, que se descreve como \"co-operative of older people\" para reformados e semi-reformados. A página da actividade não refere idade.",
+      "eligibilityScope": "not_confirmed",
+      "availability": {
+        "status": "open_to_new_members",
+        "sourceText": "aberto a novos membros"
+      },
+      "participation": {
+        "membershipRequired": "required",
+        "sourceText": "só membros"
+      },
+      "membershipFeeNote": "adesão: quota da u3a (ver §1.1)",
+      "additionalCost": {
+        "status": "not_indicated",
+        "sourceText": "nenhum indicado na página"
+      },
+      "schedule": {
+        "status": "not_confirmed",
+        "sourceText": null
+      },
+      "location": {
+        "status": "not_confirmed",
+        "sourceText": null
+      },
+      "recommendation": "Manter em pending_review (hold, decisão do PO).",
+      "checkedAt": "2026-11-26"
+    },
+    {
+      "reportOrdinal": 70,
+      "canonicalSourceUrl": "https://rut.u3asite.uk/u3a_groups/opera-for-pleasure-2/",
+      "title": "Opera for Pleasure 2",
+      "eligibilityClass": "likely_suitable",
+      "confidence": "média",
+      "evidenceSummary": "Grupo da Richmond upon Thames u3a, que se descreve como \"co-operative of older people\" para reformados e semi-reformados. A página da actividade não refere idade.",
+      "eligibilityScope": "not_confirmed",
+      "availability": {
+        "status": "open_to_new_members",
+        "sourceText": "aberto a novos membros"
+      },
+      "participation": {
+        "membershipRequired": "required",
+        "sourceText": "só membros"
+      },
+      "membershipFeeNote": "adesão: quota da u3a (ver §1.1)",
+      "additionalCost": {
+        "status": "not_indicated",
+        "sourceText": "nenhum indicado na página"
+      },
+      "schedule": {
+        "status": "not_confirmed",
+        "sourceText": null
+      },
+      "location": {
+        "status": "not_confirmed",
+        "sourceText": null
+      },
+      "recommendation": "Manter em pending_review (hold, decisão do PO).",
+      "checkedAt": "2026-11-26"
+    },
+    {
+      "reportOrdinal": 71,
+      "canonicalSourceUrl": "https://rut.u3asite.uk/u3a_groups/petanque-1/",
+      "title": "Petanque 1",
+      "eligibilityClass": "likely_suitable",
+      "confidence": "média-alta",
+      "evidenceSummary": "A página apresenta a petanca como bom exercício \"in retirement\" (para reformados). Não indica idade.",
+      "eligibilityScope": "not_confirmed",
+      "availability": {
+        "status": "open_to_new_members",
+        "sourceText": "aberto a novos membros"
+      },
+      "participation": {
+        "membershipRequired": "required",
+        "sourceText": "só membros; actividade física; nível referido: beginners; horário incompleto na fonte"
+      },
+      "membershipFeeNote": "adesão: quota da u3a (ver §1.1)",
+      "additionalCost": {
+        "status": "not_indicated",
+        "sourceText": "nenhum indicado na página"
+      },
+      "schedule": {
+        "status": "incomplete",
+        "sourceText": null
+      },
+      "location": {
+        "status": "not_confirmed",
+        "sourceText": null
+      },
+      "recommendation": "Manter em pending_review (hold, decisão do PO). Confirmar o horário antes de qualquer agenda.",
+      "checkedAt": "2026-11-26"
+    },
+    {
+      "reportOrdinal": 72,
+      "canonicalSourceUrl": "https://rut.u3asite.uk/u3a_groups/petanque-2/",
+      "title": "Petanque 2",
+      "eligibilityClass": "likely_suitable",
+      "confidence": "média",
+      "evidenceSummary": "Grupo da Richmond upon Thames u3a, que se descreve como \"co-operative of older people\" para reformados e semi-reformados. A página da actividade não refere idade.",
+      "eligibilityScope": "not_confirmed",
+      "availability": {
+        "status": "open_to_new_members",
+        "sourceText": "aberto a novos membros"
+      },
+      "participation": {
+        "membershipRequired": "required",
+        "sourceText": "só membros; actividade física"
+      },
+      "membershipFeeNote": "adesão: quota da u3a (ver §1.1)",
+      "additionalCost": {
+        "status": "not_indicated",
+        "sourceText": "nenhum indicado na página"
+      },
+      "schedule": {
+        "status": "not_confirmed",
+        "sourceText": null
+      },
+      "location": {
+        "status": "not_confirmed",
+        "sourceText": null
+      },
+      "recommendation": "Manter em pending_review (hold, decisão do PO).",
+      "checkedAt": "2026-11-26"
+    },
+    {
+      "reportOrdinal": 73,
+      "canonicalSourceUrl": "https://rut.u3asite.uk/u3a_groups/politics-thoughts-and-opinions/",
+      "title": "Philosophy-Thoughts & Opinions",
+      "eligibilityClass": "likely_suitable",
+      "confidence": "média",
+      "evidenceSummary": "Grupo da Richmond upon Thames u3a, que se descreve como \"co-operative of older people\" para reformados e semi-reformados. A página da actividade não refere idade.",
+      "eligibilityScope": "not_confirmed",
+      "availability": {
+        "status": "open_to_new_members",
+        "sourceText": "aberto a novos membros"
+      },
+      "participation": {
+        "membershipRequired": "required",
+        "sourceText": "só membros"
+      },
+      "membershipFeeNote": "adesão: quota da u3a (ver §1.1)",
+      "additionalCost": {
+        "status": "reported",
+        "sourceText": "£3 por reunião para o aluguer da sala."
+      },
+      "schedule": {
+        "status": "not_confirmed",
+        "sourceText": null
+      },
+      "location": {
+        "status": "not_confirmed",
+        "sourceText": null
+      },
+      "recommendation": "Manter em pending_review (hold, decisão do PO).",
+      "checkedAt": "2026-11-26"
+    },
+    {
+      "reportOrdinal": 74,
+      "canonicalSourceUrl": "https://rut.u3asite.uk/u3a_groups/photography/",
+      "title": "Photography",
+      "eligibilityClass": "likely_suitable",
+      "confidence": "média",
+      "evidenceSummary": "Grupo da Richmond upon Thames u3a, que se descreve como \"co-operative of older people\" para reformados e semi-reformados. A página da actividade não refere idade.",
+      "eligibilityScope": "not_confirmed",
+      "availability": {
+        "status": "open_to_new_members",
+        "sourceText": "aberto a novos membros"
+      },
+      "participation": {
+        "membershipRequired": "required",
+        "sourceText": "só membros"
+      },
+      "membershipFeeNote": "adesão: quota da u3a (ver §1.1)",
+      "additionalCost": {
+        "status": "not_indicated",
+        "sourceText": "nenhum indicado na página"
+      },
+      "schedule": {
+        "status": "not_confirmed",
+        "sourceText": null
+      },
+      "location": {
+        "status": "not_confirmed",
+        "sourceText": null
+      },
+      "recommendation": "Manter em pending_review (hold, decisão do PO).",
+      "checkedAt": "2026-11-26"
+    },
+    {
+      "reportOrdinal": 75,
+      "canonicalSourceUrl": "https://rut.u3asite.uk/u3a_groups/pickleball/",
+      "title": "Pickleball",
+      "eligibilityClass": "likely_suitable",
+      "confidence": "média",
+      "evidenceSummary": "Grupo da Richmond upon Thames u3a, que se descreve como \"co-operative of older people\" para reformados e semi-reformados. A página da actividade não refere idade.",
+      "eligibilityScope": "not_confirmed",
+      "availability": {
+        "status": "open_to_new_members",
+        "sourceText": "aberto a novos membros"
+      },
+      "participation": {
+        "membershipRequired": "required",
+        "sourceText": "só membros; actividade física"
+      },
+      "membershipFeeNote": "adesão: quota da u3a (ver §1.1)",
+      "additionalCost": {
+        "status": "not_indicated",
+        "sourceText": "nenhum indicado na página"
+      },
+      "schedule": {
+        "status": "not_confirmed",
+        "sourceText": null
+      },
+      "location": {
+        "status": "not_confirmed",
+        "sourceText": null
+      },
+      "recommendation": "Manter em pending_review (hold, decisão do PO).",
+      "checkedAt": "2026-11-26"
+    },
+    {
+      "reportOrdinal": 76,
+      "canonicalSourceUrl": "https://rut.u3asite.uk/u3a_groups/play-reading/",
+      "title": "Play Reading",
+      "eligibilityClass": "likely_suitable",
+      "confidence": "média",
+      "evidenceSummary": "Grupo da Richmond upon Thames u3a, que se descreve como \"co-operative of older people\" para reformados e semi-reformados. A página da actividade não refere idade.",
+      "eligibilityScope": "not_confirmed",
+      "availability": {
+        "status": "closed_to_new_members",
+        "sourceText": "fechado a novos membros"
+      },
+      "participation": {
+        "membershipRequired": "required",
+        "sourceText": "só membros"
+      },
+      "membershipFeeNote": "adesão: quota da u3a (ver §1.1)",
+      "additionalCost": {
+        "status": "not_indicated",
+        "sourceText": "nenhum indicado na página"
+      },
+      "schedule": {
+        "status": "not_confirmed",
+        "sourceText": null
+      },
+      "location": {
+        "status": "not_confirmed",
+        "sourceText": null
+      },
+      "recommendation": "Manter em pending_review (hold, decisão do PO). Não divulgar como aberta.",
+      "checkedAt": "2026-11-26"
+    },
+    {
+      "reportOrdinal": 77,
+      "canonicalSourceUrl": "https://rut.u3asite.uk/u3a_groups/poetry-since-1900/",
+      "title": "Poetry - since 1900",
+      "eligibilityClass": "likely_suitable",
+      "confidence": "média",
+      "evidenceSummary": "Grupo da Richmond upon Thames u3a, que se descreve como \"co-operative of older people\" para reformados e semi-reformados. A página da actividade não refere idade.",
+      "eligibilityScope": "not_confirmed",
+      "availability": {
+        "status": "open_to_new_members",
+        "sourceText": "aberto a novos membros"
+      },
+      "participation": {
+        "membershipRequired": "required",
+        "sourceText": "só membros"
+      },
+      "membershipFeeNote": "adesão: quota da u3a (ver §1.1)",
+      "additionalCost": {
+        "status": "not_indicated",
+        "sourceText": "nenhum indicado na página"
+      },
+      "schedule": {
+        "status": "not_confirmed",
+        "sourceText": null
+      },
+      "location": {
+        "status": "not_confirmed",
+        "sourceText": null
+      },
+      "recommendation": "Manter em pending_review (hold, decisão do PO).",
+      "checkedAt": "2026-11-26"
+    },
+    {
+      "reportOrdinal": 78,
+      "canonicalSourceUrl": "https://rut.u3asite.uk/u3a_groups/poetry-appreciation/",
+      "title": "Poetry Appreciation",
+      "eligibilityClass": "likely_suitable",
+      "confidence": "média",
+      "evidenceSummary": "Grupo da Richmond upon Thames u3a, que se descreve como \"co-operative of older people\" para reformados e semi-reformados. A página da actividade não refere idade.",
+      "eligibilityScope": "not_confirmed",
+      "availability": {
+        "status": "open_to_new_members",
+        "sourceText": "aberto a novos membros"
+      },
+      "participation": {
+        "membershipRequired": "required",
+        "sourceText": "só membros"
+      },
+      "membershipFeeNote": "adesão: quota da u3a (ver §1.1)",
+      "additionalCost": {
+        "status": "not_indicated",
+        "sourceText": "nenhum indicado na página"
+      },
+      "schedule": {
+        "status": "not_confirmed",
+        "sourceText": null
+      },
+      "location": {
+        "status": "not_confirmed",
+        "sourceText": null
+      },
+      "recommendation": "Manter em pending_review (hold, decisão do PO).",
+      "checkedAt": "2026-11-26"
+    },
+    {
+      "reportOrdinal": 79,
+      "canonicalSourceUrl": "https://rut.u3asite.uk/u3a_groups/poetry-for-pleasure/",
+      "title": "Poetry for Pleasure",
+      "eligibilityClass": "likely_suitable",
+      "confidence": "média",
+      "evidenceSummary": "Grupo da Richmond upon Thames u3a, que se descreve como \"co-operative of older people\" para reformados e semi-reformados. A página da actividade não refere idade.",
+      "eligibilityScope": "not_confirmed",
+      "availability": {
+        "status": "open_to_new_members",
+        "sourceText": "aberto a novos membros"
+      },
+      "participation": {
+        "membershipRequired": "required",
+        "sourceText": "só membros; local genérico (pub, hotel ou café)"
+      },
+      "membershipFeeNote": "adesão: quota da u3a (ver §1.1)",
+      "additionalCost": {
+        "status": "not_indicated",
+        "sourceText": "nenhum indicado na página"
+      },
+      "schedule": {
+        "status": "not_confirmed",
+        "sourceText": null
+      },
+      "location": {
+        "status": "generic_only",
+        "sourceText": null
+      },
+      "recommendation": "Manter em pending_review (hold, decisão do PO).",
+      "checkedAt": "2026-11-26"
+    },
+    {
+      "reportOrdinal": 80,
+      "canonicalSourceUrl": "https://rut.u3asite.uk/u3a_groups/politics/",
+      "title": "Politics",
+      "eligibilityClass": "likely_suitable",
+      "confidence": "média",
+      "evidenceSummary": "Grupo da Richmond upon Thames u3a, que se descreve como \"co-operative of older people\" para reformados e semi-reformados. A página da actividade não refere idade.",
+      "eligibilityScope": "not_confirmed",
+      "availability": {
+        "status": "full_waitlist",
+        "sourceText": "cheio, lista de espera"
+      },
+      "participation": {
+        "membershipRequired": "required",
+        "sourceText": "só membros"
+      },
+      "membershipFeeNote": "adesão: quota da u3a (ver §1.1)",
+      "additionalCost": {
+        "status": "not_indicated",
+        "sourceText": "nenhum indicado na página"
+      },
+      "schedule": {
+        "status": "not_confirmed",
+        "sourceText": null
+      },
+      "location": {
+        "status": "not_confirmed",
+        "sourceText": null
+      },
+      "recommendation": "Manter em pending_review (hold, decisão do PO). Indicar a lista de espera.",
+      "checkedAt": "2026-11-26"
+    },
+    {
+      "reportOrdinal": 81,
+      "canonicalSourceUrl": "https://rut.u3asite.uk/u3a_groups/politics-and-current-affairs-1/",
+      "title": "Politics and Current Affairs 1",
+      "eligibilityClass": "likely_suitable",
+      "confidence": "média",
+      "evidenceSummary": "Grupo da Richmond upon Thames u3a, que se descreve como \"co-operative of older people\" para reformados e semi-reformados. A página da actividade não refere idade.",
+      "eligibilityScope": "not_confirmed",
+      "availability": {
+        "status": "full_waitlist",
+        "sourceText": "cheio, lista de espera"
+      },
+      "participation": {
+        "membershipRequired": "required",
+        "sourceText": "só membros"
+      },
+      "membershipFeeNote": "adesão: quota da u3a (ver §1.1)",
+      "additionalCost": {
+        "status": "not_indicated",
+        "sourceText": "nenhum indicado na página"
+      },
+      "schedule": {
+        "status": "not_confirmed",
+        "sourceText": null
+      },
+      "location": {
+        "status": "not_confirmed",
+        "sourceText": null
+      },
+      "recommendation": "Manter em pending_review (hold, decisão do PO). Indicar a lista de espera.",
+      "checkedAt": "2026-11-26"
+    },
+    {
+      "reportOrdinal": 82,
+      "canonicalSourceUrl": "https://rut.u3asite.uk/u3a_groups/politics-and-current-affairs-2/",
+      "title": "Politics and Current Affairs 2",
+      "eligibilityClass": "likely_suitable",
+      "confidence": "média",
+      "evidenceSummary": "Grupo da Richmond upon Thames u3a, que se descreve como \"co-operative of older people\" para reformados e semi-reformados. A página da actividade não refere idade.",
+      "eligibilityScope": "not_confirmed",
+      "availability": {
+        "status": "open_to_new_members",
+        "sourceText": "aberto a novos membros"
+      },
+      "participation": {
+        "membershipRequired": "required",
+        "sourceText": "só membros"
+      },
+      "membershipFeeNote": "adesão: quota da u3a (ver §1.1)",
+      "additionalCost": {
+        "status": "not_indicated",
+        "sourceText": "nenhum indicado na página"
+      },
+      "schedule": {
+        "status": "not_confirmed",
+        "sourceText": null
+      },
+      "location": {
+        "status": "not_confirmed",
+        "sourceText": null
+      },
+      "recommendation": "Manter em pending_review (hold, decisão do PO).",
+      "checkedAt": "2026-11-26"
+    },
+    {
+      "reportOrdinal": 83,
+      "canonicalSourceUrl": "https://rut.u3asite.uk/u3a_groups/pub-lunches/",
+      "title": "Pub Lunches",
+      "eligibilityClass": "likely_suitable",
+      "confidence": "média",
+      "evidenceSummary": "Grupo da Richmond upon Thames u3a, que se descreve como \"co-operative of older people\" para reformados e semi-reformados. A página da actividade não refere idade.",
+      "eligibilityScope": "not_confirmed",
+      "availability": {
+        "status": "open_to_new_members",
+        "sourceText": "aberto a novos membros"
+      },
+      "participation": {
+        "membershipRequired": "required",
+        "sourceText": "só membros"
+      },
+      "membershipFeeNote": "adesão: quota da u3a (ver §1.1)",
+      "additionalCost": {
+        "status": "not_indicated",
+        "sourceText": "nenhum indicado na página"
+      },
+      "schedule": {
+        "status": "not_confirmed",
+        "sourceText": null
+      },
+      "location": {
+        "status": "not_confirmed",
+        "sourceText": null
+      },
+      "recommendation": "Manter em pending_review (hold, decisão do PO).",
+      "checkedAt": "2026-11-26"
+    },
+    {
+      "reportOrdinal": 84,
+      "canonicalSourceUrl": "https://rut.u3asite.uk/u3a_groups/railway-journeys/",
+      "title": "Railway Journeys",
+      "eligibilityClass": "likely_suitable",
+      "confidence": "média",
+      "evidenceSummary": "Grupo da Richmond upon Thames u3a, que se descreve como \"co-operative of older people\" para reformados e semi-reformados. A página da actividade não refere idade.",
+      "eligibilityScope": "not_confirmed",
+      "availability": {
+        "status": "full_waitlist",
+        "sourceText": "cheio, lista de espera"
+      },
+      "participation": {
+        "membershipRequired": "required",
+        "sourceText": "só membros; horário incompleto na fonte"
+      },
+      "membershipFeeNote": "adesão: quota da u3a (ver §1.1)",
+      "additionalCost": {
+        "status": "not_indicated",
+        "sourceText": "nenhum indicado na página"
+      },
+      "schedule": {
+        "status": "incomplete",
+        "sourceText": null
+      },
+      "location": {
+        "status": "not_confirmed",
+        "sourceText": null
+      },
+      "recommendation": "Manter em pending_review (hold, decisão do PO). Indicar a lista de espera. Confirmar o horário antes de qualquer agenda.",
+      "checkedAt": "2026-11-26"
+    },
+    {
+      "reportOrdinal": 85,
+      "canonicalSourceUrl": "https://rut.u3asite.uk/u3a_groups/rambling-capital-ring/",
+      "title": "Rambling - Capital Ring",
+      "eligibilityClass": "likely_suitable",
+      "confidence": "média",
+      "evidenceSummary": "Grupo da Richmond upon Thames u3a, que se descreve como \"co-operative of older people\" para reformados e semi-reformados. A página da actividade não refere idade.",
+      "eligibilityScope": "not_confirmed",
+      "availability": {
+        "status": "open_to_new_members",
+        "sourceText": "aberto a novos membros"
+      },
+      "participation": {
+        "membershipRequired": "required",
+        "sourceText": "só membros; actividade física (distâncias citadas: 78 mile, 7.7 miles); acesso: Todos os pontos de partida são acessíveis de transporte público (gratuito com Freedom Pass).; horário incompleto na fonte"
+      },
+      "membershipFeeNote": "adesão: quota da u3a (ver §1.1)",
+      "additionalCost": {
+        "status": "reported",
+        "sourceText": "Guia opcional (£12,50) ou aplicação gratuita."
+      },
+      "schedule": {
+        "status": "incomplete",
+        "sourceText": null
+      },
+      "location": {
+        "status": "not_confirmed",
+        "sourceText": null
+      },
+      "recommendation": "Manter em pending_review (hold, decisão do PO). Confirmar o horário antes de qualquer agenda.",
+      "checkedAt": "2026-11-26"
+    },
+    {
+      "reportOrdinal": 86,
+      "canonicalSourceUrl": "https://rut.u3asite.uk/u3a_groups/rambling-london/",
+      "title": "Rambling - London",
+      "eligibilityClass": "likely_suitable",
+      "confidence": "média",
+      "evidenceSummary": "Grupo da Richmond upon Thames u3a, que se descreve como \"co-operative of older people\" para reformados e semi-reformados. A página da actividade não refere idade.",
+      "eligibilityScope": "not_confirmed",
+      "availability": {
+        "status": "open_to_new_members",
+        "sourceText": "aberto a novos membros"
+      },
+      "participation": {
+        "membershipRequired": "required",
+        "sourceText": "só membros; actividade física (distâncias citadas: 7 miles)"
+      },
+      "membershipFeeNote": "adesão: quota da u3a (ver §1.1)",
+      "additionalCost": {
+        "status": "not_indicated",
+        "sourceText": "nenhum indicado na página"
+      },
+      "schedule": {
+        "status": "not_confirmed",
+        "sourceText": null
+      },
+      "location": {
+        "status": "not_confirmed",
+        "sourceText": null
+      },
+      "recommendation": "Manter em pending_review (hold, decisão do PO).",
+      "checkedAt": "2026-11-26"
+    },
+    {
+      "reportOrdinal": 87,
+      "canonicalSourceUrl": "https://rut.u3asite.uk/u3a_groups/rambling-river-walks-1/",
+      "title": "Rambling - River Walks 1",
+      "eligibilityClass": "likely_suitable",
+      "confidence": "média",
+      "evidenceSummary": "Grupo da Richmond upon Thames u3a, que se descreve como \"co-operative of older people\" para reformados e semi-reformados. A página da actividade não refere idade.",
+      "eligibilityScope": "not_confirmed",
+      "availability": {
+        "status": "open_to_new_members",
+        "sourceText": "aberto a novos membros"
+      },
+      "participation": {
+        "membershipRequired": "required",
+        "sourceText": "só membros; actividade física (distâncias citadas: 6 miles); horário incompleto na fonte"
+      },
+      "membershipFeeNote": "adesão: quota da u3a (ver §1.1)",
+      "additionalCost": {
+        "status": "not_indicated",
+        "sourceText": "nenhum indicado na página"
+      },
+      "schedule": {
+        "status": "incomplete",
+        "sourceText": null
+      },
+      "location": {
+        "status": "not_confirmed",
+        "sourceText": null
+      },
+      "recommendation": "Manter em pending_review (hold, decisão do PO). Confirmar o horário antes de qualquer agenda.",
+      "checkedAt": "2026-11-26"
+    },
+    {
+      "reportOrdinal": 88,
+      "canonicalSourceUrl": "https://rut.u3asite.uk/u3a_groups/rambling-river-walks-2/",
+      "title": "Rambling - River Walks 2",
+      "eligibilityClass": "likely_suitable",
+      "confidence": "média",
+      "evidenceSummary": "Grupo da Richmond upon Thames u3a, que se descreve como \"co-operative of older people\" para reformados e semi-reformados. A página da actividade não refere idade.",
+      "eligibilityScope": "not_confirmed",
+      "availability": {
+        "status": "open_to_new_members",
+        "sourceText": "aberto a novos membros"
+      },
+      "participation": {
+        "membershipRequired": "required",
+        "sourceText": "só membros; actividade física; horário incompleto na fonte"
+      },
+      "membershipFeeNote": "adesão: quota da u3a (ver §1.1)",
+      "additionalCost": {
+        "status": "not_indicated",
+        "sourceText": "nenhum indicado na página"
+      },
+      "schedule": {
+        "status": "incomplete",
+        "sourceText": null
+      },
+      "location": {
+        "status": "not_confirmed",
+        "sourceText": null
+      },
+      "recommendation": "Manter em pending_review (hold, decisão do PO). Confirmar o horário antes de qualquer agenda.",
+      "checkedAt": "2026-11-26"
+    },
+    {
+      "reportOrdinal": 89,
+      "canonicalSourceUrl": "https://rut.u3asite.uk/u3a_groups/rambling-stroll-chat/",
+      "title": "Rambling - Stroll & Chat",
+      "eligibilityClass": "likely_suitable",
+      "confidence": "média",
+      "evidenceSummary": "Grupo da Richmond upon Thames u3a, que se descreve como \"co-operative of older people\" para reformados e semi-reformados. A página da actividade não refere idade.",
+      "eligibilityScope": "not_confirmed",
+      "availability": {
+        "status": "open_to_new_members",
+        "sourceText": "aberto a novos membros"
+      },
+      "participation": {
+        "membershipRequired": "required",
+        "sourceText": "só membros; actividade física"
+      },
+      "membershipFeeNote": "adesão: quota da u3a (ver §1.1)",
+      "additionalCost": {
+        "status": "not_indicated",
+        "sourceText": "nenhum indicado na página"
+      },
+      "schedule": {
+        "status": "not_confirmed",
+        "sourceText": null
+      },
+      "location": {
+        "status": "not_confirmed",
+        "sourceText": null
+      },
+      "recommendation": "Manter em pending_review (hold, decisão do PO).",
+      "checkedAt": "2026-11-26"
+    },
+    {
+      "reportOrdinal": 90,
+      "canonicalSourceUrl": "https://rut.u3asite.uk/u3a_groups/rambling-gentle-walklunch/",
+      "title": "Rambling-Gentle Walk+lunch",
+      "eligibilityClass": "likely_suitable",
+      "confidence": "média",
+      "evidenceSummary": "Grupo da Richmond upon Thames u3a, que se descreve como \"co-operative of older people\" para reformados e semi-reformados. A página da actividade não refere idade.",
+      "eligibilityScope": "not_confirmed",
+      "availability": {
+        "status": "open_to_new_members",
+        "sourceText": "aberto a novos membros"
+      },
+      "participation": {
+        "membershipRequired": "required",
+        "sourceText": "só membros; actividade física"
+      },
+      "membershipFeeNote": "adesão: quota da u3a (ver §1.1)",
+      "additionalCost": {
+        "status": "not_indicated",
+        "sourceText": "nenhum indicado na página"
+      },
+      "schedule": {
+        "status": "not_confirmed",
+        "sourceText": null
+      },
+      "location": {
+        "status": "not_confirmed",
+        "sourceText": null
+      },
+      "recommendation": "Manter em pending_review (hold, decisão do PO).",
+      "checkedAt": "2026-11-26"
+    },
+    {
+      "reportOrdinal": 91,
+      "canonicalSourceUrl": "https://rut.u3asite.uk/u3a_groups/rummicub/",
+      "title": "Rummikub",
+      "eligibilityClass": "likely_suitable",
+      "confidence": "média",
+      "evidenceSummary": "Grupo da Richmond upon Thames u3a, que se descreve como \"co-operative of older people\" para reformados e semi-reformados. A página da actividade não refere idade.",
+      "eligibilityScope": "not_confirmed",
+      "availability": {
+        "status": "open_to_new_members",
+        "sourceText": "aberto a novos membros"
+      },
+      "participation": {
+        "membershipRequired": "required",
+        "sourceText": "só membros; nível referido: some knowledge"
+      },
+      "membershipFeeNote": "adesão: quota da u3a (ver §1.1)",
+      "additionalCost": {
+        "status": "not_indicated",
+        "sourceText": "nenhum indicado na página"
+      },
+      "schedule": {
+        "status": "not_confirmed",
+        "sourceText": null
+      },
+      "location": {
+        "status": "not_confirmed",
+        "sourceText": null
+      },
+      "recommendation": "Manter em pending_review (hold, decisão do PO).",
+      "checkedAt": "2026-11-26"
+    },
+    {
+      "reportOrdinal": 92,
+      "canonicalSourceUrl": "https://rut.u3asite.uk/u3a_groups/rummikub-players/",
+      "title": "Rummikub Players",
+      "eligibilityClass": "likely_suitable",
+      "confidence": "média",
+      "evidenceSummary": "Grupo da Richmond upon Thames u3a, que se descreve como \"co-operative of older people\" para reformados e semi-reformados. A página da actividade não refere idade.",
+      "eligibilityScope": "not_confirmed",
+      "availability": {
+        "status": "full_waitlist",
+        "sourceText": "cheio, lista de espera"
+      },
+      "participation": {
+        "membershipRequired": "required",
+        "sourceText": "só membros; nível referido: beginners/experienced"
+      },
+      "membershipFeeNote": "adesão: quota da u3a (ver §1.1)",
+      "additionalCost": {
+        "status": "not_indicated",
+        "sourceText": "nenhum indicado na página"
+      },
+      "schedule": {
+        "status": "not_confirmed",
+        "sourceText": null
+      },
+      "location": {
+        "status": "not_confirmed",
+        "sourceText": null
+      },
+      "recommendation": "Manter em pending_review (hold, decisão do PO). Indicar a lista de espera.",
+      "checkedAt": "2026-11-26"
+    },
+    {
+      "reportOrdinal": 93,
+      "canonicalSourceUrl": "https://rut.u3asite.uk/u3a_groups/science-and-metaphysics/",
+      "title": "Science and Metaphysics",
+      "eligibilityClass": "likely_suitable",
+      "confidence": "média",
+      "evidenceSummary": "Grupo da Richmond upon Thames u3a, que se descreve como \"co-operative of older people\" para reformados e semi-reformados. A página da actividade não refere idade.",
+      "eligibilityScope": "not_confirmed",
+      "availability": {
+        "status": "open_to_new_members",
+        "sourceText": "aberto a novos membros"
+      },
+      "participation": {
+        "membershipRequired": "required",
+        "sourceText": "só membros"
+      },
+      "membershipFeeNote": "adesão: quota da u3a (ver §1.1)",
+      "additionalCost": {
+        "status": "not_indicated",
+        "sourceText": "nenhum indicado na página"
+      },
+      "schedule": {
+        "status": "not_confirmed",
+        "sourceText": null
+      },
+      "location": {
+        "status": "not_confirmed",
+        "sourceText": null
+      },
+      "recommendation": "Manter em pending_review (hold, decisão do PO).",
+      "checkedAt": "2026-11-26"
+    },
+    {
+      "reportOrdinal": 94,
+      "canonicalSourceUrl": "https://rut.u3asite.uk/u3a_groups/shakespeare-page-and-stage/",
+      "title": "Shakespeare - Page and Stage",
+      "eligibilityClass": "likely_suitable",
+      "confidence": "média",
+      "evidenceSummary": "Grupo da Richmond upon Thames u3a, que se descreve como \"co-operative of older people\" para reformados e semi-reformados. A página da actividade não refere idade.",
+      "eligibilityScope": "not_confirmed",
+      "availability": {
+        "status": "full_waitlist",
+        "sourceText": "cheio, lista de espera"
+      },
+      "participation": {
+        "membershipRequired": "required",
+        "sourceText": "só membros"
+      },
+      "membershipFeeNote": "adesão: quota da u3a (ver §1.1)",
+      "additionalCost": {
+        "status": "not_indicated",
+        "sourceText": "nenhum indicado na página"
+      },
+      "schedule": {
+        "status": "not_confirmed",
+        "sourceText": null
+      },
+      "location": {
+        "status": "not_confirmed",
+        "sourceText": null
+      },
+      "recommendation": "Manter em pending_review (hold, decisão do PO). Indicar a lista de espera.",
+      "checkedAt": "2026-11-26"
+    },
+    {
+      "reportOrdinal": 95,
+      "canonicalSourceUrl": "https://rut.u3asite.uk/u3a_groups/shakespeare-for-pleasure/",
+      "title": "Shakespeare for Pleasure",
+      "eligibilityClass": "likely_suitable",
+      "confidence": "média",
+      "evidenceSummary": "Grupo da Richmond upon Thames u3a, que se descreve como \"co-operative of older people\" para reformados e semi-reformados. A página da actividade não refere idade.",
+      "eligibilityScope": "not_confirmed",
+      "availability": {
+        "status": "full_waitlist",
+        "sourceText": "cheio, lista de espera"
+      },
+      "participation": {
+        "membershipRequired": "required",
+        "sourceText": "só membros"
+      },
+      "membershipFeeNote": "adesão: quota da u3a (ver §1.1)",
+      "additionalCost": {
+        "status": "not_indicated",
+        "sourceText": "nenhum indicado na página"
+      },
+      "schedule": {
+        "status": "not_confirmed",
+        "sourceText": null
+      },
+      "location": {
+        "status": "not_confirmed",
+        "sourceText": null
+      },
+      "recommendation": "Manter em pending_review (hold, decisão do PO). Indicar a lista de espera.",
+      "checkedAt": "2026-11-26"
+    },
+    {
+      "reportOrdinal": 96,
+      "canonicalSourceUrl": "https://rut.u3asite.uk/u3a_groups/simply-social-richmond/",
+      "title": "Simply Social: Richmond 1",
+      "eligibilityClass": "likely_suitable",
+      "confidence": "média",
+      "evidenceSummary": "Grupo da Richmond upon Thames u3a, que se descreve como \"co-operative of older people\" para reformados e semi-reformados. A página da actividade não refere idade.",
+      "eligibilityScope": "not_confirmed",
+      "availability": {
+        "status": "open_to_new_members",
+        "sourceText": "aberto a novos membros"
+      },
+      "participation": {
+        "membershipRequired": "required",
+        "sourceText": "só membros; local genérico (pub, hotel ou café)"
+      },
+      "membershipFeeNote": "adesão: quota da u3a (ver §1.1)",
+      "additionalCost": {
+        "status": "not_indicated",
+        "sourceText": "nenhum indicado na página"
+      },
+      "schedule": {
+        "status": "not_confirmed",
+        "sourceText": null
+      },
+      "location": {
+        "status": "generic_only",
+        "sourceText": null
+      },
+      "recommendation": "Manter em pending_review (hold, decisão do PO).",
+      "checkedAt": "2026-11-26"
+    },
+    {
+      "reportOrdinal": 97,
+      "canonicalSourceUrl": "https://rut.u3asite.uk/u3a_groups/simply-social-richmond-2/",
+      "title": "Simply Social: Richmond 2",
+      "eligibilityClass": "likely_suitable",
+      "confidence": "média",
+      "evidenceSummary": "Grupo da Richmond upon Thames u3a, que se descreve como \"co-operative of older people\" para reformados e semi-reformados. A página da actividade não refere idade.",
+      "eligibilityScope": "not_confirmed",
+      "availability": {
+        "status": "open_to_new_members",
+        "sourceText": "aberto a novos membros"
+      },
+      "participation": {
+        "membershipRequired": "required",
+        "sourceText": "só membros; local genérico (pub, hotel ou café)"
+      },
+      "membershipFeeNote": "adesão: quota da u3a (ver §1.1)",
+      "additionalCost": {
+        "status": "not_indicated",
+        "sourceText": "nenhum indicado na página"
+      },
+      "schedule": {
+        "status": "not_confirmed",
+        "sourceText": null
+      },
+      "location": {
+        "status": "generic_only",
+        "sourceText": null
+      },
+      "recommendation": "Manter em pending_review (hold, decisão do PO).",
+      "checkedAt": "2026-11-26"
+    },
+    {
+      "reportOrdinal": 98,
+      "canonicalSourceUrl": "https://rut.u3asite.uk/u3a_groups/simply-social-st-margarets/",
+      "title": "Simply Social: St Margarets",
+      "eligibilityClass": "likely_suitable",
+      "confidence": "média",
+      "evidenceSummary": "Grupo da Richmond upon Thames u3a, que se descreve como \"co-operative of older people\" para reformados e semi-reformados. A página da actividade não refere idade.",
+      "eligibilityScope": "not_confirmed",
+      "availability": {
+        "status": "full_waitlist",
+        "sourceText": "cheio, lista de espera"
+      },
+      "participation": {
+        "membershipRequired": "required",
+        "sourceText": "só membros"
+      },
+      "membershipFeeNote": "adesão: quota da u3a (ver §1.1)",
+      "additionalCost": {
+        "status": "not_indicated",
+        "sourceText": "nenhum indicado na página"
+      },
+      "schedule": {
+        "status": "not_confirmed",
+        "sourceText": null
+      },
+      "location": {
+        "status": "not_confirmed",
+        "sourceText": null
+      },
+      "recommendation": "Manter em pending_review (hold, decisão do PO). Indicar a lista de espera.",
+      "checkedAt": "2026-11-26"
+    },
+    {
+      "reportOrdinal": 99,
+      "canonicalSourceUrl": "https://rut.u3asite.uk/u3a_groups/simply-social-teddington/",
+      "title": "Simply Social: Teddington",
+      "eligibilityClass": "likely_suitable",
+      "confidence": "média",
+      "evidenceSummary": "Grupo da Richmond upon Thames u3a, que se descreve como \"co-operative of older people\" para reformados e semi-reformados. A página da actividade não refere idade.",
+      "eligibilityScope": "not_confirmed",
+      "availability": {
+        "status": "open_to_new_members",
+        "sourceText": "aberto a novos membros"
+      },
+      "participation": {
+        "membershipRequired": "required",
+        "sourceText": "só membros; local genérico (pub, hotel ou café)"
+      },
+      "membershipFeeNote": "adesão: quota da u3a (ver §1.1)",
+      "additionalCost": {
+        "status": "not_indicated",
+        "sourceText": "nenhum indicado na página"
+      },
+      "schedule": {
+        "status": "not_confirmed",
+        "sourceText": null
+      },
+      "location": {
+        "status": "generic_only",
+        "sourceText": null
+      },
+      "recommendation": "Manter em pending_review (hold, decisão do PO).",
+      "checkedAt": "2026-11-26"
+    },
+    {
+      "reportOrdinal": 100,
+      "canonicalSourceUrl": "https://rut.u3asite.uk/u3a_groups/singing-for-pleasure/",
+      "title": "Singing for Pleasure",
+      "eligibilityClass": "likely_suitable",
+      "confidence": "média",
+      "evidenceSummary": "Grupo da Richmond upon Thames u3a, que se descreve como \"co-operative of older people\" para reformados e semi-reformados. A página da actividade não refere idade.",
+      "eligibilityScope": "not_confirmed",
+      "availability": {
+        "status": "open_to_new_members",
+        "sourceText": "aberto a novos membros"
+      },
+      "participation": {
+        "membershipRequired": "required",
+        "sourceText": "só membros; nível referido: experienced"
+      },
+      "membershipFeeNote": "adesão: quota da u3a (ver §1.1)",
+      "additionalCost": {
+        "status": "not_indicated",
+        "sourceText": "nenhum indicado na página"
+      },
+      "schedule": {
+        "status": "not_confirmed",
+        "sourceText": null
+      },
+      "location": {
+        "status": "not_confirmed",
+        "sourceText": null
+      },
+      "recommendation": "Manter em pending_review (hold, decisão do PO).",
+      "checkedAt": "2026-11-26"
+    },
+    {
+      "reportOrdinal": 101,
+      "canonicalSourceUrl": "https://rut.u3asite.uk/u3a_groups/spanish-conversation-advanced/",
+      "title": "Spanish Conversation Advanced",
+      "eligibilityClass": "likely_suitable",
+      "confidence": "média",
+      "evidenceSummary": "Grupo da Richmond upon Thames u3a, que se descreve como \"co-operative of older people\" para reformados e semi-reformados. A página da actividade não refere idade.",
+      "eligibilityScope": "not_confirmed",
+      "availability": {
+        "status": "open_to_new_members",
+        "sourceText": "aberto a novos membros"
+      },
+      "participation": {
+        "membershipRequired": "required",
+        "sourceText": "só membros; nível referido: advanced/fluent"
+      },
+      "membershipFeeNote": "adesão: quota da u3a (ver §1.1)",
+      "additionalCost": {
+        "status": "not_indicated",
+        "sourceText": "nenhum indicado na página"
+      },
+      "schedule": {
+        "status": "not_confirmed",
+        "sourceText": null
+      },
+      "location": {
+        "status": "not_confirmed",
+        "sourceText": null
+      },
+      "recommendation": "Manter em pending_review (hold, decisão do PO).",
+      "checkedAt": "2026-11-26"
+    },
+    {
+      "reportOrdinal": 102,
+      "canonicalSourceUrl": "https://rut.u3asite.uk/u3a_groups/spanishconversation-intermed-1/",
+      "title": "Spanish Conversation Intermed 1",
+      "eligibilityClass": "likely_suitable",
+      "confidence": "média",
+      "evidenceSummary": "Grupo da Richmond upon Thames u3a, que se descreve como \"co-operative of older people\" para reformados e semi-reformados. A página da actividade não refere idade.",
+      "eligibilityScope": "not_confirmed",
+      "availability": {
+        "status": "full_waitlist",
+        "sourceText": "cheio, lista de espera"
+      },
+      "participation": {
+        "membershipRequired": "required",
+        "sourceText": "só membros"
+      },
+      "membershipFeeNote": "adesão: quota da u3a (ver §1.1)",
+      "additionalCost": {
+        "status": "not_indicated",
+        "sourceText": "nenhum indicado na página"
+      },
+      "schedule": {
+        "status": "not_confirmed",
+        "sourceText": null
+      },
+      "location": {
+        "status": "not_confirmed",
+        "sourceText": null
+      },
+      "recommendation": "Manter em pending_review (hold, decisão do PO). Indicar a lista de espera.",
+      "checkedAt": "2026-11-26"
+    },
+    {
+      "reportOrdinal": 103,
+      "canonicalSourceUrl": "https://rut.u3asite.uk/u3a_groups/spanish-conversation-intermediate-2/",
+      "title": "Spanish Conversation Intermed 2",
+      "eligibilityClass": "likely_suitable",
+      "confidence": "média",
+      "evidenceSummary": "Grupo da Richmond upon Thames u3a, que se descreve como \"co-operative of older people\" para reformados e semi-reformados. A página da actividade não refere idade.",
+      "eligibilityScope": "not_confirmed",
+      "availability": {
+        "status": "closed_to_new_members",
+        "sourceText": "fechado a novos membros"
+      },
+      "participation": {
+        "membershipRequired": "required",
+        "sourceText": "só membros; local genérico (pub, hotel ou café)"
+      },
+      "membershipFeeNote": "adesão: quota da u3a (ver §1.1)",
+      "additionalCost": {
+        "status": "not_indicated",
+        "sourceText": "nenhum indicado na página"
+      },
+      "schedule": {
+        "status": "not_confirmed",
+        "sourceText": null
+      },
+      "location": {
+        "status": "generic_only",
+        "sourceText": null
+      },
+      "recommendation": "Manter em pending_review (hold, decisão do PO). Não divulgar como aberta.",
+      "checkedAt": "2026-11-26"
+    },
+    {
+      "reportOrdinal": 104,
+      "canonicalSourceUrl": "https://rut.u3asite.uk/u3a_groups/spanish-conversation-intermediate-3/",
+      "title": "Spanish Conversation Intermed 3",
+      "eligibilityClass": "likely_suitable",
+      "confidence": "média",
+      "evidenceSummary": "Grupo da Richmond upon Thames u3a, que se descreve como \"co-operative of older people\" para reformados e semi-reformados. A página da actividade não refere idade.",
+      "eligibilityScope": "not_confirmed",
+      "availability": {
+        "status": "full_waitlist",
+        "sourceText": "cheio, lista de espera"
+      },
+      "participation": {
+        "membershipRequired": "required",
+        "sourceText": "só membros; nível referido: intermediate"
+      },
+      "membershipFeeNote": "adesão: quota da u3a (ver §1.1)",
+      "additionalCost": {
+        "status": "not_indicated",
+        "sourceText": "nenhum indicado na página"
+      },
+      "schedule": {
+        "status": "not_confirmed",
+        "sourceText": null
+      },
+      "location": {
+        "status": "not_confirmed",
+        "sourceText": null
+      },
+      "recommendation": "Manter em pending_review (hold, decisão do PO). Indicar a lista de espera.",
+      "checkedAt": "2026-11-26"
+    },
+    {
+      "reportOrdinal": 105,
+      "canonicalSourceUrl": "https://rut.u3asite.uk/u3a_groups/spanish-pre-intermediate/",
+      "title": "Spanish Pre-Intermediate",
+      "eligibilityClass": "likely_suitable",
+      "confidence": "média",
+      "evidenceSummary": "Grupo da Richmond upon Thames u3a, que se descreve como \"co-operative of older people\" para reformados e semi-reformados. A página da actividade não refere idade.",
+      "eligibilityScope": "not_confirmed",
+      "availability": {
+        "status": "open_to_new_members",
+        "sourceText": "aberto a novos membros"
+      },
+      "participation": {
+        "membershipRequired": "required",
+        "sourceText": "só membros; nível referido: intermediate/beginners"
+      },
+      "membershipFeeNote": "adesão: quota da u3a (ver §1.1)",
+      "additionalCost": {
+        "status": "not_indicated",
+        "sourceText": "nenhum indicado na página"
+      },
+      "schedule": {
+        "status": "not_confirmed",
+        "sourceText": null
+      },
+      "location": {
+        "status": "not_confirmed",
+        "sourceText": null
+      },
+      "recommendation": "Manter em pending_review (hold, decisão do PO).",
+      "checkedAt": "2026-11-26"
+    },
+    {
+      "reportOrdinal": 106,
+      "canonicalSourceUrl": "https://rut.u3asite.uk/u3a_groups/stamp-and-postal-history/",
+      "title": "Stamp and Postal History",
+      "eligibilityClass": "likely_suitable",
+      "confidence": "média",
+      "evidenceSummary": "Grupo da Richmond upon Thames u3a, que se descreve como \"co-operative of older people\" para reformados e semi-reformados. A página da actividade não refere idade.",
+      "eligibilityScope": "not_confirmed",
+      "availability": {
+        "status": "open_to_new_members",
+        "sourceText": "aberto a novos membros"
+      },
+      "participation": {
+        "membershipRequired": "required",
+        "sourceText": "só membros"
+      },
+      "membershipFeeNote": "adesão: quota da u3a (ver §1.1)",
+      "additionalCost": {
+        "status": "not_indicated",
+        "sourceText": "nenhum indicado na página"
+      },
+      "schedule": {
+        "status": "not_confirmed",
+        "sourceText": null
+      },
+      "location": {
+        "status": "not_confirmed",
+        "sourceText": null
+      },
+      "recommendation": "Manter em pending_review (hold, decisão do PO).",
+      "checkedAt": "2026-11-26"
+    },
+    {
+      "reportOrdinal": 107,
+      "canonicalSourceUrl": "https://rut.u3asite.uk/u3a_groups/sunday-lunch-group/",
+      "title": "Sunday Lunch Group",
+      "eligibilityClass": "likely_suitable",
+      "confidence": "média",
+      "evidenceSummary": "Grupo da Richmond upon Thames u3a, que se descreve como \"co-operative of older people\" para reformados e semi-reformados. A página da actividade não refere idade.",
+      "eligibilityScope": "not_confirmed",
+      "availability": {
+        "status": "open_to_new_members",
+        "sourceText": "aberto a novos membros"
+      },
+      "participation": {
+        "membershipRequired": "required",
+        "sourceText": "só membros"
+      },
+      "membershipFeeNote": "adesão: quota da u3a (ver §1.1)",
+      "additionalCost": {
+        "status": "not_indicated",
+        "sourceText": "nenhum indicado na página"
+      },
+      "schedule": {
+        "status": "not_confirmed",
+        "sourceText": null
+      },
+      "location": {
+        "status": "not_confirmed",
+        "sourceText": null
+      },
+      "recommendation": "Manter em pending_review (hold, decisão do PO).",
+      "checkedAt": "2026-11-26"
+    },
+    {
+      "reportOrdinal": 108,
+      "canonicalSourceUrl": "https://rut.u3asite.uk/u3a_groups/swimming-1/",
+      "title": "Swimming 1",
+      "eligibilityClass": "likely_suitable",
+      "confidence": "média",
+      "evidenceSummary": "Grupo da Richmond upon Thames u3a, que se descreve como \"co-operative of older people\" para reformados e semi-reformados. A página da actividade não refere idade.",
+      "eligibilityScope": "not_confirmed",
+      "availability": {
+        "status": "open_to_new_members",
+        "sourceText": "aberto a novos membros"
+      },
+      "participation": {
+        "membershipRequired": "required",
+        "sourceText": "só membros; actividade física"
+      },
+      "membershipFeeNote": "adesão: quota da u3a (ver §1.1)",
+      "additionalCost": {
+        "status": "not_indicated",
+        "sourceText": "nenhum indicado na página"
+      },
+      "schedule": {
+        "status": "not_confirmed",
+        "sourceText": null
+      },
+      "location": {
+        "status": "not_confirmed",
+        "sourceText": null
+      },
+      "recommendation": "Manter em pending_review (hold, decisão do PO).",
+      "checkedAt": "2026-11-26"
+    },
+    {
+      "reportOrdinal": 109,
+      "canonicalSourceUrl": "https://rut.u3asite.uk/u3a_groups/table-tennis-1/",
+      "title": "Table Tennis 1",
+      "eligibilityClass": "likely_suitable",
+      "confidence": "média",
+      "evidenceSummary": "Grupo da Richmond upon Thames u3a, que se descreve como \"co-operative of older people\" para reformados e semi-reformados. A página da actividade não refere idade.",
+      "eligibilityScope": "not_confirmed",
+      "availability": {
+        "status": "full_waitlist",
+        "sourceText": "cheio, lista de espera"
+      },
+      "participation": {
+        "membershipRequired": "required",
+        "sourceText": "só membros; actividade física"
+      },
+      "membershipFeeNote": "adesão: quota da u3a (ver §1.1)",
+      "additionalCost": {
+        "status": "not_indicated",
+        "sourceText": "nenhum indicado na página"
+      },
+      "schedule": {
+        "status": "not_confirmed",
+        "sourceText": null
+      },
+      "location": {
+        "status": "not_confirmed",
+        "sourceText": null
+      },
+      "recommendation": "Manter em pending_review (hold, decisão do PO). Indicar a lista de espera.",
+      "checkedAt": "2026-11-26"
+    },
+    {
+      "reportOrdinal": 110,
+      "canonicalSourceUrl": "https://rut.u3asite.uk/u3a_groups/table-tennis-2/",
+      "title": "Table Tennis 2",
+      "eligibilityClass": "likely_suitable",
+      "confidence": "média",
+      "evidenceSummary": "Grupo da Richmond upon Thames u3a, que se descreve como \"co-operative of older people\" para reformados e semi-reformados. A página da actividade não refere idade.",
+      "eligibilityScope": "not_confirmed",
+      "availability": {
+        "status": "open_to_new_members",
+        "sourceText": "aberto a novos membros"
+      },
+      "participation": {
+        "membershipRequired": "required",
+        "sourceText": "só membros; actividade física"
+      },
+      "membershipFeeNote": "adesão: quota da u3a (ver §1.1)",
+      "additionalCost": {
+        "status": "not_indicated",
+        "sourceText": "nenhum indicado na página"
+      },
+      "schedule": {
+        "status": "not_confirmed",
+        "sourceText": null
+      },
+      "location": {
+        "status": "not_confirmed",
+        "sourceText": null
+      },
+      "recommendation": "Manter em pending_review (hold, decisão do PO).",
+      "checkedAt": "2026-11-26"
+    },
+    {
+      "reportOrdinal": 111,
+      "canonicalSourceUrl": "https://rut.u3asite.uk/u3a_groups/table-tennis-3/",
+      "title": "Table Tennis 3",
+      "eligibilityClass": "likely_suitable",
+      "confidence": "média",
+      "evidenceSummary": "Grupo da Richmond upon Thames u3a, que se descreve como \"co-operative of older people\" para reformados e semi-reformados. A página da actividade não refere idade.",
+      "eligibilityScope": "not_confirmed",
+      "availability": {
+        "status": "full_waitlist",
+        "sourceText": "cheio, lista de espera"
+      },
+      "participation": {
+        "membershipRequired": "required",
+        "sourceText": "só membros; actividade física"
+      },
+      "membershipFeeNote": "adesão: quota da u3a (ver §1.1)",
+      "additionalCost": {
+        "status": "not_indicated",
+        "sourceText": "nenhum indicado na página"
+      },
+      "schedule": {
+        "status": "not_confirmed",
+        "sourceText": null
+      },
+      "location": {
+        "status": "not_confirmed",
+        "sourceText": null
+      },
+      "recommendation": "Manter em pending_review (hold, decisão do PO). Indicar a lista de espera.",
+      "checkedAt": "2026-11-26"
+    },
+    {
+      "reportOrdinal": 112,
+      "canonicalSourceUrl": "https://rut.u3asite.uk/u3a_groups/tap-dancing/",
+      "title": "Tap Dancing",
+      "eligibilityClass": "likely_suitable",
+      "confidence": "média",
+      "evidenceSummary": "Grupo da Richmond upon Thames u3a, que se descreve como \"co-operative of older people\" para reformados e semi-reformados. A página da actividade não refere idade.",
+      "eligibilityScope": "not_confirmed",
+      "availability": {
+        "status": "full_waitlist",
+        "sourceText": "cheio, lista de espera"
+      },
+      "participation": {
+        "membershipRequired": "required",
+        "sourceText": "só membros; actividade física"
+      },
+      "membershipFeeNote": "adesão: quota da u3a (ver §1.1)",
+      "additionalCost": {
+        "status": "not_indicated",
+        "sourceText": "nenhum indicado na página"
+      },
+      "schedule": {
+        "status": "not_confirmed",
+        "sourceText": null
+      },
+      "location": {
+        "status": "not_confirmed",
+        "sourceText": null
+      },
+      "recommendation": "Manter em pending_review (hold, decisão do PO). Indicar a lista de espera.",
+      "checkedAt": "2026-11-26"
+    },
+    {
+      "reportOrdinal": 113,
+      "canonicalSourceUrl": "https://rut.u3asite.uk/u3a_groups/tarot-share/",
+      "title": "Tarot Share",
+      "eligibilityClass": "likely_suitable",
+      "confidence": "média",
+      "evidenceSummary": "Grupo da Richmond upon Thames u3a, que se descreve como \"co-operative of older people\" para reformados e semi-reformados. A página da actividade não refere idade.",
+      "eligibilityScope": "not_confirmed",
+      "availability": {
+        "status": "open_to_new_members",
+        "sourceText": "aberto a novos membros"
+      },
+      "participation": {
+        "membershipRequired": "required",
+        "sourceText": "só membros; nível referido: some knowledge"
+      },
+      "membershipFeeNote": "adesão: quota da u3a (ver §1.1)",
+      "additionalCost": {
+        "status": "not_indicated",
+        "sourceText": "nenhum indicado na página"
+      },
+      "schedule": {
+        "status": "not_confirmed",
+        "sourceText": null
+      },
+      "location": {
+        "status": "not_confirmed",
+        "sourceText": null
+      },
+      "recommendation": "Manter em pending_review (hold, decisão do PO).",
+      "checkedAt": "2026-11-26"
+    },
+    {
+      "reportOrdinal": 114,
+      "canonicalSourceUrl": "https://rut.u3asite.uk/u3a_groups/theatre-matinees-drama/",
+      "title": "Theatre Matinees & Drama",
+      "eligibilityClass": "likely_suitable",
+      "confidence": "média",
+      "evidenceSummary": "Grupo da Richmond upon Thames u3a, que se descreve como \"co-operative of older people\" para reformados e semi-reformados. A página da actividade não refere idade.",
+      "eligibilityScope": "not_confirmed",
+      "availability": {
+        "status": "open_to_new_members",
+        "sourceText": "aberto a novos membros"
+      },
+      "participation": {
+        "membershipRequired": "required",
+        "sourceText": "só membros; horário incompleto na fonte"
+      },
+      "membershipFeeNote": "adesão: quota da u3a (ver §1.1)",
+      "additionalCost": {
+        "status": "not_indicated",
+        "sourceText": "nenhum indicado na página"
+      },
+      "schedule": {
+        "status": "incomplete",
+        "sourceText": null
+      },
+      "location": {
+        "status": "not_confirmed",
+        "sourceText": null
+      },
+      "recommendation": "Manter em pending_review (hold, decisão do PO). Confirmar o horário antes de qualquer agenda.",
+      "checkedAt": "2026-11-26"
+    },
+    {
+      "reportOrdinal": 115,
+      "canonicalSourceUrl": "https://rut.u3asite.uk/u3a_groups/tomorrows-world/",
+      "title": "Tomorrow's World",
+      "eligibilityClass": "likely_suitable",
+      "confidence": "média",
+      "evidenceSummary": "Grupo da Richmond upon Thames u3a, que se descreve como \"co-operative of older people\" para reformados e semi-reformados. A página da actividade não refere idade.",
+      "eligibilityScope": "not_confirmed",
+      "availability": {
+        "status": "open_to_new_members",
+        "sourceText": "aberto a novos membros"
+      },
+      "participation": {
+        "membershipRequired": "required",
+        "sourceText": "só membros"
+      },
+      "membershipFeeNote": "adesão: quota da u3a (ver §1.1)",
+      "additionalCost": {
+        "status": "not_indicated",
+        "sourceText": "nenhum indicado na página"
+      },
+      "schedule": {
+        "status": "not_confirmed",
+        "sourceText": null
+      },
+      "location": {
+        "status": "not_confirmed",
+        "sourceText": null
+      },
+      "recommendation": "Manter em pending_review (hold, decisão do PO).",
+      "checkedAt": "2026-11-26"
+    },
+    {
+      "reportOrdinal": 116,
+      "canonicalSourceUrl": "https://rut.u3asite.uk/u3a_groups/travel-group/",
+      "title": "Travel Group",
+      "eligibilityClass": "likely_suitable",
+      "confidence": "média",
+      "evidenceSummary": "Grupo da Richmond upon Thames u3a, que se descreve como \"co-operative of older people\" para reformados e semi-reformados. A página da actividade não refere idade.",
+      "eligibilityScope": "not_confirmed",
+      "availability": {
+        "status": "open_to_new_members",
+        "sourceText": "aberto a novos membros"
+      },
+      "participation": {
+        "membershipRequired": "required",
+        "sourceText": "só membros"
+      },
+      "membershipFeeNote": "adesão: quota da u3a (ver §1.1)",
+      "additionalCost": {
+        "status": "not_indicated",
+        "sourceText": "nenhum indicado na página"
+      },
+      "schedule": {
+        "status": "not_confirmed",
+        "sourceText": null
+      },
+      "location": {
+        "status": "not_confirmed",
+        "sourceText": null
+      },
+      "recommendation": "Manter em pending_review (hold, decisão do PO).",
+      "checkedAt": "2026-11-26"
+    },
+    {
+      "reportOrdinal": 117,
+      "canonicalSourceUrl": "https://rut.u3asite.uk/u3a_groups/ukulele-1/",
+      "title": "Ukulele 1",
+      "eligibilityClass": "likely_suitable",
+      "confidence": "média",
+      "evidenceSummary": "Grupo da Richmond upon Thames u3a, que se descreve como \"co-operative of older people\" para reformados e semi-reformados. A página da actividade não refere idade.",
+      "eligibilityScope": "not_confirmed",
+      "availability": {
+        "status": "full_waitlist",
+        "sourceText": "cheio, lista de espera"
+      },
+      "participation": {
+        "membershipRequired": "required",
+        "sourceText": "só membros"
+      },
+      "membershipFeeNote": "adesão: quota da u3a (ver §1.1)",
+      "additionalCost": {
+        "status": "not_indicated",
+        "sourceText": "nenhum indicado na página"
+      },
+      "schedule": {
+        "status": "not_confirmed",
+        "sourceText": null
+      },
+      "location": {
+        "status": "not_confirmed",
+        "sourceText": null
+      },
+      "recommendation": "Manter em pending_review (hold, decisão do PO). Indicar a lista de espera.",
+      "checkedAt": "2026-11-26"
+    },
+    {
+      "reportOrdinal": 118,
+      "canonicalSourceUrl": "https://rut.u3asite.uk/u3a_groups/ukulele-2/",
+      "title": "Ukulele 2",
+      "eligibilityClass": "likely_suitable",
+      "confidence": "média",
+      "evidenceSummary": "Grupo da Richmond upon Thames u3a, que se descreve como \"co-operative of older people\" para reformados e semi-reformados. A página da actividade não refere idade.",
+      "eligibilityScope": "not_confirmed",
+      "availability": {
+        "status": "full_waitlist",
+        "sourceText": "cheio, lista de espera"
+      },
+      "participation": {
+        "membershipRequired": "required",
+        "sourceText": "só membros; nível referido: beginners"
+      },
+      "membershipFeeNote": "adesão: quota da u3a (ver §1.1)",
+      "additionalCost": {
+        "status": "not_indicated",
+        "sourceText": "nenhum indicado na página"
+      },
+      "schedule": {
+        "status": "not_confirmed",
+        "sourceText": null
+      },
+      "location": {
+        "status": "not_confirmed",
+        "sourceText": null
+      },
+      "recommendation": "Manter em pending_review (hold, decisão do PO). Indicar a lista de espera.",
+      "checkedAt": "2026-11-26"
+    },
+    {
+      "reportOrdinal": 119,
+      "canonicalSourceUrl": "https://rut.u3asite.uk/u3a_groups/ukelele-3/",
+      "title": "Ukulele 3",
+      "eligibilityClass": "likely_suitable",
+      "confidence": "média",
+      "evidenceSummary": "Grupo da Richmond upon Thames u3a, que se descreve como \"co-operative of older people\" para reformados e semi-reformados. A página da actividade não refere idade.",
+      "eligibilityScope": "not_confirmed",
+      "availability": {
+        "status": "full_waitlist",
+        "sourceText": "cheio, lista de espera"
+      },
+      "participation": {
+        "membershipRequired": "required",
+        "sourceText": "só membros"
+      },
+      "membershipFeeNote": "adesão: quota da u3a (ver §1.1)",
+      "additionalCost": {
+        "status": "not_indicated",
+        "sourceText": "nenhum indicado na página"
+      },
+      "schedule": {
+        "status": "not_confirmed",
+        "sourceText": null
+      },
+      "location": {
+        "status": "not_confirmed",
+        "sourceText": null
+      },
+      "recommendation": "Manter em pending_review (hold, decisão do PO). Indicar a lista de espera.",
+      "checkedAt": "2026-11-26"
+    },
+    {
+      "reportOrdinal": 120,
+      "canonicalSourceUrl": "https://rut.u3asite.uk/u3a_groups/visiting-the-va/",
+      "title": "Visiting the V&A",
+      "eligibilityClass": "likely_suitable",
+      "confidence": "média",
+      "evidenceSummary": "Grupo da Richmond upon Thames u3a, que se descreve como \"co-operative of older people\" para reformados e semi-reformados. A página da actividade não refere idade.",
+      "eligibilityScope": "not_confirmed",
+      "availability": {
+        "status": "open_to_new_members",
+        "sourceText": "aberto a novos membros"
+      },
+      "participation": {
+        "membershipRequired": "required",
+        "sourceText": "só membros"
+      },
+      "membershipFeeNote": "adesão: quota da u3a (ver §1.1)",
+      "additionalCost": {
+        "status": "not_indicated",
+        "sourceText": "nenhum indicado na página"
+      },
+      "schedule": {
+        "status": "not_confirmed",
+        "sourceText": null
+      },
+      "location": {
+        "status": "not_confirmed",
+        "sourceText": null
+      },
+      "recommendation": "Manter em pending_review (hold, decisão do PO).",
+      "checkedAt": "2026-11-26"
+    },
+    {
+      "reportOrdinal": 121,
+      "canonicalSourceUrl": "https://rut.u3asite.uk/u3a_groups/walking-netball/",
+      "title": "Walking Netball",
+      "eligibilityClass": "likely_suitable",
+      "confidence": "média",
+      "evidenceSummary": "Grupo da Richmond upon Thames u3a, que se descreve como \"co-operative of older people\" para reformados e semi-reformados. A página da actividade não refere idade.",
+      "eligibilityScope": "not_confirmed",
+      "availability": {
+        "status": "open_to_new_members",
+        "sourceText": "aberto a novos membros"
+      },
+      "participation": {
+        "membershipRequired": "required",
+        "sourceText": "só membros; actividade física"
+      },
+      "membershipFeeNote": "adesão: quota da u3a (ver §1.1)",
+      "additionalCost": {
+        "status": "not_indicated",
+        "sourceText": "nenhum indicado na página"
+      },
+      "schedule": {
+        "status": "not_confirmed",
+        "sourceText": null
+      },
+      "location": {
+        "status": "not_confirmed",
+        "sourceText": null
+      },
+      "recommendation": "Manter em pending_review (hold, decisão do PO).",
+      "checkedAt": "2026-11-26"
+    },
+    {
+      "reportOrdinal": 122,
+      "canonicalSourceUrl": "https://rut.u3asite.uk/u3a_groups/weekenders/",
+      "title": "Weekenders",
+      "eligibilityClass": "likely_suitable",
+      "confidence": "média",
+      "evidenceSummary": "Grupo da Richmond upon Thames u3a, que se descreve como \"co-operative of older people\" para reformados e semi-reformados. A página da actividade não refere idade.",
+      "eligibilityScope": "not_confirmed",
+      "availability": {
+        "status": "open_to_new_members",
+        "sourceText": "aberto a novos membros"
+      },
+      "participation": {
+        "membershipRequired": "required",
+        "sourceText": "só membros; horário incompleto na fonte"
+      },
+      "membershipFeeNote": "adesão: quota da u3a (ver §1.1)",
+      "additionalCost": {
+        "status": "not_indicated",
+        "sourceText": "nenhum indicado na página"
+      },
+      "schedule": {
+        "status": "incomplete",
+        "sourceText": null
+      },
+      "location": {
+        "status": "not_confirmed",
+        "sourceText": null
+      },
+      "recommendation": "Manter em pending_review (hold, decisão do PO). Confirmar o horário antes de qualquer agenda.",
+      "checkedAt": "2026-11-26"
+    },
+    {
+      "reportOrdinal": 123,
+      "canonicalSourceUrl": "https://rut.u3asite.uk/u3a_groups/welcome-circle-coffee-chat-and-connection/",
+      "title": "Welcome Circle: coffee, chat and connection",
+      "eligibilityClass": "likely_suitable",
+      "confidence": "média",
+      "evidenceSummary": "Grupo da Richmond upon Thames u3a, que se descreve como \"co-operative of older people\" para reformados e semi-reformados. A página da actividade não refere idade.",
+      "eligibilityScope": "not_confirmed",
+      "availability": {
+        "status": "open_to_new_members",
+        "sourceText": "aberto a novos membros"
+      },
+      "participation": {
+        "membershipRequired": "required",
+        "sourceText": "só membros; local genérico (pub, hotel ou café)"
+      },
+      "membershipFeeNote": "adesão: quota da u3a (ver §1.1)",
+      "additionalCost": {
+        "status": "not_indicated",
+        "sourceText": "nenhum indicado na página"
+      },
+      "schedule": {
+        "status": "not_confirmed",
+        "sourceText": null
+      },
+      "location": {
+        "status": "generic_only",
+        "sourceText": null
+      },
+      "recommendation": "Manter em pending_review (hold, decisão do PO).",
+      "checkedAt": "2026-11-26"
+    },
+    {
+      "reportOrdinal": 124,
+      "canonicalSourceUrl": "https://rut.u3asite.uk/u3a_groups/wine-tasting/",
+      "title": "Wine Tasting",
+      "eligibilityClass": "likely_suitable",
+      "confidence": "média",
+      "evidenceSummary": "Grupo da Richmond upon Thames u3a, que se descreve como \"co-operative of older people\" para reformados e semi-reformados. A página da actividade não refere idade.",
+      "eligibilityScope": "not_confirmed",
+      "availability": {
+        "status": "open_to_new_members",
+        "sourceText": "aberto a novos membros"
+      },
+      "participation": {
+        "membershipRequired": "required",
+        "sourceText": "só membros; local genérico (pub, hotel ou café)"
+      },
+      "membershipFeeNote": "adesão: quota da u3a (ver §1.1)",
+      "additionalCost": {
+        "status": "reported",
+        "sourceText": "£45 por sessão (prova de 6 vinhos e almoço de 2 pratos)."
+      },
+      "schedule": {
+        "status": "not_confirmed",
+        "sourceText": null
+      },
+      "location": {
+        "status": "generic_only",
+        "sourceText": null
+      },
+      "recommendation": "Manter em pending_review (hold, decisão do PO).",
+      "checkedAt": "2026-11-26"
+    },
+    {
+      "reportOrdinal": 125,
+      "canonicalSourceUrl": "https://rut.u3asite.uk/u3a_groups/writing-for-pleasure/",
+      "title": "Writing for Pleasure",
+      "eligibilityClass": "likely_suitable",
+      "confidence": "média",
+      "evidenceSummary": "Grupo da Richmond upon Thames u3a, que se descreve como \"co-operative of older people\" para reformados e semi-reformados. A página da actividade não refere idade.",
+      "eligibilityScope": "not_confirmed",
+      "availability": {
+        "status": "full_waitlist",
+        "sourceText": "cheio, lista de espera"
+      },
+      "participation": {
+        "membershipRequired": "required",
+        "sourceText": "só membros"
+      },
+      "membershipFeeNote": "adesão: quota da u3a (ver §1.1)",
+      "additionalCost": {
+        "status": "not_indicated",
+        "sourceText": "nenhum indicado na página"
+      },
+      "schedule": {
+        "status": "not_confirmed",
+        "sourceText": null
+      },
+      "location": {
+        "status": "not_confirmed",
+        "sourceText": null
+      },
+      "recommendation": "Manter em pending_review (hold, decisão do PO). Indicar a lista de espera.",
+      "checkedAt": "2026-11-26"
+    },
+    {
+      "reportOrdinal": 126,
+      "canonicalSourceUrl": "https://rut.u3asite.uk/u3a_groups/book-group-fiction-non-fiction/",
+      "title": "Book Group-Fiction & Non-Fiction",
+      "eligibilityClass": "unclear",
+      "confidence": "baixa",
+      "evidenceSummary": "A página tem pouca informação (178 caracteres): não dá para avaliar o público nem as condições.",
+      "eligibilityScope": "not_confirmed",
+      "availability": {
+        "status": "open_to_new_members",
+        "sourceText": "aberto a novos membros"
+      },
+      "participation": {
+        "membershipRequired": "required",
+        "sourceText": "só membros; local genérico (pub, hotel ou café)"
+      },
+      "membershipFeeNote": "adesão: quota da u3a (ver §1.1)",
+      "additionalCost": {
+        "status": "not_indicated",
+        "sourceText": "nenhum indicado na página"
+      },
+      "schedule": {
+        "status": "not_confirmed",
+        "sourceText": null
+      },
+      "location": {
+        "status": "generic_only",
+        "sourceText": null
+      },
+      "recommendation": "Manter em pending_review; faltam dados na fonte.",
+      "checkedAt": "2026-11-26"
+    },
+    {
+      "reportOrdinal": 127,
+      "canonicalSourceUrl": "https://rut.u3asite.uk/u3a_groups/current-affairs-2/",
+      "title": "Current Affairs 2",
+      "eligibilityClass": "unclear",
+      "confidence": "baixa",
+      "evidenceSummary": "A página tem pouca informação (153 caracteres): não dá para avaliar o público nem as condições.",
+      "eligibilityScope": "not_confirmed",
+      "availability": {
+        "status": "open_to_new_members",
+        "sourceText": "aberto a novos membros"
+      },
+      "participation": {
+        "membershipRequired": "required",
+        "sourceText": "só membros"
+      },
+      "membershipFeeNote": "adesão: quota da u3a (ver §1.1)",
+      "additionalCost": {
+        "status": "not_indicated",
+        "sourceText": "nenhum indicado na página"
+      },
+      "schedule": {
+        "status": "not_confirmed",
+        "sourceText": null
+      },
+      "location": {
+        "status": "not_confirmed",
+        "sourceText": null
+      },
+      "recommendation": "Manter em pending_review; faltam dados na fonte.",
+      "checkedAt": "2026-11-26"
+    },
+    {
+      "reportOrdinal": 128,
+      "canonicalSourceUrl": "https://rut.u3asite.uk/u3a_groups/french-advanced-3/",
+      "title": "French Advanced 3",
+      "eligibilityClass": "unclear",
+      "confidence": "baixa",
+      "evidenceSummary": "A página tem pouca informação (156 caracteres): não dá para avaliar o público nem as condições.",
+      "eligibilityScope": "not_confirmed",
+      "availability": {
+        "status": "open_to_new_members",
+        "sourceText": "aberto a novos membros"
+      },
+      "participation": {
+        "membershipRequired": "required",
+        "sourceText": "só membros"
+      },
+      "membershipFeeNote": "adesão: quota da u3a (ver §1.1)",
+      "additionalCost": {
+        "status": "not_indicated",
+        "sourceText": "nenhum indicado na página"
+      },
+      "schedule": {
+        "status": "not_confirmed",
+        "sourceText": null
+      },
+      "location": {
+        "status": "not_confirmed",
+        "sourceText": null
+      },
+      "recommendation": "Manter em pending_review; faltam dados na fonte.",
+      "checkedAt": "2026-11-26"
+    },
+    {
+      "reportOrdinal": 129,
+      "canonicalSourceUrl": "https://rut.u3asite.uk/u3a_groups/german-intermediate-advanced/",
+      "title": "German Intermediate/Advanced",
+      "eligibilityClass": "unclear",
+      "confidence": "baixa",
+      "evidenceSummary": "A página tem pouca informação (188 caracteres): não dá para avaliar o público nem as condições.",
+      "eligibilityScope": "not_confirmed",
+      "availability": {
+        "status": "open_to_new_members",
+        "sourceText": "aberto a novos membros"
+      },
+      "participation": {
+        "membershipRequired": "required",
+        "sourceText": "só membros; nível referido: intermediate/advanced"
+      },
+      "membershipFeeNote": "adesão: quota da u3a (ver §1.1)",
+      "additionalCost": {
+        "status": "not_indicated",
+        "sourceText": "nenhum indicado na página"
+      },
+      "schedule": {
+        "status": "not_confirmed",
+        "sourceText": null
+      },
+      "location": {
+        "status": "not_confirmed",
+        "sourceText": null
+      },
+      "recommendation": "Manter em pending_review; faltam dados na fonte.",
+      "checkedAt": "2026-11-26"
+    },
+    {
+      "reportOrdinal": 130,
+      "canonicalSourceUrl": "https://rut.u3asite.uk/u3a_groups/scrabble-1/",
+      "title": "Scrabble 1",
+      "eligibilityClass": "unclear",
+      "confidence": "baixa",
+      "evidenceSummary": "A página tem pouca informação (194 caracteres): não dá para avaliar o público nem as condições.",
+      "eligibilityScope": "not_confirmed",
+      "availability": {
+        "status": "open_to_new_members",
+        "sourceText": "aberto a novos membros"
+      },
+      "participation": {
+        "membershipRequired": "required",
+        "sourceText": "só membros"
+      },
+      "membershipFeeNote": "adesão: quota da u3a (ver §1.1)",
+      "additionalCost": {
+        "status": "not_indicated",
+        "sourceText": "nenhum indicado na página"
+      },
+      "schedule": {
+        "status": "not_confirmed",
+        "sourceText": null
+      },
+      "location": {
+        "status": "not_confirmed",
+        "sourceText": null
+      },
+      "recommendation": "Manter em pending_review; faltam dados na fonte.",
+      "checkedAt": "2026-11-26"
+    },
+    {
+      "reportOrdinal": 131,
+      "canonicalSourceUrl": "https://rut.u3asite.uk/u3a_groups/skiffle/",
+      "title": "Skiffle",
+      "eligibilityClass": "unclear",
+      "confidence": "baixa",
+      "evidenceSummary": "A página tem pouca informação (106 caracteres): não dá para avaliar o público nem as condições.",
+      "eligibilityScope": "not_confirmed",
+      "availability": {
+        "status": "open_to_new_members",
+        "sourceText": "aberto a novos membros"
+      },
+      "participation": {
+        "membershipRequired": "required",
+        "sourceText": "só membros; horário incompleto na fonte"
+      },
+      "membershipFeeNote": "adesão: quota da u3a (ver §1.1)",
+      "additionalCost": {
+        "status": "not_indicated",
+        "sourceText": "nenhum indicado na página"
+      },
+      "schedule": {
+        "status": "incomplete",
+        "sourceText": null
+      },
+      "location": {
+        "status": "not_confirmed",
+        "sourceText": null
+      },
+      "recommendation": "Manter em pending_review; faltam dados na fonte. Confirmar o horário antes de qualquer agenda.",
+      "checkedAt": "2026-11-26"
+    },
+    {
+      "reportOrdinal": 132,
+      "canonicalSourceUrl": "https://rut.u3asite.uk/u3a_groups/wandsworth-u3a-putney-strollers/",
+      "title": "Wandsworth U3A - Putney Strollers",
+      "eligibilityClass": "unclear",
+      "confidence": "alta",
+      "evidenceSummary": "É um grupo de outra u3a (Wandsworth). As regras de adesão e os custos dessa u3a não foram verificados.",
+      "eligibilityScope": "not_confirmed",
+      "availability": {
+        "status": "open_to_new_members",
+        "sourceText": "aberto a novos membros"
+      },
+      "participation": {
+        "membershipRequired": "required",
+        "sourceText": "só membros; actividade física"
+      },
+      "membershipFeeNote": "adesão: quota da u3a (ver §1.1)",
+      "additionalCost": {
+        "status": "not_indicated",
+        "sourceText": "nenhum indicado na página"
+      },
+      "schedule": {
+        "status": "not_confirmed",
+        "sourceText": null
+      },
+      "location": {
+        "status": "not_confirmed",
+        "sourceText": null
+      },
+      "recommendation": "Manter em pending_review; faltam dados na fonte.",
+      "checkedAt": "2026-11-26"
+    },
+    {
+      "reportOrdinal": 133,
+      "canonicalSourceUrl": "https://rut.u3asite.uk/u3a_groups/could-you-start-a-new-group/",
+      "title": "?Could you start a new Group?",
+      "eligibilityClass": "unsuitable",
+      "confidence": "alta",
+      "evidenceSummary": "Não é uma actividade: é um apelo da u3a para os membros criarem novos grupos. Não tem horário nem local.",
+      "eligibilityScope": "not_confirmed",
+      "availability": {
+        "status": "open_to_new_members",
+        "sourceText": "aberto a novos membros"
+      },
+      "participation": {
+        "membershipRequired": "required",
+        "sourceText": "só membros; horário incompleto na fonte"
+      },
+      "membershipFeeNote": "adesão: quota da u3a (ver §1.1)",
+      "additionalCost": {
+        "status": "not_indicated",
+        "sourceText": "nenhum indicado na página"
+      },
+      "schedule": {
+        "status": "incomplete",
+        "sourceText": null
+      },
+      "location": {
+        "status": "not_confirmed",
+        "sourceText": null
+      },
+      "recommendation": "Fora de publicação.",
+      "checkedAt": "2026-11-26"
+    }
+  ]
+}
