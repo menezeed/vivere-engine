@@ -1,6 +1,7 @@
 import { Hono } from 'hono';
 import type { ReviewService } from '../services/ReviewService';
 import { NotFoundError, ForbiddenError, InvalidQueryError, EligibilityBlockedError } from '../services/ReviewService';
+import { ReviewValidationError } from '../eligibility/humanReview';
 import { parseEligibilityFilter } from '../eligibility/eligibilityAudit';
 import type { AuthUser } from '../types/reviewTypes';
 import { logger } from '../../lib/logger';
@@ -49,6 +50,36 @@ export function activityRoutes(reviewService: ReviewService): Hono<Env> {
     } catch (err) {
       if (err instanceof NotFoundError) return c.json({ error: err.message }, 404);
       logger.error({ err, id: c.req.param('id') }, 'activity getById error');
+      return c.json({ error: 'Erro interno do servidor' }, 500);
+    }
+  });
+
+  // Issue #62: histórico de revisões de elegibilidade 60+ (trilha de auditoria).
+  router.get('/:id/eligibility-reviews', async (c) => {
+    try {
+      return c.json({ data: await reviewService.listEligibilityReviews(c.req.param('id')) });
+    } catch (err) {
+      if (err instanceof NotFoundError) return c.json({ error: err.message }, 404);
+      if (err instanceof InvalidQueryError) return c.json({ error: err.message }, 400);
+      logger.error({ err, id: c.req.param('id') }, 'eligibility reviews list error');
+      return c.json({ error: 'Erro interno do servidor' }, 500);
+    }
+  });
+
+  // Issue #62: regista uma classificação fundamentada (não muda proposal_status).
+  router.post('/:id/eligibility-reviews', async (c) => {
+    const user = c.get('user');
+    let body: unknown;
+    try { body = await c.req.json(); } catch { return c.json({ error: 'Corpo JSON inválido' }, 400); }
+    try {
+      const created = await reviewService.submitEligibilityReview(c.req.param('id'), body, user);
+      return c.json({ data: created }, 201);
+    } catch (err) {
+      if (err instanceof ReviewValidationError) return c.json({ error: err.message, issues: err.issues }, 400);
+      if (err instanceof NotFoundError) return c.json({ error: err.message }, 404);
+      if (err instanceof InvalidQueryError) return c.json({ error: err.message }, 400);
+      if (err instanceof ForbiddenError) return c.json({ error: err.message }, 403);
+      logger.error({ err, id: c.req.param('id'), userId: user.id }, 'eligibility review create error');
       return c.json({ error: 'Erro interno do servidor' }, 500);
     }
   });

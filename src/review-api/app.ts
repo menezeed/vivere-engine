@@ -40,7 +40,7 @@ export interface ReviewApiDeps {
  * tabelas que os serviços usam (ACTION_ROLES, ER_ACTION_ROLES). Os serviços
  * continuam a verificar o papel; isto é uma segunda camada, à entrada.
  */
-export const MUTATION_ROLE_MATRIX: ReadonlyArray<{ method: 'PATCH'; path: string; roles: readonly UserRole[] }> = [
+export const MUTATION_ROLE_MATRIX: ReadonlyArray<{ method: 'PATCH' | 'POST'; path: string; roles: readonly UserRole[] }> = [
   ...(['venues', 'activities'] as const).flatMap((resource) =>
     (['approve', 'reject', 'promote'] as const).map((action) => ({
       method: 'PATCH' as const,
@@ -51,6 +51,8 @@ export const MUTATION_ROLE_MATRIX: ReadonlyArray<{ method: 'PATCH'; path: string
   { method: 'PATCH', path: '/api/entity-resolution/:activityId/accept',      roles: ER_ACTION_ROLES.accept },
   { method: 'PATCH', path: '/api/entity-resolution/:activityId/override',    roles: ER_ACTION_ROLES.override },
   { method: 'PATCH', path: '/api/entity-resolution/:activityId/propose-new', roles: ER_ACTION_ROLES.proposeNew },
+  // Issue #62: revisão humana de elegibilidade 60+ (mesmos papéis que aprovam).
+  { method: 'POST',  path: '/api/activities/:id/eligibility-reviews',       roles: ACTION_ROLES.approve },
 ];
 
 export function createApp(deps: ReviewApiDeps): Hono {
@@ -64,8 +66,8 @@ export function createApp(deps: ReviewApiDeps): Hono {
   // 2. Leitura: qualquer papel válido (viewer+), aplicado a toda a /api/*.
   app.use('/api/*', requireRole(...VALID_ROLES));
   // 3. Escrita: papel exigido por rota, antes de chegar ao serviço.
-  for (const { path, roles } of MUTATION_ROLE_MATRIX) {
-    app.patch(path, requireRole(...roles));
+  for (const { method, path, roles } of MUTATION_ROLE_MATRIX) {
+    app.on(method, path, requireRole(...roles));
   }
 
   app.get('/health', (c) => c.json({

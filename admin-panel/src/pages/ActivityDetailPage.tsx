@@ -10,6 +10,7 @@ import { SectionCard } from '@/components/ui/Cards';
 import { Badge, Skeleton } from '@/components/ui/index';
 import { useReviewMutation } from '@/hooks/useReviewMutation';
 import { EligibilityPanel, EligibilityBadge, AudienceRestrictionBadge } from '@/components/eligibility/EligibilityPanel';
+import { EligibilityReviewSection } from '@/components/eligibility/EligibilityReviewSection';
 import type { ReviewAction } from '@/types/review';
 
 export function ActivityDetailPage() {
@@ -90,6 +91,9 @@ export function ActivityDetailPage() {
 
       {/* Issue #62: elegibilidade 60+ (só leitura; não é aprovação) */}
       <EligibilityPanel activity={activity} />
+
+      {/* Issue #62: revisão humana fundamentada, com trilha de auditoria */}
+      <EligibilityReviewSection activity={activity} />
 
       <div className="grid grid-cols-2 gap-6">
         {/* Venue Mention */}

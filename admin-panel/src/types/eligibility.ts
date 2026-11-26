@@ -17,6 +17,48 @@ export interface EligibilitySummary {
   availability: EligibilityAvailability | null;
   approval_allowed: boolean;
   needs_human_review: boolean;
+  /** Origem da classificação efectiva (revisão humana > dataset auditado). */
+  review_source?: 'human_review' | 'audit_dataset' | 'none';
+  /** Última revisão humana (state: valid | stale_key | expired). */
+  human_review?: HumanReviewSummary | null;
+}
+
+export type HumanReviewState = 'valid' | 'stale_key' | 'expired';
+
+export interface HumanReviewSummary {
+  classification: EligibilityClass;
+  confidence: EligibilityConfidence;
+  verified_at: string;
+  reviewed_by: string;
+  reviewed_at: string;
+  state: HumanReviewState;
+}
+
+/** Corpo do POST /api/activities/:id/eligibility-reviews. */
+export interface EligibilityReviewInput {
+  classification: EligibilityClass;
+  confidence: EligibilityConfidence;
+  evidence_text: string;
+  evidence_url: string;
+  audience: string | null;
+  membership_required: boolean | null;
+  booking: string | null;
+  availability: EligibilityAvailability;
+  additional_costs: string | null;
+  verified_at: string;
+  notes: string | null;
+}
+
+/** Linha da trilha de auditoria (append-only). */
+export interface EligibilityReview extends EligibilityReviewInput {
+  id: string;
+  activity_staging_id: string;
+  source_key: string;
+  source_item_id: string;
+  external_url: string | null;
+  reviewed_by: string;
+  reviewed_role: 'reviewer' | 'admin';
+  reviewed_at: string;
 }
 
 export interface EligibilityRecord {

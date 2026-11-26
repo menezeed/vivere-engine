@@ -3,7 +3,12 @@ import type { ActivityReviewRepository, ActivityListQuery } from '../repositorie
 import type { ReviewAction, AuthUser, VenueStagingRow, VenueStagingDetail, ActivityStagingRow } from '../types/reviewTypes';
 import type { ListResponse } from '../types/listTypes';
 import { ACTION_ROLES } from '../types/reviewTypes';
-import { ELIGIBILITY_BLOCKED_CODE, type EligibilityAuditIndex, type EligibilityFilter } from '../eligibility/eligibilityAudit';
+import { ELIGIBILITY_BLOCKED_CODE, type EligibilityAuditIndex, type EligibilityFilter, type EligibilitySummary } from '../eligibility/eligibilityAudit';
+import type { IEligibilityReviewRepository } from '../repositories/EligibilityReviewRepository';
+import {
+  humanReviewState, parseEligibilityReviewInput, summarizeReview,
+  type EligibilityReviewRow,
+} from '../eligibility/humanReview';
 
 export class NotFoundError extends Error {
   readonly statusCode = 404;
@@ -39,6 +44,8 @@ export class InvalidQueryError extends Error {
 export interface EligibilityOptions {
   index: EligibilityAuditIndex;
   expose: boolean;
+  /** Revisões humanas (0033). Ausente → só o dataset auditado (comportamento anterior). */
+  reviews?: IEligibilityReviewRepository;
 }
 
 export type ActivityListRequest = ActivityListQuery & { eligibility?: EligibilityFilter[] };
@@ -76,6 +83,68 @@ export class ReviewService {
     }
   }
 
+  /**
+   * Classificação efectiva: a última revisão humana VÁLIDA (mesma chave, não
+   * expirada) prevalece sobre o dataset auditado; senão, o dataset.
+   * Produtos sem auditoria (base null) ficam iguais.
+   */
+  private effective(a: ActivityStagingRow, base: EligibilitySummary | null, review: EligibilityReviewRow | undefined): EligibilitySummary | null {
+    if (!base) return null;
+    const fromDataset = base.status === 'matched' ? 'audit_dataset' as const : 'none' as const;
+    if (!review) return { ...base, review_source: fromDataset, human_review: null };
+    const key = keyOf(a);
+    const valid = humanReviewState(review, key) === 'valid';
+    if (!valid) return { ...base, review_source: fromDataset, human_review: summarizeReview(review, key) };
+    return {
+      ...base,
+      classification: review.classification,
+      confidence: review.confidence,
+      availability: review.availability,
+      approval_allowed: review.classification === 'confirmed_60plus',
+      needs_human_review: false,
+      review_source: 'human_review',
+      human_review: summarizeReview(review, key),
+    };
+  }
+
+  /** Guarda do servidor para approve/promote, com revisões humanas. */
+  private async approvalAllowedFor(a: ActivityStagingRow): Promise<boolean> {
+    const el = this.eligibility!;
+    if (!el.index.covers(a.product_key)) return true;
+    const latest = el.reviews ? (await el.reviews.listByActivity(a.id))[0] : undefined;
+    if (latest && humanReviewState(latest, keyOf(a)) === 'valid') return latest.classification === 'confirmed_60plus';
+    return el.index.approvalAllowed(keyOf(a));
+  }
+
+  async listEligibilityReviews(id: string): Promise<EligibilityReviewRow[]> {
+    const activity = await this.activityRepo.getById(id);
+    if (!activity) throw new NotFoundError(`Activity ${id} não encontrada`);
+    const el = this.eligibility;
+    if (!el?.reviews || !el.index.covers(activity.product_key)) throw new InvalidQueryError('Revisão de elegibilidade indisponível para este produto');
+    return el.reviews.listByActivity(id);
+  }
+
+  /** Regista uma classificação fundamentada (não muda proposal_status). */
+  async submitEligibilityReview(id: string, body: unknown, user: AuthUser): Promise<EligibilityReviewRow> {
+    this.assertRole('approve', user); // mesmos papéis que aprovam: reviewer, admin
+    const activity = await this.activityRepo.getById(id);
+    if (!activity) throw new NotFoundError(`Activity ${id} não encontrada`);
+    const el = this.eligibility;
+    if (!el?.reviews || !el.index.covers(activity.product_key)) throw new InvalidQueryError('Revisão de elegibilidade indisponível para este produto');
+    if (!activity.source_key || !activity.source_item_id) throw new InvalidQueryError('Actividade sem chave de fonte: não pode ser revista');
+    const input = parseEligibilityReviewInput(body);
+    return el.reviews.insert({
+      ...input,
+      activity_staging_id: activity.id,
+      product_key: activity.product_key,
+      source_key: activity.source_key,
+      source_item_id: activity.source_item_id,
+      external_url: activity.external_url ?? null,
+      reviewed_by: user.id,
+      reviewed_role: user.role === 'admin' ? 'admin' : 'reviewer',
+    });
+  }
+
   async listActivities(request: ActivityListRequest): Promise<ListResponse<ActivityStagingRow>> {
     const { eligibility: filter, ...query } = request;
     const el = this.eligibility;
@@ -87,7 +156,8 @@ export class ReviewService {
     }
     const result = await this.activityRepo.list(query);
     if (!el?.expose) return result;
-    return { ...result, items: result.items.map(a => ({ ...a, eligibility: el.index.summary(keyOf(a)) })) };
+    const latest = el.reviews ? await el.reviews.latestByActivityIds(result.items.filter(a => el.index.covers(a.product_key)).map(a => a.id)) : new Map();
+    return { ...result, items: result.items.map(a => ({ ...a, eligibility: this.effective(a, el.index.summary(keyOf(a)), latest.get(a.id)) })) };
   }
 
   async getActivity(id: string): Promise<ActivityStagingRow> {
@@ -95,7 +165,10 @@ export class ReviewService {
     if (!activity) throw new NotFoundError(`Activity ${id} não encontrada`);
     const el = this.eligibility;
     if (!el?.expose) return activity;
-    return { ...activity, eligibility: el.index.detail(keyOf(activity)) };
+    const detail = el.index.detail(keyOf(activity));
+    const latest = detail && el.reviews ? (await el.reviews.listByActivity(activity.id))[0] : undefined;
+    const eff = this.effective(activity, detail, latest);
+    return { ...activity, eligibility: detail && eff ? { ...detail, ...eff } : null };
   }
 
   async reviewActivity(id: string, action: ReviewAction, user: AuthUser): Promise<void> {
@@ -105,7 +178,7 @@ export class ReviewService {
     // Issue #62: guarda no servidor (não só na UI). Num produto auditado, só
     // confirmed_60plus pode ser aprovada/promovida; sem correspondência → recusa.
     if ((action === 'approve' || action === 'promote') && this.eligibility
-        && !this.eligibility.index.approvalAllowed(keyOf(activity))) {
+        && !(await this.approvalAllowedFor(activity))) {
       throw new EligibilityBlockedError(`'${action}' bloqueado: a elegibilidade 60+ desta actividade não está confirmada`);
     }
     if (action === 'promote') {

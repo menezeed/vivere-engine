@@ -2,6 +2,7 @@ import { apiRequest } from '@/api/client';
 import type { ActivityStagingItem } from '@/types/activity';
 import type { ListResponse } from '@/types/api';
 import type { ProposalStatus } from '@/types/review';
+import type { EligibilityReview, EligibilityReviewInput } from '@/types/eligibility';
 
 export interface ActivityListParams {
   page?: number;
@@ -39,5 +40,19 @@ export const ActivityService = {
 
   async promote(id: string): Promise<void> {
     await apiRequest(`/api/activities/${id}/promote`, { method: 'PATCH' });
+  },
+
+  /** Issue #62: trilha de auditoria das revisões de elegibilidade 60+. */
+  async listEligibilityReviews(id: string): Promise<EligibilityReview[]> {
+    const res = await apiRequest<{ data: EligibilityReview[] }>(`/api/activities/${id}/eligibility-reviews`);
+    return res.data;
+  },
+
+  /** Issue #62: regista uma classificação fundamentada (não aprova). */
+  async submitEligibilityReview(id: string, input: EligibilityReviewInput): Promise<EligibilityReview> {
+    const res = await apiRequest<{ data: EligibilityReview }>(`/api/activities/${id}/eligibility-reviews`, {
+      method: 'POST', body: JSON.stringify(input),
+    });
+    return res.data;
   },
 };

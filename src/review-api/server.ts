@@ -11,6 +11,8 @@ import { createApp } from './app.js';
 import { logger } from '../lib/logger.js';
 import { createJwtVerifier, resolveJwtEnvConfig, type JwtVerifier } from './middleware/jwtVerifier.js';
 import { loadEligibilityIndex, isEligibilityExposed } from './eligibility/eligibilityAudit.js';
+import { EligibilityReviewRepository } from './repositories/EligibilityReviewRepository.js';
+import { isHumanReviewEnabled } from './eligibility/humanReview.js';
 
 const PORT     = Number(process.env.REVIEW_API_PORT ?? 3001);
 const NODE_ENV = process.env.NODE_ENV ?? 'development';
@@ -66,8 +68,13 @@ async function buildApp(): Promise<Hono> {
   const statsRepo    = new StatsRepository(db);
   const erRepo       = new EntityResolutionReviewRepository(db);
   // Issue #62: auditoria 60+ (ficheiro versionado). Dados inválidos → não arranca.
-  const eligibility = { index: loadEligibilityIndex(), expose: isEligibilityExposed(process.env) };
-  logger.info({ exposed: eligibility.expose }, 'Elegibilidade 60+ carregada');
+  // Revisões humanas (0033): só com REVIEW_API_ELIGIBILITY_REVIEWS=on, depois de aplicar a migração.
+  const humanReviews = isHumanReviewEnabled(process.env);
+  const eligibility = {
+    index: loadEligibilityIndex(), expose: isEligibilityExposed(process.env),
+    ...(humanReviews ? { reviews: new EligibilityReviewRepository(db) } : {}),
+  };
+  logger.info({ exposed: eligibility.expose, humanReviews }, 'Elegibilidade 60+ carregada');
   const reviewService = new ReviewService(venueRepo, activityRepo, eligibility);
   const erService     = new EntityResolutionService(erRepo);
 

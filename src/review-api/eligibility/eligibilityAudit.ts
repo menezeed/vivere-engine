@@ -91,6 +91,10 @@ export interface EligibilitySummary {
   approval_allowed: boolean;
   /** Há pontos encaminhados para revisão humana (record.human_review_notes). */
   needs_human_review: boolean;
+  /** Origem da classificação efectiva (revisão humana 0033 > dataset auditado). */
+  review_source?: 'human_review' | 'audit_dataset' | 'none';
+  /** Última revisão humana (mesmo que obsoleta/expirada: ver state). */
+  human_review?: import('./humanReview').HumanReviewSummary | null;
 }
 
 /** Bloco completo devolvido em GET /api/activities/:id. */

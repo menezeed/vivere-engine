@@ -246,3 +246,31 @@ Não há dados a reverter.
   - **Não muda automaticamente:** nem a classificação (`confirmed_60plus`) nem `physical_activity`.
   - **Se a revisão confirmar a correcção:** é feita numa nova versão da auditoria e dos dados.
 - A quota foi verificada a 26/11/2026. Antes de a mostrar como valor actual, confirmar `source_url`.
+
+## 9. Revisão humana de elegibilidade (fontes novas, 26/11/2026)
+
+**Persistência:** `staging.activity_eligibility_reviews` (migração 0033, só de acréscimo).
+- O `service_role` tem só SELECT e INSERT; anon e authenticated não têm nenhum acesso.
+- Só fica activa com `REVIEW_API_ELIGIBILITY_REVIEWS=on`, depois de a migração ser aplicada.
+
+**Endpoints:**
+- `GET /api/activities/:id/eligibility-reviews`: histórico, mais recente primeiro. Qualquer papel válido.
+- `POST /api/activities/:id/eligibility-reviews`: `reviewer` ou `admin`. Respostas: 201 com a linha criada; 400 com `{ error, issues[] }`; 403 por papel; 404.
+  - **Obrigatórios:** `classification`, `confidence`, `evidence_text` (20–2000 caracteres), `evidence_url` (https), `availability` e `verified_at` (AAAA-MM-DD, nunca no futuro).
+  - **Opcionais:** `audience`, `membership_required`, `booking`, `additional_costs` e `notes`.
+  - **Restrições:**
+    - nenhum campo de texto pode ter e-mails ou telefones;
+    - `confirmed_60plus` exige confiança diferente de `low` e `verified_at` com no máximo 180 dias.
+- Registar uma revisão **não** altera `proposal_status`.
+
+**Classificação efectiva** (bloco `eligibility` da lista e do detalhe):
+- A última revisão **válida** prevalece sobre o dataset auditado. Válida quer dizer mesma chave (fonte, id, URL) e verificação com no máximo 180 dias.
+- Campos novos:
+  - `review_source`: `human_review`, `audit_dataset` ou `none`;
+  - `human_review`: `{classification, confidence, verified_at, reviewed_by, reviewed_at, state}`, em que `state` é `valid`, `stale_key` ou `expired`.
+
+**Guarda de approve/promote:** é aceite com uma revisão válida `confirmed_60plus`. Sem revisão, mantém-se a regra do dataset. Fora desses casos, a resposta é 403 `ELIGIBILITY_NOT_CONFIRMED`.
+
+**Admin:**
+- "Sem auditoria (por rever)" (ninguém classificou) é diferente de "Não adequada" (classificada como inadequada).
+- O detalhe tem a acção "Revisar elegibilidade 60+", com o formulário pré-preenchido pela proposta do colector, e a trilha de auditoria.

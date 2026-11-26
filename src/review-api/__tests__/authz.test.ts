@@ -59,6 +59,8 @@ const svc = {
   listActivities: vi.fn(async () => ({ data: [], pagination: {} })),
   getActivity:    vi.fn(async () => ({ id: 'a1' })),
   reviewActivity: vi.fn(async () => undefined),
+  listEligibilityReviews:  vi.fn(async () => []),
+  submitEligibilityReview: vi.fn(async () => ({ id: 'r1' })),
 };
 const er = {
   getHealth:      vi.fn(async () => ({ status: 'ok' })),
@@ -380,6 +382,44 @@ describe('rotas PATCH', () => {
   }
 });
 
+// ── POST: revisão humana de elegibilidade 60+ (Issue #62) ───────────────────
+
+const POST_CASES: Array<{ path: string; allowed: UserRole[]; mock: ReturnType<typeof vi.fn>; body?: unknown }> = [
+  { path: '/api/activities/00000000-0000-4000-8000-0000000000a1/eligibility-reviews', allowed: ['reviewer', 'admin'], mock: svc.submitEligibilityReview, body: { classification: 'unclear' } },
+];
+
+describe('rotas POST', () => {
+  for (const { path, allowed, mock, body } of POST_CASES) {
+    it(`${path}: sem token 401, sem papel 403`, async () => {
+      expect((await call('POST', path, undefined, body)).status).toBe(401);
+      expect((await call('POST', path, await sign(baseClaims()), body)).status).toBe(403);
+      expect(mock).not.toHaveBeenCalled();
+    });
+    for (const role of ROLES) {
+      const ok = allowed.includes(role);
+      it(`${path}: ${role} → ${ok ? '201' : '403 (serviço não é chamado)'}`, async () => {
+        const res = await call('POST', path, await tokenFor(role), body);
+        expect(res.status).toBe(ok ? 201 : 403);
+        expect(mock).toHaveBeenCalledTimes(ok ? 1 : 0);
+      });
+    }
+  }
+
+  it('revisão inválida → 400 com a lista de problemas (nada gravado)', async () => {
+    const { ReviewValidationError } = await import('../eligibility/humanReview');
+    svc.submitEligibilityReview.mockRejectedValueOnce(new ReviewValidationError(['evidence_text é obrigatório']));
+    const res = await call('POST', '/api/activities/00000000-0000-4000-8000-0000000000a1/eligibility-reviews', await tokenFor('reviewer'), {});
+    expect(res.status).toBe(400);
+    expect((await res.json()).issues).toEqual(['evidence_text é obrigatório']);
+  });
+
+  it('histórico: leitura para qualquer papel válido (viewer incluído)', async () => {
+    const res = await call('GET', '/api/activities/00000000-0000-4000-8000-0000000000a1/eligibility-reviews', await tokenFor('viewer'));
+    expect(res.status).toBe(200);
+    expect(svc.listEligibilityReviews).toHaveBeenCalledWith('00000000-0000-4000-8000-0000000000a1');
+  });
+});
+
 // ── A matriz cobre todas as rotas de escrita ────────────────────────────────
 
 describe('matriz de permissões', () => {
@@ -405,7 +445,7 @@ describe('matriz de permissões', () => {
     const toPattern = (p: string) => p
       .replace(/^\/api\/(venues|activities)\/[^/]+\//, '/api/$1/:id/')
       .replace(/^\/api\/entity-resolution\/[^/]+\//, '/api/entity-resolution/:activityId/');
-    const fromCases = PATCH_CASES.map((c) => `${toPattern(c.path)} ${[...c.allowed].sort().join(',')}`).sort();
+    const fromCases = [...PATCH_CASES, ...POST_CASES].map((c) => `${toPattern(c.path)} ${[...c.allowed].sort().join(',')}`).sort();
     const fromMatrix = MUTATION_ROLE_MATRIX.map((m) => `${m.path} ${[...m.roles].sort().join(',')}`).sort();
     expect(fromMatrix).toEqual(fromCases);
   });
