@@ -20,7 +20,7 @@
  *  - Uma fonte que falha não interrompe as outras; fica como execução
  *    'failed' no relatório E7.
  */
-import { getRegion, REGIONS, GOOGLE_PLACES_SOURCE_KEY, type RegionDefinition } from '../config/regions';
+import { getRegion, REGIONS, GOOGLE_PLACES_SOURCE_KEY, NON_WORDPRESS_ACTIVITY_SOURCE_KEYS, type RegionDefinition } from '../config/regions';
 import { getWordPressSourceConfigBySourceKey } from '../collectors/wordpress-content/config/registry';
 import type { WordPressContentSourceConfig } from '../collectors/wordpress-content/config/WordPressContentSourceConfig';
 import { WordPressContentCollector } from '../collectors/wordpress-content/WordPressContentCollector';
@@ -97,6 +97,10 @@ export function planRegionSources(region: RegionDefinition): { planned: PlannedS
   for (const sourceKey of region.sources) {
     if (sourceKey === GOOGLE_PLACES_SOURCE_KEY) {
       refused.push({ source_key: sourceKey, reason: 'API paga: fora da ingestão por região até existir o orçamento persistente (L5)' });
+      continue;
+    }
+    if (NON_WORDPRESS_ACTIVITY_SOURCE_KEYS.has(sourceKey)) {
+      refused.push({ source_key: sourceKey, reason: 'fonte não-WordPress (u3a): usar scripts/ingest-u3a.ts' });
       continue;
     }
     const config = getWordPressSourceConfigBySourceKey(sourceKey);

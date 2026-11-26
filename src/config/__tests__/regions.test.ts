@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { REGIONS, GOOGLE_PLACES_SOURCE_KEY, validateRegions, getRegion, requireGeo, type RegionDefinition } from '../regions';
+import { REGIONS, GOOGLE_PLACES_SOURCE_KEY, NON_WORDPRESS_ACTIVITY_SOURCE_KEYS, DEFAULT_REGION_LOCALE, regionLocale, validateRegions, getRegion, requireGeo, type RegionDefinition } from '../regions';
 import { buildPilotQueries, PILOT_REGION_KEYS } from '../pilotRegion';
 import { getWordPressSourceConfigBySourceKey } from '../../collectors/wordpress-content/config/registry';
 
@@ -17,7 +17,7 @@ describe('regions — registo declarativo real', () => {
   it('cada fonte WordPress declarada existe no registry WordPress e é da mesma cidade', () => {
     for (const region of REGIONS) {
       for (const sourceKey of region.sources) {
-        if (sourceKey === GOOGLE_PLACES_SOURCE_KEY) continue;
+        if (sourceKey === GOOGLE_PLACES_SOURCE_KEY || NON_WORDPRESS_ACTIVITY_SOURCE_KEYS.has(sourceKey)) continue;
         const config = getWordPressSourceConfigBySourceKey(sourceKey);
         expect(config, `${region.key} → ${sourceKey}`).not.toBeNull();
         expect(config!.region_metadata?.city).toBe(region.city);
@@ -146,5 +146,30 @@ describe('regions — regiões sem centro confirmado (E5)', () => {
 
   it('requireGeo devolve centro e raio quando existem', () => {
     expect(requireGeo(getRegion('cabo_frio'))).toEqual({ center: { lat: -22.8894, lng: -42.0188 }, radius_m: 12000 });
+  });
+});
+
+describe('regions — localização (piloto UK, U1)', () => {
+  it('regiões sem country/locale/timezone ficam com a localização BR por omissão', () => {
+    expect(regionLocale(getRegion('cabo_frio'))).toEqual(DEFAULT_REGION_LOCALE);
+    expect(DEFAULT_REGION_LOCALE).toEqual({ country: 'BR', locale: 'pt-BR', timezone: 'America/Sao_Paulo' });
+  });
+
+  it('richmond_upon_thames: GB, en-GB, Europe/London, centro do ADR-0010, raio 8 km, fonte u3a', () => {
+    const r = getRegion('richmond_upon_thames');
+    expect(regionLocale(r)).toEqual({ country: 'GB', locale: 'en-GB', timezone: 'Europe/London' });
+    expect(requireGeo(r)).toEqual({ center: { lat: 51.4613, lng: -0.3037 }, radius_m: 8000 });
+    expect(r.sources).toEqual(['u3a_richmond']);
+    expect(r.sources).not.toContain(GOOGLE_PLACES_SOURCE_KEY); // sem APIs pagas no piloto
+  });
+
+  const base: RegionDefinition = {
+    key: 'x', city_label: 'X', city: 'X', state: 'X', center: null, radius_m: null, sources: [],
+  };
+  it('country, locale e timezone inválidos são recusados', () => {
+    expect(() => validateRegions([{ ...base, country: 'gb' }])).toThrow(/country inválido/);
+    expect(() => validateRegions([{ ...base, locale: 'english' }])).toThrow(/locale inválido/);
+    expect(() => validateRegions([{ ...base, timezone: 'Europe/Nowhere' }])).toThrow(/timezone IANA inválido/);
+    expect(() => validateRegions([{ ...base, country: 'GB', locale: 'en-GB', timezone: 'Europe/London' }])).not.toThrow();
   });
 });
