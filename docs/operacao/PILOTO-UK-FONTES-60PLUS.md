@@ -269,3 +269,19 @@ Relatórios transcritos em `C:\Projects\Vivere\reviews\2026-11-26-UK-62-65-r0.md
 | 5 | MÉDIO: Parkinson e AVC rotulados como perda de memória; "carers of people with dementia" dado como ambos | O badge só aparece para demência ou perda de memória (Parkinson e AVC continuam `unclear`, sem badge). "Carers of…" passa a cuidador |
 
 Os rótulos reais não mudam: Picassos e Singing for the Brain → ambos; Retro Club → pessoa com perda de memória.
+
+## 12. Descoberta alargada (26/11/2026, tarde): matriz por fonte
+
+Só leitura e dry-run: nada foi gravado. As investigações web foram feitas por agentes, sempre pela ordem robots.txt → termos → páginas permitidas.
+
+| Fonte | Actividades reais | Evidência 60+ | Datas / horários / locais / custos | Ingestão estruturada | Duplicados (u3a 133 + FiSH 11) |
+|---|---|---|---|---|---|
+| **FiSH** | 11 séries (27 ocorrências) | Só a da organização ("older community"); 0 explícitas. 3 com público restrito (demência) | Completos em 8 de 11; custo só em 2 | **Pronta**: ICS + snapshot; `--apply` espera autorização | 0 |
+| **Richmond Council / Full of Life** | 13 em páginas oficiais: a feira de 30/10 (já realizada, anual); 6 sessões da Age UK em bibliotecas (ter. 10–16h, 08/12/2026 a 23/03/2027); 6 regulares do directório "Cost of Living" (actualizado a 29/05/2026: Community Spaces da Age UK para "over 60", almoços Linden Hall "over 55", St Stephen's £3.50, Ham & Petersham SOS) | Explícita em 10 (feira 55+, "over 60", "older people", "over 55", "elderly") | Datas futuras só nas 6 das bibliotecas (sem código postal); as regulares têm horários por confirmar | **Baixa**: sem ICS, RSS, JSON-LD nem API. Os termos proíbem a reutilização sem autorização; a OGL só cobre estatísticas | 0 de título. Local em comum: Barnes Green Centre (SW13 9HE) é também da FiSH |
+| **Better (OpenActive)** | 10 séries em Richmond (Teddington Pools, Pools on the Park, Better Gym Teddington), 4 activas | 1 explícita: "Swim for 60+" (`ageRange` mín. 60, seg.–sex. 09:30–10:25, Pools on the Park TW9 2SF) | Preço Adult £6.90–£11.70; "Swim for 60+" sem preço indicado | **Técnica alta, mas pesada.** CC BY 4.0. `session-series` completo em 5 páginas. `scheduled-sessions` tem 40 páginas lidas (20 000 sessões, 29 MB) sem chegar ao fim e sem sessões de Richmond: as séries de Richmond foram modificadas entre abril e setembro de 2026 e ficam mais adiante no feed. Confirmar exige uma leitura completa (ou incremental pelo cursor RPDE) | 0 (u3a "Swimming 1" é outro organizador) |
+| **Age UK Richmond** | Não recolhidas (os termos proíbem) | — | — | **Bloqueada** até haver autorização escrita. Contacto oficial: info@ageukrichmond.org.uk | — |
+| **Ruils** | Não registadas: o agente parou nos termos | — | — | **Bloqueada**: a "Website User Policy" proíbe publicar sem autorização escrita | — |
+
+**Registo de conformidade:** na Ruils, o agente leu a página de política e a de actividades em simultâneo. Isso violou o Crawl-delay 10 nesse par de pedidos e fez a página de actividades ser lida antes dos termos. Não houve 429 nem 403, e o conteúdo dessa página não foi guardado.
+
+**Organizações para descobrir mais fontes** (directório do Council e expositores da feira): Ham and Petersham SOS, Linden Hall, Greenwood Centre, Teddington and Hampton Wick Voluntary Care Group, Richmond Good Neighbours, HANDS, Whitton Network, Arts Richmond, Richmond Ramblers, Stable & Strong, Your Community Centres, Sheddington, Probus, Alzheimer's Society (Singing for the Brain, já na FiSH), AquaPhysio, TW2 Club. Cada uma precisa da sua leitura de robots.txt e termos.
