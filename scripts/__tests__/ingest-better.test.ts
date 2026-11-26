@@ -71,6 +71,51 @@ describe('ingest-better', () => {
     expect(r.snapshot.pedidos_http_nesta_execucao).toBe(0);
   });
 
+  function sessionsFile(reachedEnd: boolean, sessions: Record<string, unknown>): string {
+    const dir = mkdtempSync(join(tmpdir(), 'ingest-better-sess-'));
+    const file = join(dir, 'state.json');
+    writeFileSync(file, JSON.stringify({
+      version: 1, feed_url: 'https://better-admin.org.uk/api/openactive/better/scheduled-sessions', series_ids: ['1', '2', '3'],
+      cursor: 'https://better-admin.org.uk/api/openactive/better/scheduled-sessions?afterTimestamp=9', reached_end: reachedEnd,
+      pages_read_total: 3, bytes_total: 10, items_read_total: 5, runs: [], sessions,
+    }));
+    created.push(file);
+    return file;
+  }
+  const S = (series_id: string, start: string, status = 'https://schema.org/EventScheduled') =>
+    ({ series_id, start, end: start.replace('09:30', '10:25'), status, remaining: 5, maximum: 20 });
+
+  it('--sessions com harvest completo: ocorrências confirmadas; série sem sessões futuras fica fora', async () => {
+    vi.spyOn(console, 'log').mockImplementation(() => {});
+    const snap = snapshotFile();
+    const state = sessionsFile(true, {
+      a: S('1', '2026-11-30T09:30:00Z'), b: S('1', '2026-12-01T09:30:00Z'),
+      c: S('1', '2026-12-02T09:30:00Z', 'https://schema.org/EventCancelled'), d: S('1', '2026-11-20T09:30:00Z'),
+      e: S('3', '2026-11-01T09:30:00Z'),
+    });
+    const report = `${snap}.sess.json`;
+    await main(['node', 'x', `--snapshot=${snap}`, `--sessions=${state}`, '--today=2026-11-26', '--include-unclear', `--report=${report}`]);
+    created.push(report);
+    const r = JSON.parse(readFileSync(report, 'utf8'));
+    expect(r.contagens.a_inserir).toBe(1);
+    expect(r.insercoes[0].datas).toEqual(['2026-11-30', '2026-12-01']);
+    expect(r.fora_da_insercao).toContainEqual({ source_item_id: 'series:3', title: 'Aqua Aerobics', reason: 'sem sessões futuras confirmadas no feed' });
+    expect(r.sessoes.sessoes_futuras_confirmadas_por_serie['series:1']).toEqual({ confirmadas: 2, canceladas: 1 });
+  });
+
+  it('--sessions incompleto: --apply recusado; dry-run mantém as ocorrências geradas', async () => {
+    vi.spyOn(console, 'log').mockImplementation(() => {});
+    const snap = snapshotFile();
+    const state = sessionsFile(false, {});
+    await expect(main(['node', 'x', `--snapshot=${snap}`, `--sessions=${state}`, '--apply', '--confirm=staging'])).rejects.toThrow(/reached_end/);
+    const report = `${snap}.partial.json`;
+    await main(['node', 'x', `--snapshot=${snap}`, `--sessions=${state}`, '--today=2026-11-26', `--report=${report}`]);
+    created.push(report);
+    const r = JSON.parse(readFileSync(report, 'utf8'));
+    expect(r.contagens.ocorrencias_a_inserir).toBe(3);
+    expect(r.sessoes.ocorrencias_de).toMatch(/NÃO usadas/);
+  });
+
   it('--include-unclear inclui as sessões gerais (decisão explícita)', async () => {
     vi.spyOn(console, 'log').mockImplementation(() => {});
     const snap = snapshotFile();

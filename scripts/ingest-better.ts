@@ -6,7 +6,11 @@
  * a partir do horário estruturado do snapshot para os 21 dias a contar de
  * --today (hora local de Londres).
  *
- *   npx tsx scripts/ingest-better.ts --snapshot=<better-preview.json> [--today=YYYY-MM-DD] [--report=<saida.json>]
+ * Com --sessions=<better-sessions-state.json> (harvest-better-sessions.ts) e
+ * reached_end = true, as ocorrências vêm das sessões agendadas futuras
+ * confirmadas; série sem nenhuma fica fora. Harvest incompleto: --apply recusado.
+ *
+ *   npx tsx scripts/ingest-better.ts --snapshot=<better-preview.json> [--sessions=<estado.json>] [--today=YYYY-MM-DD] [--report=<saida.json>]
  *   npx tsx --env-file=<ficheiro fora do repo> scripts/ingest-better.ts --snapshot=<…> --apply --confirm=staging
  *
  * Escrita (só com --apply --confirm=staging, depois do seed
@@ -24,6 +28,7 @@ import { BETTER_CONFIG } from '../src/collectors/openactive-better/config';
 import { parseBetterSnapshot } from '../src/collectors/openactive-better/betterFeed';
 import { londonToday, planFromSeries, splitByExisting } from '../src/collectors/openactive-better/betterSeries';
 import { pilotDuplicates, type U3aDataset } from '../src/collectors/openactive-better/betterDedup';
+import { applyConfirmedSessions, confirmedFutureBySeries, parseSessionsState } from '../src/collectors/openactive-better/betterSessions';
 import { assertNoRunningRun, stagedCountsBySeries } from '../src/collectors/fish-ics/fishStagingState';
 import { detectRecurrenceItems } from '../src/pipeline/stages/02-recurrence-detection';
 import type { RawActivityItem } from '../src/types/RawActivityItem';
@@ -47,7 +52,21 @@ export async function main(argv: readonly string[] = process.argv): Promise<void
   const snapshot = parseBetterSnapshot(JSON.parse(readFileSync(snapshotPath, 'utf8')));
   if (apply && !snapshot.fonte.feed_completo) throw new Error('RECUSA: snapshot com feed incompleto — repetir o preview');
   if (apply && snapshot.fonte.feed_url !== BETTER_CONFIG.feed_url) throw new Error('RECUSA: --apply só com snapshot do feed oficial (não offline)');
-  const plan = planFromSeries(snapshot.series, today, snapshot.gerado_em, { snapshot_generated_at: snapshot.gerado_em, http_requests_in_this_run: 0 });
+  const generatedPlan = planFromSeries(snapshot.series, today, snapshot.gerado_em, { snapshot_generated_at: snapshot.gerado_em, http_requests_in_this_run: 0 });
+
+  // --sessions: ocorrências das sessões agendadas confirmadas (harvest completo).
+  const sessionsPath = arg(argv, 'sessions');
+  const sessions = sessionsPath ? parseSessionsState(JSON.parse(readFileSync(sessionsPath, 'utf8'))) : null;
+  if (apply && sessions && !sessions.reached_end) throw new Error('RECUSA: --sessions com harvest incompleto (reached_end = false) — continuar o harvest antes do --apply');
+  const useSessions = sessions !== null && sessions.reached_end;
+  const plan = useSessions ? applyConfirmedSessions(generatedPlan, sessions, today) : generatedPlan;
+  const sessionsReport = sessions === null ? null : {
+    ficheiro: sessionsPath,
+    reached_end: sessions.reached_end,
+    paginas_lidas: sessions.pages_read_total,
+    ocorrencias_de: useSessions ? 'sessões agendadas confirmadas (scheduled-sessions)' : 'eventSchedule (harvest incompleto: sessões NÃO usadas)',
+    sessoes_futuras_confirmadas_por_serie: Object.fromEntries([...confirmedFutureBySeries(sessions, today)].map(([id, c]) => [`series:${id}`, { confirmadas: c.occurrences.length, canceladas: c.cancelled_future }])),
+  };
 
   // Regra de inclusão do piloto (a mesma da curadoria, PR #66): só entra o
   // que tem sinal 60+ (confirmed_60plus / likely_suitable). Sessões gerais
@@ -93,6 +112,7 @@ export async function main(argv: readonly string[] = process.argv): Promise<void
     linhas_gravadas: summary === null ? 0 : (summary as { stagedItems?: number }).stagedItems ?? null,
     hoje: today,
     snapshot: { ficheiro: snapshotPath, recolhido_em: snapshot.gerado_em, feed_completo: snapshot.fonte.feed_completo, pedidos_http_nesta_execucao: 0 },
+    sessoes: sessionsReport,
     produto: BETTER_CONFIG.product_key,
     fonte: BETTER_CONFIG.source_key,
     licenca: BETTER_CONFIG.licence.attribution,
