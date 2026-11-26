@@ -105,7 +105,7 @@ export async function main(argv: readonly string[] = process.argv): Promise<void
       duplicados_u3a: duplicates.length,
     },
     linhas_previstas: {
-      'public.sources': apply ? 0 : 1,
+      'public.sources (o script nunca escreve; seed separado)': 0,
       'staging.ingestion_runs': insert.length > 0 ? 1 : 0,
       'staging.raw_activity_items': insert.length,
       'staging.activities_staging (pending_review, venue unresolved)': insert.length,
