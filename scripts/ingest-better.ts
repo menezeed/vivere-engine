@@ -49,7 +49,14 @@ export async function main(argv: readonly string[] = process.argv): Promise<void
   if (apply && snapshot.fonte.feed_url !== BETTER_CONFIG.feed_url) throw new Error('RECUSA: --apply só com snapshot do feed oficial (não offline)');
   const plan = planFromSeries(snapshot.series, today, snapshot.gerado_em, { snapshot_generated_at: snapshot.gerado_em, http_requests_in_this_run: 0 });
 
-  const planned = plan.items.map(i => i.source_item_id);
+  // Regra de inclusão do piloto (a mesma da curadoria, PR #66): só entra o
+  // que tem sinal 60+ (confirmed_60plus / likely_suitable). Sessões gerais
+  // para adultos/famílias (unclear) ficam fora, salvo --include-unclear.
+  const includeUnclear = argv.includes('--include-unclear');
+  const cls = (i: RawActivityItem) => (i.raw_payload['eligibility_proposal'] as { classification: string }).classification;
+  const eligibleItems = includeUnclear ? plan.items : plan.items.filter(i => cls(i) === 'confirmed_60plus' || cls(i) === 'likely_suitable');
+  const heldByRule = plan.items.filter(i => !eligibleItems.includes(i)).map(i => ({ source_item_id: i.source_item_id, titulo: i.title, motivo: 'sem sinal 60+ (regra de inclusão; usar --include-unclear para incluir)' }));
+  const planned = eligibleItems.map(i => i.source_item_id);
   const db = apply ? await stagingDb() : null;
   let existing = new Set<string>();
   if (db) {
@@ -57,7 +64,7 @@ export async function main(argv: readonly string[] = process.argv): Promise<void
     const before = await stagedCountsBySeries(db, BETTER_CONFIG.source_key, BETTER_CONFIG.product_key, planned);
     existing = new Set([...before].filter(([, n]) => n > 0).map(([id]) => id));
   }
-  const { insert, skip } = splitByExisting(plan.items, existing);
+  const { insert, skip } = splitByExisting(eligibleItems, existing);
 
   const u3a = JSON.parse(readFileSync(new URL('../src/review-api/eligibility/richmond-u3a-60plus.v1.json', import.meta.url), 'utf8')) as U3aDataset;
   const dups = pilotDuplicates(plan.items, u3a);
@@ -93,6 +100,7 @@ export async function main(argv: readonly string[] = process.argv): Promise<void
       series_no_snapshot: snapshot.series.length,
       expiradas: plan.expired.length,
       fora_da_insercao: plan.held.length,
+      fora_pela_regra_60plus: heldByRule.length,
       a_inserir: insert.length,
       ja_existentes_saltadas: skip.length,
       ocorrencias_a_inserir: insert.reduce((n, i) => n + i.occurrences.length, 0),
@@ -109,6 +117,7 @@ export async function main(argv: readonly string[] = process.argv): Promise<void
     },
     expiradas: plan.expired,
     fora_da_insercao: plan.held,
+    fora_pela_regra_60plus: heldByRule,
     insercoes: recurrence.map(({ item, recurrence: r }) => ({
       source_item_id: item.source_item_id,
       titulo: item.title,

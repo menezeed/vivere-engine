@@ -25,6 +25,9 @@ function snapshotFile(feedComplete = true): string {
       { identifier: '2', rpde_modified: null, name: 'Group Cycle', url: null, activities: ['Indoor Cycling'], age_range: { min: 16, max: 110 },
         offers: [{ name: 'Adult', price: 11.7, currency: 'GBP', age_min: null, age_max: null }],
         location: { name: 'Teddington Pools and Fitness Centre', street: null, locality: 'Teddington', postcode: 'TW11 8EZ' }, schedules: [{ ...sched, end_date: '2026-06-01' }] },
+      { identifier: '3', rpde_modified: null, name: 'Aqua Aerobics', url: null, activities: ['Aqua Aerobics'], age_range: { min: 16, max: 110 },
+        offers: [{ name: 'Adult', price: 8.8, currency: 'GBP', age_min: 16, age_max: 110 }],
+        location: { name: 'Teddington Pools and Fitness Centre', street: null, locality: 'Teddington', postcode: 'TW11 8EZ' }, schedules: [sched] },
     ],
   }));
   created.push(file);
@@ -61,8 +64,21 @@ describe('ingest-better', () => {
     expect(r.contagens.a_inserir).toBe(1);
     expect(r.contagens.expiradas).toBe(1);
     expect(r.contagens.ocorrencias_a_inserir).toBe(3);
-    expect(r.contagens.proposta_elegibilidade).toEqual({ confirmed_60plus: 1 });
+    expect(r.contagens.proposta_elegibilidade).toEqual({ confirmed_60plus: 1, unclear: 1 });
+    expect(r.contagens.fora_pela_regra_60plus).toBe(1);
+    expect(r.fora_pela_regra_60plus[0].titulo).toBe('Aqua Aerobics');
     expect(r.insercoes[0].recorrencia_detectada.recurrence_type).toBe('weekly');
     expect(r.snapshot.pedidos_http_nesta_execucao).toBe(0);
+  });
+
+  it('--include-unclear inclui as sessões gerais (decisão explícita)', async () => {
+    vi.spyOn(console, 'log').mockImplementation(() => {});
+    const snap = snapshotFile();
+    const report = `${snap}.unclear.json`;
+    await main(['node', 'x', `--snapshot=${snap}`, '--today=2026-11-26', '--include-unclear', `--report=${report}`]);
+    created.push(report);
+    const r = JSON.parse(readFileSync(report, 'utf8'));
+    expect(r.contagens.a_inserir).toBe(2);
+    expect(r.contagens.fora_pela_regra_60plus).toBe(0);
   });
 });
