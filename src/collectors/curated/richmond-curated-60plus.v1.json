@@ -1,0 +1,184 @@
+{
+  "schema_version": 1,
+  "product": "vivere-60-plus-uk-test",
+  "verified_at": "2026-11-26",
+  "method": "Curadoria manual de factos em páginas oficiais, depois de ler robots.txt e termos de cada host (nenhuma restrição de reutilização encontrada). Só factos (título, dia, hora, local, custo, link); nenhum texto livre, nome de pessoa ou contacto individual.",
+  "organisations": {
+    "greenwood_hhhvc": {
+      "name": "Hampton & Hampton Hill Voluntary Care (Greenwood Community Centre)",
+      "site": "https://greenwoodcommunity.org.uk/",
+      "organisation_evidence": "A H&HHVC descreve-se \"with a particular focus on older people and adults who may be experiencing loneliness\" (página community-services, 26/11/2026).",
+      "terms_note": "robots.txt sem restrições; sem página de termos de reutilização (26/11/2026)."
+    },
+    "richmond_good_neighbours": {
+      "name": "Richmond Good Neighbours",
+      "site": "https://www.richmondgoodneighbours.org.uk/",
+      "organisation_evidence": "A organização descreve-se como \"Supporting elderly and housebound people\" (página inicial, 26/11/2026).",
+      "terms_note": "robots.txt permite tudo; sem termos de reutilização; só rodapé \"© Richmond Good Neighbours\" (26/11/2026)."
+    }
+  },
+  "items": [
+    {
+      "source": "greenwood_hhhvc",
+      "id": "series:hhhvc-womens-social-group:thu:1330",
+      "title": "H&HHVC Women's Social Group",
+      "schedule": {
+        "type": "weekly",
+        "days": [
+          "thu"
+        ],
+        "start": "13:30",
+        "end": "15:15"
+      },
+      "venue": {
+        "name": "Greenwood Community Centre",
+        "address": "1a School Road, Hampton Hill",
+        "postcode": "TW12 1QL"
+      },
+      "cost_text": "£25 annual donation requested (H&HHVC registration)",
+      "booking": "registration_required",
+      "audience_snippets": [],
+      "explicit_60plus_quote": null,
+      "organised_by_org": true,
+      "url": "https://greenwoodcommunity.org.uk/greenwood-community-centre-in-hampton-hill-tw12-charity-supporting-local-people/community/activities/"
+    },
+    {
+      "source": "greenwood_hhhvc",
+      "id": "series:hhhvc-mens-social-group:tue:1330",
+      "title": "H&HHVC Men's Social Group",
+      "schedule": {
+        "type": "weekly",
+        "days": [
+          "tue"
+        ],
+        "start": "13:30",
+        "end": "15:30"
+      },
+      "venue": {
+        "name": "Greenwood Community Centre",
+        "address": "1a School Road, Hampton Hill",
+        "postcode": "TW12 1QL"
+      },
+      "cost_text": "£25 annual donation requested (H&HHVC registration)",
+      "booking": "registration_required",
+      "audience_snippets": [],
+      "explicit_60plus_quote": null,
+      "organised_by_org": true,
+      "url": "https://greenwoodcommunity.org.uk/greenwood-community-centre-in-hampton-hill-tw12-charity-supporting-local-people/community/activities/"
+    },
+    {
+      "source": "greenwood_hhhvc",
+      "id": "series:flexercise-over-60s:thu:1415",
+      "title": "FLexercise Over 60s",
+      "schedule": {
+        "type": "weekly",
+        "days": [
+          "thu"
+        ],
+        "start": "14:15",
+        "end": "15:15"
+      },
+      "venue": {
+        "name": "Greenwood Community Centre",
+        "address": "1a School Road, Hampton Hill",
+        "postcode": "TW12 1QL"
+      },
+      "cost_text": null,
+      "booking": "contact_provider",
+      "audience_snippets": [],
+      "explicit_60plus_quote": "specially designed for people aged over 60.",
+      "organised_by_org": false,
+      "url": "https://greenwoodcommunity.org.uk/greenwood-community-centre-in-hampton-hill-tw12-charity-supporting-local-people/community/activities/"
+    },
+    {
+      "source": "greenwood_hhhvc",
+      "id": "series:parkinsons-exercise-class:thu:1200",
+      "title": "Parkinson's Exercise Class",
+      "schedule": {
+        "type": "weekly",
+        "days": [
+          "thu"
+        ],
+        "start": "12:00",
+        "end": "13:30"
+      },
+      "venue": {
+        "name": "Greenwood Community Centre",
+        "address": "1a School Road, Hampton Hill",
+        "postcode": "TW12 1QL"
+      },
+      "cost_text": null,
+      "booking": "contact_provider",
+      "audience_snippets": [
+        "For people living with Parkinson's"
+      ],
+      "explicit_60plus_quote": null,
+      "organised_by_org": false,
+      "url": "https://greenwoodcommunity.org.uk/greenwood-community-centre-in-hampton-hill-tw12-charity-supporting-local-people/community/activities/"
+    },
+    {
+      "source": "richmond_good_neighbours",
+      "id": "series:cambrian-teas:wed-2:1430",
+      "title": "Cambrian Teas",
+      "schedule": {
+        "type": "monthly_nth",
+        "days": [
+          "wed"
+        ],
+        "nth": 2,
+        "start": "14:30",
+        "end": "15:30"
+      },
+      "venue": {
+        "name": "The Cambrian Centre",
+        "address": "Grove Road, Richmond",
+        "postcode": "TW10 6SN"
+      },
+      "cost_text": null,
+      "booking": "drop_in",
+      "audience_snippets": [
+        "all are welcome"
+      ],
+      "explicit_60plus_quote": null,
+      "organised_by_org": true,
+      "url": "https://www.richmondgoodneighbours.org.uk/",
+      "hold_reason": "A página (lida a 26/11/2026) avisa: \"Refurbishment works are due to begin in October which will change our access to the cafe. Keep an eye out for our alternate events.\" Datas futuras não verificáveis."
+    }
+  ],
+  "excluded": [
+    {
+      "source": "greenwood_hhhvc",
+      "title": "Chair Yoga, Gentle Yoga (2), Yogic Tones, Zumba, Bridge Club, Cooking Up",
+      "reason": "aulas de terceiros no centro, sem nenhum sinal de idade na fonte"
+    },
+    {
+      "source": "greenwood_hhhvc",
+      "title": "H&HHVC Book Club; Brighter Together",
+      "reason": "sem dia/hora fixos na fonte"
+    },
+    {
+      "source": "richmond_good_neighbours",
+      "title": "Kew Retail Park Shopping Bus; Transport; Shopping; Befriending",
+      "reason": "serviços, não actividades de lazer (mesma regra do Shopping Bus da FiSH)"
+    },
+    {
+      "source": "rapg",
+      "title": "Richmond AquaPhysio Group (10 sessões de hidroterapia)",
+      "reason": "serviço terapêutico para adultos 18+, vagas atribuídas a membros; sem sinal 60+"
+    },
+    {
+      "source": "stable_and_strong",
+      "title": "Strength over Sixty",
+      "reason": "explícita 60+, mas dias e horas só numa imagem: falta horário verificável"
+    },
+    {
+      "source": "greenwood_hhhvc",
+      "title": "Singing for the Brain (Home Instead, Hampton Hill)",
+      "reason": "a página só diz \"open to all; friends, family and carers welcome\": sem sinal 60+ nem de demência na fonte (regra de inclusão)"
+    }
+  ],
+  "verified_at_pages": {
+    "greenwood_hhhvc": "2026-11-26 (horários das 4 actividades reconfirmados)",
+    "richmond_good_neighbours": "2026-11-26 (aviso de obras)"
+  }
+}
